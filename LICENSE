@@ -1,0 +1,43 @@
+SPDX-License-Identifier: AGPL-3.0-only
+
+PimPam — A social platform made by the people, for the people.
+Copyright (C) 2026 PimPam Contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
+
+---
+
+The complete text of the GNU Affero General Public License v3.0 is available at:
+https://www.gnu.org/licenses/agpl-3.0.txt
+
+Why AGPL-3.0?
+
+We chose the AGPL-3.0 deliberately. Unlike permissive licenses (MIT, Apache),
+the AGPL ensures that:
+
+  - Anyone can use, study, modify, and distribute PimPam.
+  - Any modified version must also be released under the same license.
+  - If someone runs a modified version as a web service, they must make
+    their source code available to all users of that service.
+
+This last point is critical. The "network use" clause (Section 13 of the AGPL)
+closes the "SaaS loophole" that exists in the regular GPL. No corporation can
+take PimPam's code, modify it behind closed doors, and run it as a proprietary
+service. If they use our code, their users get the source.
+
+The people's platform stays the people's platform. Always.
+
+NOTE TO CONTRIBUTORS: To include the full license text in this repository,
+run the following command from the project root:
+
+  curl -o LICENSE.full https://www.gnu.org/licenses/agpl-3.0.txt
