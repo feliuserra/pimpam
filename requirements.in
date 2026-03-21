@@ -1,0 +1,34 @@
+# PimPam — abstract backend dependencies
+# Edit this file, then regenerate requirements.txt with:
+#   uv pip compile requirements.in -o requirements.txt
+
+# --- API framework ---
+fastapi~=0.115
+uvicorn[standard]~=0.32
+
+# --- Validation & settings ---
+pydantic~=2.9
+pydantic-settings~=2.6
+python-multipart~=0.0.20     # form data & file uploads
+
+# --- Database ---
+sqlalchemy~=2.0
+alembic~=1.14
+asyncpg~=0.30                # async PostgreSQL driver
+psycopg2-binary~=2.9         # sync driver (used by Alembic)
+
+# --- Auth & security ---
+passlib[bcrypt]~=1.7         # password hashing
+python-jose[cryptography]~=3.3  # JWT tokens
+slowapi~=0.1                 # rate limiting
+cryptography~=43.0           # RSA key generation and HTTP Signature signing/verification
+
+# --- Federation ---
+httpx~=0.28                  # outgoing AP requests (delivery, actor fetching)
+
+# --- Dev & testing ---
+pytest~=8.3
+pytest-asyncio~=0.24
+aiosqlite~=0.20                  # in-memory SQLite driver for tests
+ruff~=0.9
+black~=25.0
