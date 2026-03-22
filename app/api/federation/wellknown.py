@@ -20,8 +20,8 @@ router = APIRouter(tags=["federation"])
 
 @router.get("/.well-known/webfinger")
 async def webfinger(
+    db: DBSession,
     resource: str = Query(..., description="acct:username@domain"),
-    db: DBSession = None,
 ):
     """
     Actor discovery. Allows remote servers to resolve acct:user@domain
