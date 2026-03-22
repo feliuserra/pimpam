@@ -16,6 +16,12 @@ class PostCreate(BaseModel):
         return self
 
 
+class PostUpdate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+    url: str | None = None
+
+
 class PostPublic(BaseModel):
     id: int
     title: str
@@ -24,6 +30,9 @@ class PostPublic(BaseModel):
     author_id: int
     community_id: int | None
     karma: int
+    is_edited: bool
+    edited_at: datetime | None
+    is_removed: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

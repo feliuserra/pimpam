@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -15,16 +15,24 @@ class Post(Base):
     url: Mapped[str | None] = mapped_column(String(2048))
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     community_id: Mapped[int | None] = mapped_column(ForeignKey("communities.id"))
-    karma: Mapped[int] = mapped_column(Integer, default=0)
+    karma: Mapped[int] = mapped_column(Integer, default=1)  # starts at 1 (author's implicit vote)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
-        index=True,  # indexed for chronological feed queries
+        index=True,
     )
+
+    # Edit tracking — history is not public, only the flag is
+    is_edited: Mapped[bool] = mapped_column(Boolean, default=False)
+    edited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Moderation — removed posts are hidden from public but visible to moderators
+    is_removed: Mapped[bool] = mapped_column(Boolean, default=False)
+    removed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
     # ActivityPub federation — stores the remote post's URL for federated content
     ap_id: Mapped[str | None] = mapped_column(String(2048), unique=True)
 
     # Relationships
-    author: Mapped["User"] = relationship(back_populates="posts", lazy="raise")
+    author: Mapped["User"] = relationship(foreign_keys=[author_id], back_populates="posts", lazy="raise")
     community: Mapped["Community | None"] = relationship(back_populates="posts", lazy="raise")

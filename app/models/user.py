@@ -33,7 +33,7 @@ class User(Base):
     ap_private_key_pem: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
-    posts: Mapped[list["Post"]] = relationship(back_populates="author", lazy="raise")
+    posts: Mapped[list["Post"]] = relationship(foreign_keys="Post.author_id", back_populates="author", lazy="raise")
     following: Mapped[list["Follow"]] = relationship(
         foreign_keys="Follow.follower_id", back_populates="follower", lazy="raise"
     )
