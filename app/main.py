@@ -6,7 +6,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.api.v1 import auth, communities, feed, messages, posts, users
+from app.api.v1 import auth, communities, feed, messages, moderation, posts, users
 from app.api.federation import actor_routes, wellknown
 from app.core.config import settings
 
@@ -49,6 +49,7 @@ app.include_router(users.router, prefix=_prefix)
 app.include_router(feed.router, prefix=_prefix)
 app.include_router(posts.router, prefix=_prefix)
 app.include_router(communities.router, prefix=_prefix)
+app.include_router(moderation.router, prefix=_prefix)
 app.include_router(messages.router, prefix=_prefix)
 
 # Federation routers — mounted at root (ActivityPub & WebFinger paths are protocol-defined)
