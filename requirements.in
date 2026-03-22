@@ -7,12 +7,12 @@ fastapi~=0.115
 uvicorn[standard]~=0.32
 
 # --- Validation & settings ---
-pydantic~=2.9
+pydantic[email]~=2.9
 pydantic-settings~=2.6
 python-multipart~=0.0.20     # form data & file uploads
 
 # --- Database ---
-sqlalchemy~=2.0
+sqlalchemy[asyncio]~=2.0     # [asyncio] extra pulls in greenlet
 alembic~=1.14
 asyncpg~=0.30                # async PostgreSQL driver
 psycopg2-binary~=2.9         # sync driver (used by Alembic)
