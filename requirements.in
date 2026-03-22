@@ -26,6 +26,10 @@ cryptography~=43.0           # RSA key generation and HTTP Signature signing/ver
 # --- Federation ---
 httpx~=0.28                  # outgoing AP requests (delivery, actor fetching)
 
+# --- Docs ---
+sphinx~=8.0
+furo~=2024.8                     # clean modern Sphinx theme
+
 # --- Dev & testing ---
 pytest~=8.3
 pytest-asyncio~=0.24
