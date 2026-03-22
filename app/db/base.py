@@ -7,3 +7,5 @@ from app.models.community import Community, CommunityMember  # noqa: F401
 from app.models.message import Message  # noqa: F401
 from app.models.follow import Follow  # noqa: F401
 from app.models.remote_actor import RemoteActor  # noqa: F401
+from app.models.vote import Vote  # noqa: F401
+from app.models.moderation import Ban, BanProposal, BanProposalVote, ModProposal, ModProposalVote  # noqa: F401
