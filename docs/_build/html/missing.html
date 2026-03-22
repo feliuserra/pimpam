@@ -259,18 +259,21 @@ Cross off items here as they are completed.</p>
 <hr class="docutils" />
 <section id="critical-gaps-blocking-basic-usage">
 <h2>Critical gaps (blocking basic usage)<a class="headerlink" href="#critical-gaps-blocking-basic-usage" title="Link to this heading">¶</a></h2>
-<p>These are missing from the current scaffold and prevent the app from being usable end-to-end.</p>
 <section id="follow-unfollow">
 <h3>Follow / Unfollow<a class="headerlink" href="#follow-unfollow" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> No endpoint exists yet.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">follows</span></code> table and <code class="docutils literal notranslate"><span class="pre">Follow</span></code> model are in place, and the feed query
-already reads from it — but there is no API endpoint to create or delete a Follow.
-Until this exists, the feed will always return an empty list for every user.</p>
-<p><strong>To implement:</strong></p>
+<p><strong>Status:</strong> ✅ Implemented.</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/users/{username}/follow</span></code> — follow a user</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/users/{username}/follow</span></code> — unfollow a user</p></li>
-<li><p>For remote users: send an AP <code class="docutils literal notranslate"><span class="pre">Follow</span></code> activity to their inbox via <code class="docutils literal notranslate"><span class="pre">delivery.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/users/{username}/follow</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/users/{username}/follow</span></code></p></li>
+</ul>
+<p><strong>Remaining TODO (federation):</strong> Following remote (federated) users is local-only for now.
+When a target user has <code class="docutils literal notranslate"><span class="pre">is_remote=True</span></code>, the follow is stored locally but no AP <code class="docutils literal notranslate"><span class="pre">Follow</span></code>
+activity is sent to the remote server. To implement:</p>
+<ul class="simple">
+<li><p>Fetch the remote actor’s inbox URL from the <code class="docutils literal notranslate"><span class="pre">RemoteActor</span></code> cache.</p></li>
+<li><p>Deliver an AP <code class="docutils literal notranslate"><span class="pre">Follow</span></code> activity via <code class="docutils literal notranslate"><span class="pre">delivery.py</span></code>.</p></li>
+<li><p>Store the follow as <code class="docutils literal notranslate"><span class="pre">pending</span></code> until an <code class="docutils literal notranslate"><span class="pre">Accept</span></code> activity is received back.</p></li>
+<li><p>Handle the <code class="docutils literal notranslate"><span class="pre">Accept</span></code> response in <code class="docutils literal notranslate"><span class="pre">activity_handler.py</span></code>.</p></li>
 </ul>
 </section>
 </section>
@@ -279,20 +282,25 @@ Until this exists, the feed will always return an empty list for every user.</p>
 <h2>Posts<a class="headerlink" href="#posts" title="Link to this heading">¶</a></h2>
 <section id="list-posts-by-community">
 <h3>List posts by community<a class="headerlink" href="#list-posts-by-community" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> Not implemented.</p>
-<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/communities/{name}/posts</span></code> does not exist.
-Posts can be created with a <code class="docutils literal notranslate"><span class="pre">community_id</span></code> but there is no way to retrieve them by community.</p>
+<p><strong>Status:</strong> ✅ Implemented — <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/communities/{name}/posts</span></code></p>
+<p>Cursor-paginated, chronological. Moderators see removed posts.</p>
 </section>
 <section id="karma-voting">
 <h3>Karma voting<a class="headerlink" href="#karma-voting" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> Model field exists (<code class="docutils literal notranslate"><span class="pre">Post.karma</span></code>, <code class="docutils literal notranslate"><span class="pre">User.karma</span></code>), no vote endpoint.</p>
-<p>Need <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/posts/{id}/vote</span></code> with <code class="docutils literal notranslate"><span class="pre">{&quot;direction&quot;:</span> <span class="pre">1}</span></code> or <code class="docutils literal notranslate"><span class="pre">{&quot;direction&quot;:</span> <span class="pre">-1}</span></code>.
-The karma engine logic (privilege thresholds, anti-abuse rules) is also undesigned.</p>
+<p><strong>Status:</strong> ✅ Implemented.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/posts/{id}/vote</span></code> — cast or change a vote (<code class="docutils literal notranslate"><span class="pre">{&quot;direction&quot;:</span> <span class="pre">1}</span></code> or <code class="docutils literal notranslate"><span class="pre">{&quot;direction&quot;:</span> <span class="pre">-1}</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/posts/{id}/vote</span></code> — retract a vote</p></li>
+</ul>
+<p>Rules: authors receive an automatic +1 on post creation and cannot vote on their own posts.
+Vote changes update both <code class="docutils literal notranslate"><span class="pre">Post.karma</span></code> and the author’s <code class="docutils literal notranslate"><span class="pre">User.karma</span></code>.</p>
+<p><strong>Remaining:</strong> karma privilege thresholds (what karma unlocks) are not yet designed.</p>
 </section>
 <section id="edit-a-post">
 <h3>Edit a post<a class="headerlink" href="#edit-a-post" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> Not implemented.</p>
-<p><code class="docutils literal notranslate"><span class="pre">PATCH</span> <span class="pre">/api/v1/posts/{id}</span></code> does not exist.</p>
+<p><strong>Status:</strong> ✅ Implemented — <code class="docutils literal notranslate"><span class="pre">PATCH</span> <span class="pre">/api/v1/posts/{id}</span></code></p>
+<p>1-hour edit window enforced server-side. Edits are flagged publicly (<code class="docutils literal notranslate"><span class="pre">is_edited=True</span></code>,
+<code class="docutils literal notranslate"><span class="pre">edited_at</span></code> timestamp) but edit history is not stored.</p>
 </section>
 </section>
 <hr class="docutils" />
@@ -300,17 +308,26 @@ The karma engine logic (privilege thresholds, anti-abuse rules) is also undesign
 <h2>Communities<a class="headerlink" href="#communities" title="Link to this heading">¶</a></h2>
 <section id="list-all-communities">
 <h3>List all communities<a class="headerlink" href="#list-all-communities" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> Not implemented.</p>
-<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/communities</span></code> (with pagination) does not exist.</p>
+<p><strong>Status:</strong> ✅ Implemented — <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/communities?sort=popular|alphabetical|newest</span></code></p>
+<p>Page-based pagination (<code class="docutils literal notranslate"><span class="pre">page</span></code>, <code class="docutils literal notranslate"><span class="pre">limit</span></code>).</p>
 </section>
 <section id="moderation-tools">
 <h3>Moderation tools<a class="headerlink" href="#moderation-tools" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> Not implemented.</p>
+<p><strong>Status:</strong> ✅ Implemented (core set).</p>
 <ul class="simple">
-<li><p>Remove a post from a community</p></li>
-<li><p>Ban a user from a community</p></li>
-<li><p>Promote a member to moderator</p></li>
-<li><p>Transfer community ownership</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/communities/{name}/posts/{post_id}</span></code> — hide a post (reversible)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/communities/{name}/posts/{post_id}/restore</span></code> — restore a hidden post</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/communities/{name}/bans</span></code> — propose a ban (CoC violation required)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/communities/{name}/bans/{id}/vote</span></code> — vote on a ban proposal (auto-applies at 10 votes)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/communities/{name}/bans</span></code> — list active bans (mods only)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/communities/{name}/moderators</span></code> — propose mod promotion</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/communities/{name}/moderators/{id}/vote</span></code> — vote on promotion (majority of mods required)</p></li>
+</ul>
+<p><strong>Remaining:</strong></p>
+<ul class="simple">
+<li><p>Transfer community ownership (owner → another moderator)</p></li>
+<li><p>Different moderator roles/tiers (planned for a future iteration)</p></li>
+<li><p>Appealing a ban (banned user perspective)</p></li>
 </ul>
 </section>
 </section>

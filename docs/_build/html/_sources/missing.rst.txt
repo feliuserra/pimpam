@@ -9,22 +9,22 @@ Cross off items here as they are completed.
 Critical gaps (blocking basic usage)
 -------------------------------------
 
-These are missing from the current scaffold and prevent the app from being usable end-to-end.
-
 Follow / Unfollow
 ~~~~~~~~~~~~~~~~~
 
-**Status:** No endpoint exists yet.
+**Status:** ✅ Implemented.
 
-The ``follows`` table and ``Follow`` model are in place, and the feed query
-already reads from it — but there is no API endpoint to create or delete a Follow.
-Until this exists, the feed will always return an empty list for every user.
+- ``POST /api/v1/users/{username}/follow``
+- ``DELETE /api/v1/users/{username}/follow``
 
-**To implement:**
+**Remaining TODO (federation):** Following remote (federated) users is local-only for now.
+When a target user has ``is_remote=True``, the follow is stored locally but no AP ``Follow``
+activity is sent to the remote server. To implement:
 
-- ``POST /api/v1/users/{username}/follow`` — follow a user
-- ``DELETE /api/v1/users/{username}/follow`` — unfollow a user
-- For remote users: send an AP ``Follow`` activity to their inbox via ``delivery.py``
+- Fetch the remote actor's inbox URL from the ``RemoteActor`` cache.
+- Deliver an AP ``Follow`` activity via ``delivery.py``.
+- Store the follow as ``pending`` until an ``Accept`` activity is received back.
+- Handle the ``Accept`` response in ``activity_handler.py``.
 
 ----
 
@@ -34,25 +34,30 @@ Posts
 List posts by community
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** Not implemented.
+**Status:** ✅ Implemented — ``GET /api/v1/communities/{name}/posts``
 
-``GET /api/v1/communities/{name}/posts`` does not exist.
-Posts can be created with a ``community_id`` but there is no way to retrieve them by community.
+Cursor-paginated, chronological. Moderators see removed posts.
 
 Karma voting
 ~~~~~~~~~~~~
 
-**Status:** Model field exists (``Post.karma``, ``User.karma``), no vote endpoint.
+**Status:** ✅ Implemented.
 
-Need ``POST /api/v1/posts/{id}/vote`` with ``{"direction": 1}`` or ``{"direction": -1}``.
-The karma engine logic (privilege thresholds, anti-abuse rules) is also undesigned.
+- ``POST /api/v1/posts/{id}/vote`` — cast or change a vote (``{"direction": 1}`` or ``{"direction": -1}``)
+- ``DELETE /api/v1/posts/{id}/vote`` — retract a vote
+
+Rules: authors receive an automatic +1 on post creation and cannot vote on their own posts.
+Vote changes update both ``Post.karma`` and the author's ``User.karma``.
+
+**Remaining:** karma privilege thresholds (what karma unlocks) are not yet designed.
 
 Edit a post
 ~~~~~~~~~~~
 
-**Status:** Not implemented.
+**Status:** ✅ Implemented — ``PATCH /api/v1/posts/{id}``
 
-``PATCH /api/v1/posts/{id}`` does not exist.
+1-hour edit window enforced server-side. Edits are flagged publicly (``is_edited=True``,
+``edited_at`` timestamp) but edit history is not stored.
 
 ----
 
@@ -62,19 +67,28 @@ Communities
 List all communities
 ~~~~~~~~~~~~~~~~~~~~
 
-**Status:** Not implemented.
+**Status:** ✅ Implemented — ``GET /api/v1/communities?sort=popular|alphabetical|newest``
 
-``GET /api/v1/communities`` (with pagination) does not exist.
+Page-based pagination (``page``, ``limit``).
 
 Moderation tools
 ~~~~~~~~~~~~~~~~
 
-**Status:** Not implemented.
+**Status:** ✅ Implemented (core set).
 
-- Remove a post from a community
-- Ban a user from a community
-- Promote a member to moderator
-- Transfer community ownership
+- ``DELETE /api/v1/communities/{name}/posts/{post_id}`` — hide a post (reversible)
+- ``POST /api/v1/communities/{name}/posts/{post_id}/restore`` — restore a hidden post
+- ``POST /api/v1/communities/{name}/bans`` — propose a ban (CoC violation required)
+- ``POST /api/v1/communities/{name}/bans/{id}/vote`` — vote on a ban proposal (auto-applies at 10 votes)
+- ``GET /api/v1/communities/{name}/bans`` — list active bans (mods only)
+- ``POST /api/v1/communities/{name}/moderators`` — propose mod promotion
+- ``POST /api/v1/communities/{name}/moderators/{id}/vote`` — vote on promotion (majority of mods required)
+
+**Remaining:**
+
+- Transfer community ownership (owner → another moderator)
+- Different moderator roles/tiers (planned for a future iteration)
+- Appealing a ban (banned user perspective)
 
 ----
 
