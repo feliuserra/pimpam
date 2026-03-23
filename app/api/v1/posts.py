@@ -3,9 +3,10 @@ from fastapi import APIRouter, HTTPException, Request, status
 from app.core.config import settings
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
+from app.core.redis import publish_to_user
 from app.core.search import deindex_post, index_post
 from app.crud.post import create_post, delete_post, edit_post, get_post
-from app.crud.user import get_remote_follower_inboxes
+from app.crud.user import get_local_follower_ids, get_remote_follower_inboxes
 from app.crud.vote import cast_vote, retract_vote
 from app.federation.actor import build_announce, build_create, build_like, build_undo_like
 from app.federation.delivery import deliver_activity
@@ -21,6 +22,15 @@ async def create(request: Request, data: PostCreate, current_user: CurrentUser, 
     """Create a new post, optionally within a community."""
     post = await create_post(db, data, author_id=current_user.id)
     await index_post(post)
+
+    # Notify local followers in real time
+    follower_ids = await get_local_follower_ids(db, current_user.id)
+    for fid in follower_ids:
+        await publish_to_user(fid, "new_post", {
+            "id": post.id,
+            "title": post.title,
+            "author": current_user.username,
+        })
 
     if settings.federation_enabled:
         try:
@@ -100,6 +110,11 @@ async def vote(request: Request, post_id: int, data: VoteCreate, current_user: C
         if author:
             author.karma += karma_delta
         await db.commit()
+        await publish_to_user(post.author_id, "karma_update", {
+            "post_id": post_id,
+            "post_karma": post.karma,
+            "user_karma": author.karma if author else None,
+        })
 
     # Send AP Like for +1 votes on federated posts
     if settings.federation_enabled and data.direction == 1 and post.ap_id:
@@ -139,6 +154,11 @@ async def retract(request: Request, post_id: int, current_user: CurrentUser, db:
     if author:
         author.karma += karma_delta
     await db.commit()
+    await publish_to_user(post.author_id, "karma_update", {
+        "post_id": post_id,
+        "post_karma": post.karma,
+        "user_karma": author.karma if author else None,
+    })
 
     # Send AP Undo{Like} for federated posts
     if settings.federation_enabled and post.ap_id:

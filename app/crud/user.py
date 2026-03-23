@@ -51,6 +51,20 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> U
     return user
 
 
+async def get_local_follower_ids(db: AsyncSession, user_id: int) -> list[int]:
+    """Return IDs of all confirmed local (non-remote) followers of user_id."""
+    result = await db.execute(
+        select(Follow.follower_id)
+        .join(User, User.id == Follow.follower_id)
+        .where(
+            Follow.followed_id == user_id,
+            User.is_remote == False,  # noqa: E712
+            Follow.is_pending == False,  # noqa: E712
+        )
+    )
+    return list(result.scalars().all())
+
+
 async def get_remote_follower_inboxes(db: AsyncSession, user_id: int) -> list[str]:
     """Return inbox URLs of all confirmed remote followers of user_id (for AP delivery)."""
     result = await db.execute(

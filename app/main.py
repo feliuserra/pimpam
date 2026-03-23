@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app.api import ws as ws_router
 from app.api.v1 import auth, communities, feed, media, messages, moderation, posts, search, users
 from app.api.federation import actor_routes, wellknown
 from app.core.config import settings
@@ -25,7 +26,14 @@ async def lifespan(app: FastAPI):
             configure_index()
         except Exception:
             pass  # search unavailable at startup — search endpoints will return 503
+    from app.core.redis import get_redis
+    try:
+        get_redis()  # eagerly create the client; actual connection is lazy
+    except Exception:
+        pass
     yield
+    from app.core.redis import close_redis
+    await close_redis()
 
 
 app = FastAPI(
@@ -61,6 +69,9 @@ app.include_router(moderation.router, prefix=_prefix)
 app.include_router(messages.router, prefix=_prefix)
 app.include_router(media.router, prefix=_prefix)
 app.include_router(search.router, prefix=_prefix)
+
+# WebSocket — no version prefix, mounted at root
+app.include_router(ws_router.router)
 
 # Federation routers — mounted at root (ActivityPub & WebFinger paths are protocol-defined)
 if settings.federation_enabled:
