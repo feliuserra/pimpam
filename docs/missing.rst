@@ -174,8 +174,23 @@ Search
 Real-time (WebSockets)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** Not implemented. Live feed updates, message notifications, and
-typing indicators all require a WebSocket layer.
+**Status:** ✅ Implemented — ``WS /ws?token=<access_token>``
+
+- One persistent connection per authenticated user, backed by Redis pub/sub.
+- Three event types pushed to the client:
+
+  - ``new_post`` — a followed user published a post (live feed update)
+  - ``new_message`` — a DM was received
+  - ``karma_update`` — one of the user's posts was voted on
+
+- Auth: JWT access token passed as ``?token=`` query parameter (same secret as REST API).
+- Connection closes after 60 s of client silence; clients should reconnect (no event replay).
+- Redis being down never breaks primary operations — all publish calls are fire-and-forget.
+
+**Not yet implemented:**
+
+- Typing indicators for DMs
+- Live community activity (new posts in a community the user is browsing)
 
 Media uploads
 ~~~~~~~~~~~~~
