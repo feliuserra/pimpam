@@ -19,12 +19,18 @@ psycopg2-binary~=2.9         # sync driver (used by Alembic)
 
 # --- Auth & security ---
 passlib[bcrypt]~=1.7         # password hashing
+bcrypt>=4.0,<5.0             # 5.0 broke passlib compatibility; prehash in security.py handles 72-byte limit
 python-jose[cryptography]~=3.3  # JWT tokens
 slowapi~=0.1                 # rate limiting
-cryptography~=43.0           # RSA key generation and HTTP Signature signing/verification
+cryptography~=43.0           # RSA key generation, HTTP Signature signing/verification, Fernet AES encryption
+pyotp~=2.9                   # TOTP 2FA (RFC 6238)
 
 # --- Federation ---
 httpx~=0.28                  # outgoing AP requests (delivery, actor fetching)
+
+# --- Media ---
+pillow~=11.0                 # image processing and WebP conversion
+boto3~=1.35                  # S3-compatible storage client (MinIO in dev, Cloudflare R2 in prod)
 
 # --- Docs ---
 sphinx~=8.0
