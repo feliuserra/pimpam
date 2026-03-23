@@ -205,6 +205,7 @@
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Feed</a></li>
 <li class="toctree-l1"><a class="reference internal" href="posts.html">Posts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="communities.html">Communities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="moderation.html">Moderation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="messages.html">Direct Messages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="federation.html">Federation (ActivityPub)</a></li>
 </ul>
@@ -256,16 +257,21 @@
 <h1>Feed<a class="headerlink" href="#feed" title="Link to this heading">¶</a></h1>
 <p>Base path: <code class="docutils literal notranslate"><span class="pre">/api/v1/feed</span></code></p>
 <p>Requires authentication.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Rate limit: <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/feed</span></code> — 60/min.</p>
+</div>
 <hr class="docutils" />
 <section id="get-chronological-feed">
 <h2>Get chronological feed<a class="headerlink" href="#get-chronological-feed" title="Link to this heading">¶</a></h2>
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">GET /api/v1/feed</span>
 </pre></div>
 </div>
-<p>Returns posts from users you follow, ordered by time descending.
-<strong>There is no algorithmic ranking.</strong> The order is always newest first, always.</p>
+<p>Returns posts from users you follow, ordered newest first.
+<strong>There is no algorithmic ranking.</strong> Order is always chronological — no ML, no engagement signals.</p>
+<p>Removed posts are excluded from the feed.</p>
 <p>Pagination is cursor-based via <code class="docutils literal notranslate"><span class="pre">before_id</span></code> — never offset-based,
-which avoids the duplicate/missing post problems that come with <code class="docutils literal notranslate"><span class="pre">OFFSET</span></code>.</p>
+which avoids duplicate or missing posts when new content arrives.</p>
 <p><strong>Query parameters</strong></p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
@@ -296,12 +302,15 @@ which avoids the duplicate/missing post problems that come with <code class="doc
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
 <span class="w">  </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">99</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello from Alice&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello from Bob&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;First post!&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;author_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;author_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;karma&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;karma&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_edited&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;edited_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_removed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-03-22T17:10:00Z&quot;</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">]</span>
@@ -314,11 +323,6 @@ GET<span class="w"> </span>/api/v1/feed?limit<span class="o">=</span><span class
 <span class="c1"># Next page — pass the id of the last post from the previous response</span>
 GET<span class="w"> </span>/api/v1/feed?limit<span class="o">=</span><span class="m">20</span><span class="p">&amp;</span><span class="nv">before_id</span><span class="o">=</span><span class="m">80</span>
 </pre></div>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>The feed will be empty until follow/unfollow is implemented.
-See <a class="reference internal" href="../missing.html"><span class="doc">Missing &amp; Planned Features</span></a>.</p>
 </div>
 </section>
 </section>
