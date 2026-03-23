@@ -52,22 +52,70 @@ These aren't marketing slogans. They're commitments baked into the code, the lic
 
 PimPam is built with a modern, accessible stack designed for community contribution:
 
-- **Frontend:** React
-- **Backend:** Node.js with Express
-- **Database:** PostgreSQL
-- **Real-time:** Socket.io for messaging and live updates
-- **Encryption:** End-to-end encryption for direct messages
-- **Infrastructure:** Designed to be self-hostable — anyone can run their own PimPam instance
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React + Vite (PWA) |
+| Backend | Python + FastAPI |
+| Database | PostgreSQL |
+| ORM | SQLAlchemy 2.0 (async) |
+| Migrations | Alembic |
+| Real-time | WebSockets via FastAPI + Redis pub/sub |
+| Federation | ActivityPub (HTTP Signatures, WebFinger) |
+| Search | Meilisearch (full-text over posts) |
+| Media storage | S3-compatible (MinIO in dev, Cloudflare R2 in prod) |
+| DM encryption | End-to-end (client-side keys; server stores ciphertext only) |
+| Rate limiting | slowapi |
+| Infrastructure | Docker Compose; designed to be self-hostable |
 
 The architecture prioritizes simplicity, security, and the ability for anyone to contribute, audit, or fork the project.
 
+## API overview
+
+All features are exposed via a versioned REST API at `/api/v1/`. Interactive docs are available at `/docs` (Swagger UI) when running locally.
+
+| Area | Endpoints |
+|------|-----------|
+| Auth | Register, login, refresh tokens, 2FA (TOTP setup/verify/disable) |
+| Users | Own profile, public profile, follow/unfollow |
+| Feed | Chronological feed from followed users (cursor-paginated) |
+| Posts | Create, edit, delete, vote (+1/-1), boost (AP Announce), share (reshare to followers/community) |
+| Comments | Nested threads (5 levels), sort by latest or top, author delete, mod remove/restore |
+| Reactions | Per-comment reactions: agree (+1 karma), love (+2), misleading (−2), disagree (requires a reply, 10/day limit) |
+| Communities | Create, list, join/leave, post listing, member karma |
+| Moderation | Remove/restore posts and comments, ban proposals, ban appeals, mod promotion, ownership transfer |
+| Messages | Send (E2EE), inbox, conversation thread, mark as read |
+| Media | Upload images (JPEG/PNG/WebP/GIF → WebP, EXIF stripped, S3 storage) |
+| Search | Full-text search over post titles and content (`GET /api/v1/search`) |
+| Notifications | Persistent inbox, 14 event types, grouped reactions/votes, per-type opt-out |
+| Real-time | WebSocket at `WS /ws?token=<jwt>` — new_post, new_comment, new_message, karma_update, notification |
+| Federation | ActivityPub: WebFinger, NodeInfo, Actor, Inbox, Outbox, HTTP Signatures |
+
 ## Project status
 
-PimPam is in its earliest stage. Right now, we're laying the foundation — defining the philosophy, values, and governance that will guide every technical decision going forward.
+The core backend is complete and covered by an integration test suite (`pytest -v`). All API endpoints are implemented, documented, and rate-limited.
 
-This is intentional. We're not rushing to ship features. We're building something meant to last, and that starts with getting the fundamentals right.
+**What's working today:**
+- Full auth flow with optional 2FA (TOTP, secrets encrypted at rest)
+- Chronological feed — strictly time-ordered, never algorithmic
+- Posts: create, edit (1-hour window), vote, share (reshares trace to root original)
+- Comments: nested threads up to 5 levels, sort by latest or most-reacted, author delete, mod remove/restore
+- Comment reactions: agree, love, misleading, disagree — each with a distinct karma effect; disagree requires an accompanying reply to activate, capped at 10/day
+- Two-tier karma: global (shown on profile) + per-community (unlocks trusted_member at 50, gates mod eligibility at 200/500)
+- Communities with a full moderation system: role hierarchy (member → trusted_member → moderator → senior_mod → owner), ban proposals, ban appeals, mod promotion, ownership transfer
+- End-to-end encrypted direct messages
+- Real-time updates via WebSocket (new post, new comment, new message, karma update, notifications)
+- Persistent notification inbox: 14 event types covering social actions and moderation, with grouped counts for reactions/votes, per-type opt-out preferences
+- Full-text search via Meilisearch
+- ActivityPub federation — follow remote users, receive posts, boost content across the fediverse
+- CI/CD with coverage enforcement (≥70%) on every push
 
-Want to help shape what PimPam becomes? Read our [Contributing Guide](CONTRIBUTING.md) and join the conversation.
+**What's next:**
+- React frontend (the `client/` directory is currently a skeleton)
+- Multiple images per post
+- Typing indicators in DMs
+- Karma privilege thresholds (rate-limit relaxation, community creation gating for trusted users)
+
+Want to help? Read our [Contributing Guide](CONTRIBUTING.md) and check the open issues.
 
 ## Getting involved
 
