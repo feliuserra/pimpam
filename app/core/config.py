@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+app/core/config.pyfrom pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     storage_region: str = "auto"           # R2 uses "auto"; AWS uses e.g. "us-east-1"
     storage_public_url: str = "http://localhost:9000/pimpam"  # base URL for serving files
     storage_enabled: bool = True
+
+    # Search (Meilisearch)
+    search_url: str = "http://localhost:7700"
+    search_api_key: str = ""   # leave blank for local dev; set a master key in prod
+    search_enabled: bool = True
 
     # Media limits
     media_max_upload_bytes: int = 10 * 1024 * 1024  # 10 MB

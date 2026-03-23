@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
+from app.core.search import deindex_post, index_post
 from app.crud.post import create_post, delete_post, edit_post, get_post
 from app.crud.vote import cast_vote, retract_vote
 from app.schemas.post import PostCreate, PostPublic, PostUpdate
@@ -14,7 +15,9 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 @limiter.limit("10/minute")
 async def create(request: Request, data: PostCreate, current_user: CurrentUser, db: DBSession):
     """Create a new post, optionally within a community."""
-    return await create_post(db, data, author_id=current_user.id)
+    post = await create_post(db, data, author_id=current_user.id)
+    await index_post(post)
+    return post
 
 
 @router.get("/{post_id}", response_model=PostPublic)
@@ -40,9 +43,11 @@ async def edit(request: Request, post_id: int, data: PostUpdate, current_user: C
     if post.author_id != current_user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your post")
     try:
-        return await edit_post(db, post, data)
+        post = await edit_post(db, post, data)
     except ValueError as e:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(e))
+    await index_post(post)
+    return post
 
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -53,6 +58,7 @@ async def delete(post_id: int, current_user: CurrentUser, db: DBSession):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
     if post.author_id != current_user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your post")
+    await deindex_post(post_id)
     await delete_post(db, post)
 
 
