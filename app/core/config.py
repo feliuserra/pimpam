@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     storage_public_url: str = "http://localhost:9000/pimpam"  # base URL for serving files
     storage_enabled: bool = True
 
+    # Real-time (Redis pub/sub for WebSocket fan-out)
+    redis_url: str = "redis://localhost:6379"
+
     # Search (Meilisearch)
     search_url: str = "http://localhost:7700"
     search_api_key: str = ""   # leave blank for local dev; set a master key in prod

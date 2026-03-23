@@ -3,6 +3,7 @@ from sqlalchemy import case, func, or_, select, update
 
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
+from app.core.redis import publish_to_user
 from app.crud.user import get_user_by_id
 from app.models.message import Message
 from app.models.user import User
@@ -34,6 +35,12 @@ async def send_message(request: Request, data: MessageSend, current_user: Curren
     db.add(message)
     await db.commit()
     await db.refresh(message)
+
+    await publish_to_user(data.recipient_id, "new_message", {
+        "sender_id": current_user.id,
+        "sender_username": current_user.username,
+    })
+
     return message
 
 
