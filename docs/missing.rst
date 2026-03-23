@@ -17,14 +17,7 @@ Follow / Unfollow
 - ``POST /api/v1/users/{username}/follow``
 - ``DELETE /api/v1/users/{username}/follow``
 
-**Remaining TODO (federation):** Following remote (federated) users is local-only for now.
-When a target user has ``is_remote=True``, the follow is stored locally but no AP ``Follow``
-activity is sent to the remote server. To implement:
-
-- Fetch the remote actor's inbox URL from the ``RemoteActor`` cache.
-- Deliver an AP ``Follow`` activity via ``delivery.py``.
-- Store the follow as ``pending`` until an ``Accept`` activity is received back.
-- Handle the ``Accept`` response in ``activity_handler.py``.
+Federation follow/unfollow is fully implemented — see the Federation section below.
 
 ----
 
@@ -127,26 +120,40 @@ Federation
 Outgoing delivery on post creation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** ``delivery.py`` is implemented but never called.
+**Status:** ✅ Implemented — gated by ``FEDERATION_ENABLED`` flag.
 
-When a local user creates a post, a ``Create{Note}`` activity should be delivered
-to all followers' inboxes. The call site in ``POST /api/v1/posts`` is missing.
+When a local user creates a post, a ``Create{Note}`` activity is delivered to all
+confirmed remote followers' inboxes. Delivery is fire-and-forget; failure never
+blocks post creation.
 
 Follow initiation from local user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** Incoming follows from remote servers work. Outgoing follows (a local
-user following a Mastodon account) do not — no endpoint sends the AP ``Follow`` activity.
+**Status:** ✅ Implemented — gated by ``FEDERATION_ENABLED`` flag.
+
+- ``POST /api/v1/users/{username}/follow`` — when the target has ``is_remote=True``,
+  sends an AP ``Follow`` activity and stores the follow as ``is_pending=True`` until
+  an ``Accept`` arrives via the inbox.
+- ``DELETE /api/v1/users/{username}/follow`` — sends ``Undo{Follow}`` to remote inbox.
+- Incoming ``Accept`` activities clear ``is_pending`` so the follow appears in feeds.
 
 Announce (boost / reblog)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** Not implemented. No AP ``Announce`` activity is sent or handled.
+**Status:** ✅ Implemented — gated by ``FEDERATION_ENABLED`` flag.
+
+- ``POST /api/v1/posts/{id}/boost`` — sends an AP ``Announce`` activity to all remote
+  followers' inboxes. Only federated posts (``ap_id`` set) can be boosted.
+  Returns ``400`` for local-only posts and ``503`` when federation is disabled.
 
 Like
 ~~~~
 
-**Status:** Not implemented. No AP ``Like`` activity is sent or handled.
+**Status:** ✅ Implemented — gated by ``FEDERATION_ENABLED`` flag.
+
+- ``POST /api/v1/posts/{id}/vote`` (+1) — sends AP ``Like`` to the remote author's inbox
+  when the post originated from a remote server (``ap_id`` set).
+- ``DELETE /api/v1/posts/{id}/vote`` — sends ``Undo{Like}`` to the remote author's inbox.
 
 ----
 
