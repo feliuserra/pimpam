@@ -1,8 +1,9 @@
 from enum import Enum
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from app.core.dependencies import CurrentUser, DBSession, OptionalUser
+from app.core.limiter import limiter
 from app.crud.community import (
     create_community,
     get_community_by_name,
@@ -52,7 +53,8 @@ async def list_communities(
 
 
 @router.post("", response_model=CommunityPublic, status_code=status.HTTP_201_CREATED)
-async def create(data: CommunityCreate, current_user: CurrentUser, db: DBSession):
+@limiter.limit("5/minute")
+async def create(request: Request, data: CommunityCreate, current_user: CurrentUser, db: DBSession):
     """Create a new community. The creator becomes owner and first moderator."""
     if await get_community_by_name(db, data.name):
         raise HTTPException(status.HTTP_409_CONFLICT, detail="Community name already taken")

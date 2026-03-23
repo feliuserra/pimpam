@@ -30,6 +30,9 @@ class Post(Base):
     is_removed: Mapped[bool] = mapped_column(Boolean, default=False)
     removed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
+    # Uploaded image — URL pointing to S3-compatible storage (WebP, processed server-side)
+    image_url: Mapped[str | None] = mapped_column(String(2048))
+
     # ActivityPub federation — stores the remote post's URL for federated content
     ap_id: Mapped[str | None] = mapped_column(String(2048), unique=True)
 

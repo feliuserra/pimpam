@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from app.core.dependencies import CurrentUser, DBSession
+from app.core.limiter import limiter
 from app.crud.post import get_chronological_feed
 from app.schemas.post import PostPublic
 
@@ -8,7 +9,9 @@ router = APIRouter(prefix="/feed", tags=["feed"])
 
 
 @router.get("", response_model=list[PostPublic])
+@limiter.limit("60/minute")
 async def get_feed(
+    request: Request,
     current_user: CurrentUser,
     db: DBSession,
     limit: int = Query(default=20, le=50),

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
 
 from app.core.dependencies import CurrentUser, DBSession
+from app.core.limiter import limiter
 from app.crud.user import get_user_by_username
 from app.models.follow import Follow
 from app.schemas.user import UserPublic, UserUpdate
@@ -35,7 +36,8 @@ async def get_user(username: str, db: DBSession):
 
 
 @router.post("/{username}/follow", status_code=status.HTTP_204_NO_CONTENT)
-async def follow(username: str, current_user: CurrentUser, db: DBSession):
+@limiter.limit("20/minute")
+async def follow(request: Request, username: str, current_user: CurrentUser, db: DBSession):
     """
     Follow a local user.
 
