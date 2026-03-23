@@ -9,7 +9,7 @@ from app.schemas.user import UserPublic, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-
+ 
 @router.get("/me", response_model=UserPublic)
 async def get_me(current_user: CurrentUser):
     """Return the authenticated user's profile."""
