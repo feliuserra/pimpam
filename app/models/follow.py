@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -17,6 +17,9 @@ class Follow(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )
+    # For federated follows: True until the remote server sends an Accept activity back.
+    # Local-to-local follows are always immediately accepted (is_pending=False).
+    is_pending: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
     follower: Mapped["User"] = relationship(

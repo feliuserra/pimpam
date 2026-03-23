@@ -133,8 +133,40 @@ async def _handle_delete(activity: dict, db: AsyncSession) -> None:
 
 
 async def _handle_accept(activity: dict, db: AsyncSession) -> None:
-    """Remote server accepted our Follow. Nothing to do for now."""
-    pass
+    """
+    Remote server accepted our outgoing Follow request.
+    Clear the is_pending flag so the follow becomes active in feeds.
+    """
+    obj = activity.get("object", {})
+    # Accept.object may be the full Follow activity dict or just its ID string
+    if isinstance(obj, str):
+        follow_actor = activity.get("actor", "")  # the remote actor who accepted
+        # Find the pending follow: local user → this remote actor
+        local_actor_doc = await get_user_by_ap_id(db, follow_actor)
+        # We can't resolve easily from just the ID string; skip for robustness
+        return
+    if not isinstance(obj, dict) or obj.get("type") != "Follow":
+        return
+
+    follower_ap_id: str = obj.get("actor", "")
+    followed_ap_id: str = obj.get("object", "")
+
+    follower = await get_user_by_ap_id(db, follower_ap_id)
+    followed = await get_user_by_ap_id(db, followed_ap_id)
+    if follower is None or followed is None:
+        return
+
+    result = await db.execute(
+        select(Follow).where(
+            Follow.follower_id == follower.id,
+            Follow.followed_id == followed.id,
+            Follow.is_pending == True,  # noqa: E712
+        )
+    )
+    follow = result.scalar_one_or_none()
+    if follow:
+        follow.is_pending = False
+        await db.commit()
 
 
 # --- Helpers ---

@@ -1,10 +1,14 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
+from app.core.config import settings
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
 from app.core.search import deindex_post, index_post
 from app.crud.post import create_post, delete_post, edit_post, get_post
+from app.crud.user import get_remote_follower_inboxes
 from app.crud.vote import cast_vote, retract_vote
+from app.federation.actor import build_announce, build_create, build_like, build_undo_like
+from app.federation.delivery import deliver_activity
 from app.schemas.post import PostCreate, PostPublic, PostUpdate
 from app.schemas.vote import VoteCreate, VotePublic
 
@@ -17,6 +21,16 @@ async def create(request: Request, data: PostCreate, current_user: CurrentUser, 
     """Create a new post, optionally within a community."""
     post = await create_post(db, data, author_id=current_user.id)
     await index_post(post)
+
+    if settings.federation_enabled:
+        try:
+            inboxes = await get_remote_follower_inboxes(db, current_user.id)
+            if inboxes:
+                activity = build_create(post, current_user)
+                await deliver_activity(activity, current_user, inboxes)
+        except Exception:
+            pass  # delivery failure never breaks post creation
+
     return post
 
 
@@ -87,6 +101,17 @@ async def vote(request: Request, post_id: int, data: VoteCreate, current_user: C
             author.karma += karma_delta
         await db.commit()
 
+    # Send AP Like for +1 votes on federated posts
+    if settings.federation_enabled and data.direction == 1 and post.ap_id:
+        try:
+            from app.crud.user import get_user_by_id
+            author = await get_user_by_id(db, post.author_id)
+            if author and author.ap_inbox:
+                activity = build_like(current_user.username, post.ap_id)
+                await deliver_activity(activity, current_user, [author.ap_inbox])
+        except Exception:
+            pass
+
     return vote_obj
 
 
@@ -114,3 +139,39 @@ async def retract(request: Request, post_id: int, current_user: CurrentUser, db:
     if author:
         author.karma += karma_delta
     await db.commit()
+
+    # Send AP Undo{Like} for federated posts
+    if settings.federation_enabled and post.ap_id:
+        try:
+            author = await get_user_by_id(db, post.author_id)
+            if author and author.ap_inbox:
+                activity = build_undo_like(current_user.username, post.ap_id)
+                await deliver_activity(activity, current_user, [author.ap_inbox])
+        except Exception:
+            pass
+
+
+@router.post("/{post_id}/boost", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
+async def boost(request: Request, post_id: int, current_user: CurrentUser, db: DBSession):
+    """
+    Boost (Announce) a federated post to your followers.
+    Only works for posts that originated from a remote server (have an ap_id).
+    When federation is disabled, returns 503.
+    """
+    if not settings.federation_enabled:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Federation is disabled")
+
+    post = await get_post(db, post_id)
+    if post is None or post.is_removed:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if not post.ap_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Cannot boost a local post over federation")
+
+    try:
+        inboxes = await get_remote_follower_inboxes(db, current_user.id)
+        if inboxes:
+            activity = build_announce(current_user.username, post.ap_id)
+            await deliver_activity(activity, current_user, inboxes)
+    except Exception:
+        pass  # delivery failure is silent

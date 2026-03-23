@@ -60,7 +60,10 @@ async def get_chronological_feed(
     No ranking, no ML, no algorithmic ordering. Chronological only.
     Removed posts are excluded from the feed.
     """
-    followed_ids = select(Follow.followed_id).where(Follow.follower_id == user_id)
+    followed_ids = select(Follow.followed_id).where(
+        Follow.follower_id == user_id,
+        Follow.is_pending == False,  # noqa: E712 — exclude pending federated follows
+    )
 
     query = (
         select(Post)
