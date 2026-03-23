@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from app.api.v1 import auth, communities, feed, media, messages, moderation, posts, users
+from app.api.v1 import auth, communities, feed, media, messages, moderation, posts, search, users
 from app.api.federation import actor_routes, wellknown
 from app.core.config import settings
 from app.core.limiter import limiter
@@ -19,6 +19,12 @@ async def lifespan(app: FastAPI):
             ensure_bucket_exists()
         except Exception:
             pass  # storage unavailable at startup — upload endpoints will return 502
+    if settings.search_enabled:
+        from app.core.search import configure_index
+        try:
+            configure_index()
+        except Exception:
+            pass  # search unavailable at startup — search endpoints will return 503
     yield
 
 
@@ -54,6 +60,7 @@ app.include_router(communities.router, prefix=_prefix)
 app.include_router(moderation.router, prefix=_prefix)
 app.include_router(messages.router, prefix=_prefix)
 app.include_router(media.router, prefix=_prefix)
+app.include_router(search.router, prefix=_prefix)
 
 # Federation routers — mounted at root (ActivityPub & WebFinger paths are protocol-defined)
 if settings.federation_enabled:
