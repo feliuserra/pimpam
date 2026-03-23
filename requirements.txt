@@ -140,6 +140,8 @@ pygments==2.19.2
     #   furo
     #   pytest
     #   sphinx
+pyotp==2.9.0
+    # via -r requirements.in
 pytest==8.4.2
     # via
     #   -r requirements.in
