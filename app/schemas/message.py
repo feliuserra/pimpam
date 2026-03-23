@@ -19,3 +19,11 @@ class MessagePublic(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ConversationSummary(BaseModel):
+    """One entry per conversation in the inbox, ordered by most recent message."""
+    other_user_id: int
+    other_username: str
+    last_message_at: datetime
+    unread_count: int

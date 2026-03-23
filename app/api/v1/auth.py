@@ -1,15 +1,13 @@
 from fastapi import APIRouter, HTTPException, Request, status
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.core.dependencies import DBSession
+from app.core.limiter import limiter
 from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.crud.user import authenticate_user, create_user, get_user_by_email, get_user_by_username
 from app.schemas.token import RefreshRequest, TokenPair
 from app.schemas.user import UserCreate, UserLogin, UserPublic
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)

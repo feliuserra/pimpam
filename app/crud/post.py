@@ -35,7 +35,8 @@ async def edit_post(db: AsyncSession, post: Post, data: PostUpdate) -> Post:
     Raises ValueError if the window has passed.
     Edit history is intentionally not stored — only the edited flag is public.
     """
-    if datetime.now(timezone.utc) - post.created_at > EDIT_WINDOW:
+    created = post.created_at.replace(tzinfo=timezone.utc) if post.created_at.tzinfo is None else post.created_at
+    if datetime.now(timezone.utc) - created > EDIT_WINDOW:
         raise ValueError("Edit window has closed (1 hour after posting)")
 
     for field, value in data.model_dump(exclude_none=True).items():

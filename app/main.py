@@ -2,22 +2,24 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
-from app.api.v1 import auth, communities, feed, messages, moderation, posts, users
+from app.api.v1 import auth, communities, feed, media, messages, moderation, posts, users
 from app.api.federation import actor_routes, wellknown
 from app.core.config import settings
-
-limiter = Limiter(key_func=get_remote_address)
+from app.core.limiter import limiter
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Add startup logic here (e.g. cache warm-up, health checks)
+    if settings.storage_enabled:
+        from app.core.storage import ensure_bucket_exists
+        try:
+            ensure_bucket_exists()
+        except Exception:
+            pass  # storage unavailable at startup — upload endpoints will return 502
     yield
-    # Add shutdown logic here (e.g. close connections)
 
 
 app = FastAPI(
@@ -51,6 +53,7 @@ app.include_router(posts.router, prefix=_prefix)
 app.include_router(communities.router, prefix=_prefix)
 app.include_router(moderation.router, prefix=_prefix)
 app.include_router(messages.router, prefix=_prefix)
+app.include_router(media.router, prefix=_prefix)
 
 # Federation routers — mounted at root (ActivityPub & WebFinger paths are protocol-defined)
 if settings.federation_enabled:

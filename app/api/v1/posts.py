@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from app.core.dependencies import CurrentUser, DBSession
+from app.core.limiter import limiter
 from app.crud.post import create_post, delete_post, edit_post, get_post
 from app.crud.vote import cast_vote, retract_vote
 from app.schemas.post import PostCreate, PostPublic, PostUpdate
@@ -10,7 +11,8 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 
 
 @router.post("", response_model=PostPublic, status_code=status.HTTP_201_CREATED)
-async def create(data: PostCreate, current_user: CurrentUser, db: DBSession):
+@limiter.limit("10/minute")
+async def create(request: Request, data: PostCreate, current_user: CurrentUser, db: DBSession):
     """Create a new post, optionally within a community."""
     return await create_post(db, data, author_id=current_user.id)
 
@@ -25,7 +27,8 @@ async def get(post_id: int, db: DBSession):
 
 
 @router.patch("/{post_id}", response_model=PostPublic)
-async def edit(post_id: int, data: PostUpdate, current_user: CurrentUser, db: DBSession):
+@limiter.limit("20/minute")
+async def edit(request: Request, post_id: int, data: PostUpdate, current_user: CurrentUser, db: DBSession):
     """
     Edit a post. Only the author may edit, and only within 1 hour of posting.
     The edit is flagged publicly (is_edited=True) but the edit history is not stored.
@@ -54,7 +57,8 @@ async def delete(post_id: int, current_user: CurrentUser, db: DBSession):
 
 
 @router.post("/{post_id}/vote", response_model=VotePublic)
-async def vote(post_id: int, data: VoteCreate, current_user: CurrentUser, db: DBSession):
+@limiter.limit("30/minute")
+async def vote(request: Request, post_id: int, data: VoteCreate, current_user: CurrentUser, db: DBSession):
     """
     Cast or change a vote on a post (+1 or -1).
     You cannot vote on your own post — authors receive an automatic +1 at post creation.
@@ -81,7 +85,8 @@ async def vote(post_id: int, data: VoteCreate, current_user: CurrentUser, db: DB
 
 
 @router.delete("/{post_id}/vote", status_code=status.HTTP_204_NO_CONTENT)
-async def retract(post_id: int, current_user: CurrentUser, db: DBSession):
+@limiter.limit("30/minute")
+async def retract(request: Request, post_id: int, current_user: CurrentUser, db: DBSession):
     """
     Retract your vote on a post.
     You cannot retract the author's automatic initial vote.
