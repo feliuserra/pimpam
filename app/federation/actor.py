@@ -97,6 +97,58 @@ def build_accept(local_username: str, follow_activity: dict) -> dict:
     }
 
 
+def build_undo_follow(follower_username: str, followed_ap_id: str) -> dict:
+    """Build an Undo{Follow} activity to cancel a previous Follow."""
+    follower = actor_id(follower_username)
+    follow = build_follow(follower_username, followed_ap_id)
+    return {
+        "@context": AP_CONTEXT,
+        "type": "Undo",
+        "id": f"{follower}#undo-follow-{followed_ap_id.split('/')[-1]}",
+        "actor": follower,
+        "object": follow,
+    }
+
+
+def build_like(liker_username: str, post_ap_id: str) -> dict:
+    """Build a Like activity for a remote post (sent on +1 vote)."""
+    liker = actor_id(liker_username)
+    return {
+        "@context": AP_CONTEXT,
+        "type": "Like",
+        "id": f"{liker}#like-{post_ap_id.split('/')[-1]}",
+        "actor": liker,
+        "object": post_ap_id,
+    }
+
+
+def build_undo_like(liker_username: str, post_ap_id: str) -> dict:
+    """Build an Undo{Like} activity (sent when retracting a +1 vote)."""
+    liker = actor_id(liker_username)
+    like = build_like(liker_username, post_ap_id)
+    return {
+        "@context": AP_CONTEXT,
+        "type": "Undo",
+        "id": f"{liker}#undo-like-{post_ap_id.split('/')[-1]}",
+        "actor": liker,
+        "object": like,
+    }
+
+
+def build_announce(booster_username: str, post_ap_id: str) -> dict:
+    """Build an Announce (boost/reblog) activity for a post."""
+    booster = actor_id(booster_username)
+    return {
+        "@context": AP_CONTEXT,
+        "type": "Announce",
+        "id": f"{booster}#announce-{post_ap_id.split('/')[-1]}",
+        "actor": booster,
+        "object": post_ap_id,
+        "to": [PUBLIC_STREAM],
+        "cc": [f"{booster}/followers"],
+    }
+
+
 def ordered_collection(collection_id: str, items: list, total: int) -> dict:
     """Build an AP OrderedCollection document."""
     return {

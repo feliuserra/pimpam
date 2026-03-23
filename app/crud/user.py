@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
 from app.federation.crypto import generate_rsa_keypair
+from app.models.follow import Follow
 from app.models.user import User
 from app.schemas.user import UserCreate
 
@@ -48,3 +49,18 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> U
     if user is None or not verify_password(password, user.hashed_password):
         return None
     return user
+
+
+async def get_remote_follower_inboxes(db: AsyncSession, user_id: int) -> list[str]:
+    """Return inbox URLs of all confirmed remote followers of user_id (for AP delivery)."""
+    result = await db.execute(
+        select(User.ap_inbox)
+        .join(Follow, Follow.follower_id == User.id)
+        .where(
+            Follow.followed_id == user_id,
+            User.is_remote == True,  # noqa: E712
+            User.ap_inbox.is_not(None),
+            Follow.is_pending == False,  # noqa: E712
+        )
+    )
+    return [row for row in result.scalars().all() if row]
