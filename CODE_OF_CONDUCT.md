@@ -2,6 +2,8 @@
 
 ## Our commitment
 
+PimPam is built on the belief that social networks are harmful because of how they're built and who they're built for — not because social connection itself is harmful. We're removing the specific structural incentives that cause most of the damage — algorithmic amplification, surveillance capitalism, centralised control — and seeing what grows in their place. The way we treat each other in this community is part of that experiment.
+
 PimPam is built for everyone. This Code of Conduct applies to all spaces managed by the PimPam project — the codebase, issue trackers, discussion forums, community channels, and any other space where people interact under the PimPam name.
 
 We are committed to providing a welcoming, safe, and respectful environment for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socioeconomic status, nationality, personal appearance, race, caste, color, religion, or sexual identity and orientation.
