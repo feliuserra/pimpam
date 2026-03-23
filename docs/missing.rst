@@ -156,8 +156,13 @@ Infrastructure
 Search
 ~~~~~~
 
-**Status:** Meilisearch is in ``docker-compose.yml`` but nothing indexes to it
-and no search endpoint exists.
+**Status:** ✅ Implemented — ``GET /api/v1/search``
+
+- Full-text search over post titles, content, and URLs via Meilisearch.
+- Optional ``?community=<name>`` filter scopes results to one community.
+- Removed posts are always excluded.
+- Posts are indexed automatically on create/edit/delete (fire-and-forget — search failure never breaks post operations).
+- Returns ``503`` if ``SEARCH_ENABLED=false`` or Meilisearch is unreachable.
 
 Real-time (WebSockets)
 ~~~~~~~~~~~~~~~~~~~~~~~
