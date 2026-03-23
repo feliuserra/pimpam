@@ -54,5 +54,20 @@ class Settings(BaseSettings):
     media_avatar_max_px: int = 512                   # avatars are capped at 512×512
     media_post_image_max_px: int = 2000              # post images capped at 2000px on longest side
 
+    # Content limits — change here to affect comments and share annotations everywhere
+    comment_max_length: int = 300
+    share_comment_max_length: int = 300
+
+    # Reaction karma values — positive reactions add, negative subtract from commenter's global karma
+    reaction_karma: dict[str, int] = {
+        "agree": 1,
+        "love": 2,
+        "disagree": 0,      # never affects karma directly; requires an accompanying reply
+        "misleading": -2,
+    }
+
+    # Rate limits (counts per day) for reactions that need a cap
+    disagree_daily_limit: int = 10
+
 
 settings = Settings()
