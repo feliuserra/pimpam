@@ -25,6 +25,9 @@ slowapi~=0.1                 # rate limiting
 cryptography~=43.0           # RSA key generation, HTTP Signature signing/verification, Fernet AES encryption
 pyotp~=2.9                   # TOTP 2FA (RFC 6238)
 
+# --- Search ---
+meilisearch~=0.31            # full-text search client (Meilisearch v1.x)
+
 # --- Federation ---
 httpx~=0.28                  # outgoing AP requests (delivery, actor fetching)
 
