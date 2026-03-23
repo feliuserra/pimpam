@@ -24,6 +24,10 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
+    # 2FA (TOTP) — secret is AES-encrypted at rest; totp_enabled stays False until user verifies a code
+    totp_secret: Mapped[str | None] = mapped_column(String(512))  # Fernet ciphertext
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # ActivityPub federation fields
     ap_id: Mapped[str | None] = mapped_column(String(2048), unique=True)  # actor URL (local or remote)
     ap_inbox: Mapped[str | None] = mapped_column(String(2048))
