@@ -5,6 +5,10 @@ Base path: ``/api/v1/feed``
 
 Requires authentication.
 
+.. note::
+
+   Rate limit: ``GET /feed`` — 60/min.
+
 ----
 
 Get chronological feed
@@ -14,11 +18,13 @@ Get chronological feed
 
    GET /api/v1/feed
 
-Returns posts from users you follow, ordered by time descending.
-**There is no algorithmic ranking.** The order is always newest first, always.
+Returns posts from users you follow, ordered newest first.
+**There is no algorithmic ranking.** Order is always chronological — no ML, no engagement signals.
+
+Removed posts are excluded from the feed.
 
 Pagination is cursor-based via ``before_id`` — never offset-based,
-which avoids the duplicate/missing post problems that come with ``OFFSET``.
+which avoids duplicate or missing posts when new content arrives.
 
 **Query parameters**
 
@@ -43,12 +49,15 @@ which avoids the duplicate/missing post problems that come with ``OFFSET``.
    [
      {
        "id": 99,
-       "title": "Hello from Alice",
+       "title": "Hello from Bob",
        "content": "First post!",
        "url": null,
-       "author_id": 1,
+       "author_id": 2,
        "community_id": null,
-       "karma": 0,
+       "karma": 1,
+       "is_edited": false,
+       "edited_at": null,
+       "is_removed": false,
        "created_at": "2026-03-22T17:10:00Z"
      }
    ]
@@ -62,8 +71,3 @@ which avoids the duplicate/missing post problems that come with ``OFFSET``.
 
    # Next page — pass the id of the last post from the previous response
    GET /api/v1/feed?limit=20&before_id=80
-
-.. warning::
-
-   The feed will be empty until follow/unfollow is implemented.
-   See :doc:`../missing`.

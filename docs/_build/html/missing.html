@@ -205,6 +205,7 @@
 <li class="toctree-l1"><a class="reference internal" href="api/feed.html">Feed</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/posts.html">Posts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/communities.html">Communities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/moderation.html">Moderation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/messages.html">Direct Messages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/federation.html">Federation (ActivityPub)</a></li>
 </ul>
@@ -343,13 +344,15 @@ encrypt before calling it.</p>
 </section>
 <section id="inbox-view">
 <h3>Inbox view<a class="headerlink" href="#inbox-view" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> Not implemented.</p>
-<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/messages</span></code> (list all conversations, grouped by user) does not exist.
-Only <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/messages/{user_id}</span></code> (a single thread) is available.</p>
+<p><strong>Status:</strong> ✅ Implemented — <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/messages</span></code></p>
+<p>Returns one <code class="docutils literal notranslate"><span class="pre">ConversationSummary</span></code> per conversation partner: other user ID,
+username, last message timestamp, and unread count. Ordered newest first.</p>
 </section>
 <section id="read-receipts-mark-as-read">
 <h3>Read receipts / mark as read<a class="headerlink" href="#read-receipts-mark-as-read" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> <code class="docutils literal notranslate"><span class="pre">Message.is_read</span></code> field exists but is never updated.</p>
+<p><strong>Status:</strong> ✅ Implemented — <code class="docutils literal notranslate"><span class="pre">PATCH</span> <span class="pre">/api/v1/messages/{other_user_id}/read</span></code></p>
+<p>Marks all messages from <code class="docutils literal notranslate"><span class="pre">other_user_id</span></code> to the current user as read.
+Call when the user opens a conversation thread.</p>
 </section>
 </section>
 <hr class="docutils" />
@@ -399,8 +402,29 @@ URLs only. No upload endpoint, no object storage integration (MinIO/S3), no CDN.
 </section>
 <section id="rate-limiting-on-non-auth-endpoints">
 <h3>Rate limiting on non-auth endpoints<a class="headerlink" href="#rate-limiting-on-non-auth-endpoints" title="Link to this heading">¶</a></h3>
-<p><strong>Status:</strong> Only <code class="docutils literal notranslate"><span class="pre">/auth/register</span></code> and <code class="docutils literal notranslate"><span class="pre">/auth/login</span></code> are rate-limited.
-Feed, post creation, and other write endpoints have no rate limits yet.</p>
+<p><strong>Status:</strong> ✅ Implemented. All write endpoints and the feed are now rate-limited:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/posts</span></code> — 10/minute</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PATCH</span> <span class="pre">/posts/{id}</span></code> — 20/minute</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/posts/{id}/vote</span></code>, <code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/posts/{id}/vote</span></code> — 30/minute</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/feed</span></code> — 60/minute</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/communities</span></code> — 5/minute</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/users/{username}/follow</span></code> — 20/minute</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/messages</span></code> — 20/minute</p></li>
+</ul>
+</section>
+<section id="id1">
+<h3>2FA (TOTP)<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<p><strong>Status:</strong> Not implemented. Planned — no code exists yet.</p>
+<p>To implement:</p>
+<ul class="simple">
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">totp_secret</span></code> (encrypted) and <code class="docutils literal notranslate"><span class="pre">totp_enabled</span></code> fields to <code class="docutils literal notranslate"><span class="pre">User</span></code> model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/auth/totp/setup</span></code> — generate a TOTP secret, return QR code URI.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/auth/totp/verify</span></code> — confirm setup by validating a code.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/auth/totp/disable</span></code> — require password + current code to disable.</p></li>
+<li><p>Require TOTP code on login when <code class="docutils literal notranslate"><span class="pre">totp_enabled=True</span></code> (second step after password).</p></li>
+<li><p>Use the <code class="docutils literal notranslate"><span class="pre">pyotp</span></code> library.</p></li>
+</ul>
 </section>
 </section>
 </section>
@@ -495,6 +519,7 @@ Feed, post creation, and other write endpoints have no rate limits yet.</p>
 <li><a class="reference internal" href="#media-uploads">Media uploads</a></li>
 <li><a class="reference internal" href="#fa-totp">2FA (TOTP)</a></li>
 <li><a class="reference internal" href="#rate-limiting-on-non-auth-endpoints">Rate limiting on non-auth endpoints</a></li>
+<li><a class="reference internal" href="#id1">2FA (TOTP)</a></li>
 </ul>
 </li>
 </ul>

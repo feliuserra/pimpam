@@ -205,6 +205,7 @@
 <li class="toctree-l1"><a class="reference internal" href="feed.html">Feed</a></li>
 <li class="toctree-l1"><a class="reference internal" href="posts.html">Posts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="communities.html">Communities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="moderation.html">Moderation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="messages.html">Direct Messages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="federation.html">Federation (ActivityPub)</a></li>
 </ul>
@@ -255,7 +256,11 @@
           <section id="users-profiles">
 <h1>Users &amp; Profiles<a class="headerlink" href="#users-profiles" title="Link to this heading">¶</a></h1>
 <p>Base path: <code class="docutils literal notranslate"><span class="pre">/api/v1/users</span></code></p>
-<p>All write endpoints require a valid <code class="docutils literal notranslate"><span class="pre">Authorization:</span> <span class="pre">Bearer</span> <span class="pre">&lt;token&gt;</span></code> header.</p>
+<p>Write endpoints require authentication. Read endpoints are public.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Rate limits: <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/users/{username}/follow</span></code> — 20/min.</p>
+</div>
 <hr class="docutils" />
 <section id="get-own-profile">
 <h2>Get own profile<a class="headerlink" href="#get-own-profile" title="Link to this heading">¶</a></h2>
@@ -282,7 +287,7 @@
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">PATCH /api/v1/users/me</span>
 </pre></div>
 </div>
-<p>Update editable profile fields. All fields are optional — only send what you want to change.</p>
+<p>Update editable profile fields. All fields are optional.</p>
 <p><strong>Request body</strong></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;display_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alice B.&quot;</span><span class="p">,</span>
@@ -299,19 +304,42 @@
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">GET /api/v1/users/{username}</span>
 </pre></div>
 </div>
-<p>Fetch any user’s public profile by username. Works for both local and federated users.</p>
+<p>Fetch any user’s public profile by username.</p>
 <p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">200</span> <span class="pre">OK</span></code> — same shape as <code class="docutils literal notranslate"><span class="pre">/me</span></code>.</p>
 <p><strong>Errors</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — user not found</p></li>
 </ul>
+</section>
 <hr class="docutils" />
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><strong>Not yet implemented:</strong> follow / unfollow endpoints.
-Until these exist, the feed will always be empty for new users.
-See <a class="reference internal" href="../missing.html"><span class="doc">Missing &amp; Planned Features</span></a> for the full list.</p>
+<section id="follow-a-user">
+<h2>Follow a user<a class="headerlink" href="#follow-a-user" title="Link to this heading">¶</a></h2>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">POST /api/v1/users/{username}/follow</span>
+</pre></div>
 </div>
+<p>Follow a user. Their posts will appear in your chronological feed.
+Following remote (federated) users stores the follow locally — outgoing
+AP <code class="docutils literal notranslate"><span class="pre">Follow</span></code> activity delivery is not yet implemented.</p>
+<p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">204</span> <span class="pre">No</span> <span class="pre">Content</span></code></p>
+<p><strong>Errors</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">400</span></code> — cannot follow yourself</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — user not found</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">409</span></code> — already following this user</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="unfollow-a-user">
+<h2>Unfollow a user<a class="headerlink" href="#unfollow-a-user" title="Link to this heading">¶</a></h2>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">DELETE /api/v1/users/{username}/follow</span>
+</pre></div>
+</div>
+<p>Stop following a user. Their posts will no longer appear in your feed.</p>
+<p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">204</span> <span class="pre">No</span> <span class="pre">Content</span></code></p>
+<p><strong>Errors</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — user not found, or you are not following them</p></li>
+</ul>
 </section>
 </section>
 
@@ -374,6 +402,8 @@ See <a class="reference internal" href="../missing.html"><span class="doc">Missi
 <li><a class="reference internal" href="#get-own-profile">Get own profile</a></li>
 <li><a class="reference internal" href="#update-own-profile">Update own profile</a></li>
 <li><a class="reference internal" href="#get-public-profile">Get public profile</a></li>
+<li><a class="reference internal" href="#follow-a-user">Follow a user</a></li>
+<li><a class="reference internal" href="#unfollow-a-user">Unfollow a user</a></li>
 </ul>
 </li>
 </ul>

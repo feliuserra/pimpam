@@ -205,6 +205,7 @@
 <li class="toctree-l1"><a class="reference internal" href="feed.html">Feed</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Posts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="communities.html">Communities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="moderation.html">Moderation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="messages.html">Direct Messages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="federation.html">Federation (ActivityPub)</a></li>
 </ul>
@@ -255,7 +256,12 @@
           <section id="posts">
 <h1>Posts<a class="headerlink" href="#posts" title="Link to this heading">¶</a></h1>
 <p>Base path: <code class="docutils literal notranslate"><span class="pre">/api/v1/posts</span></code></p>
-<p>Write endpoints require authentication.</p>
+<p>Write endpoints require authentication. Read endpoints are public.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Rate limits: <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/posts</span></code> — 10/min · <code class="docutils literal notranslate"><span class="pre">PATCH</span> <span class="pre">/posts/{id}</span></code> — 20/min ·
+<code class="docutils literal notranslate"><span class="pre">POST|DELETE</span> <span class="pre">/posts/{id}/vote</span></code> — 30/min.</p>
+</div>
 <hr class="docutils" />
 <section id="create-a-post">
 <h2>Create a post<a class="headerlink" href="#create-a-post" title="Link to this heading">¶</a></h2>
@@ -264,6 +270,8 @@
 </div>
 <p>Create a new post. A post must have either <code class="docutils literal notranslate"><span class="pre">content</span></code> or a <code class="docutils literal notranslate"><span class="pre">url</span></code> (or both).
 Optionally scoped to a community via <code class="docutils literal notranslate"><span class="pre">community_id</span></code>.</p>
+<p>The author receives an automatic <strong>+1 karma vote</strong> at creation — this vote cannot
+be changed or retracted. Post <code class="docutils literal notranslate"><span class="pre">karma</span></code> starts at <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
 <p><strong>Request body</strong></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Interesting article&quot;</span><span class="p">,</span>
@@ -286,7 +294,10 @@ Optionally scoped to a community via <code class="docutils literal notranslate">
 <span class="w">  </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://example.com/article&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;author_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;karma&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;karma&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;is_edited&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;edited_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;is_removed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-03-22T17:00:00Z&quot;</span>
 <span class="p">}</span>
 </pre></div>
@@ -298,9 +309,33 @@ Optionally scoped to a community via <code class="docutils literal notranslate">
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">GET /api/v1/posts/{post_id}</span>
 </pre></div>
 </div>
-<p>Fetch a single post by ID.</p>
+<p>Fetch a single post by ID. Removed posts return <code class="docutils literal notranslate"><span class="pre">404</span></code>.</p>
 <p><strong>Errors</strong></p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — post not found or removed</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="edit-a-post">
+<h2>Edit a post<a class="headerlink" href="#edit-a-post" title="Link to this heading">¶</a></h2>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">PATCH /api/v1/posts/{post_id}</span>
+</pre></div>
+</div>
+<p>Edit a post within <strong>1 hour of creation</strong>. Only the author may edit.
+All fields are optional — only send what you want to change.</p>
+<p>The response will include <code class="docutils literal notranslate"><span class="pre">&quot;is_edited&quot;:</span> <span class="pre">true</span></code> and a non-null <code class="docutils literal notranslate"><span class="pre">edited_at</span></code>.
+Edit history is intentionally not stored — only the flag is public.</p>
+<p><strong>Request body</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Updated title&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Updated content&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">200</span> <span class="pre">OK</span></code> — updated post object.</p>
+<p><strong>Errors</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">403</span></code> — not the author, or edit window has closed (1 hour after posting)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — post not found</p></li>
 </ul>
 </section>
@@ -310,19 +345,53 @@ Optionally scoped to a community via <code class="docutils literal notranslate">
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">DELETE /api/v1/posts/{post_id}</span>
 </pre></div>
 </div>
-<p>Delete a post. Only the original author can delete their own post.</p>
+<p>Permanently delete a post. Only the original author can delete their own post.</p>
 <p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">204</span> <span class="pre">No</span> <span class="pre">Content</span></code></p>
 <p><strong>Errors</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">403</span></code> — post belongs to another user</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — post not found</p></li>
 </ul>
+</section>
 <hr class="docutils" />
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><strong>Not yet implemented:</strong> listing posts by community, karma voting (upvote/downvote),
-editing a post. See <a class="reference internal" href="../missing.html"><span class="doc">Missing &amp; Planned Features</span></a>.</p>
+<section id="vote-on-a-post">
+<h2>Vote on a post<a class="headerlink" href="#vote-on-a-post" title="Link to this heading">¶</a></h2>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">POST /api/v1/posts/{post_id}/vote</span>
+</pre></div>
 </div>
+<p>Cast or change a vote. Direction must be <code class="docutils literal notranslate"><span class="pre">1</span></code> (upvote) or <code class="docutils literal notranslate"><span class="pre">-1</span></code> (downvote).
+Voting on your own post is not allowed — authors receive an automatic <code class="docutils literal notranslate"><span class="pre">+1</span></code> at creation.</p>
+<p>Casting a vote when one already exists <strong>changes</strong> it (no duplicate vote error).
+Both <code class="docutils literal notranslate"><span class="pre">Post.karma</span></code> and the author’s <code class="docutils literal notranslate"><span class="pre">User.karma</span></code> are updated atomically.</p>
+<p><strong>Request body</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;direction&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">200</span> <span class="pre">OK</span></code></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;post_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;direction&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Errors</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">403</span></code> — cannot vote on your own post</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — post not found or removed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">422</span></code> — direction not in <code class="docutils literal notranslate"><span class="pre">{1,</span> <span class="pre">-1}</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="retract-a-vote">
+<h2>Retract a vote<a class="headerlink" href="#retract-a-vote" title="Link to this heading">¶</a></h2>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">DELETE /api/v1/posts/{post_id}/vote</span>
+</pre></div>
+</div>
+<p>Remove your vote from a post. You cannot retract the author’s automatic initial vote.
+Karma on the post and the author is adjusted accordingly.</p>
+<p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">204</span> <span class="pre">No</span> <span class="pre">Content</span></code></p>
+<p><strong>Errors</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">403</span></code> — cannot retract your author vote</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — post not found, or no vote to retract</p></li>
+</ul>
 </section>
 </section>
 
@@ -384,7 +453,10 @@ editing a post. See <a class="reference internal" href="../missing.html"><span c
 <li><a class="reference internal" href="#">Posts</a><ul>
 <li><a class="reference internal" href="#create-a-post">Create a post</a></li>
 <li><a class="reference internal" href="#get-a-post">Get a post</a></li>
+<li><a class="reference internal" href="#edit-a-post">Edit a post</a></li>
 <li><a class="reference internal" href="#delete-a-post">Delete a post</a></li>
+<li><a class="reference internal" href="#vote-on-a-post">Vote on a post</a></li>
+<li><a class="reference internal" href="#retract-a-vote">Retract a vote</a></li>
 </ul>
 </li>
 </ul>

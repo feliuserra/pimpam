@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Direct Messages" href="messages.html" /><link rel="prev" title="Posts" href="posts.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Moderation" href="moderation.html" /><link rel="prev" title="Posts" href="posts.html" />
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2024.08.06 -->
         <title>Communities - PimPam API Docs</title>
@@ -205,6 +205,7 @@
 <li class="toctree-l1"><a class="reference internal" href="feed.html">Feed</a></li>
 <li class="toctree-l1"><a class="reference internal" href="posts.html">Posts</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Communities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="moderation.html">Moderation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="messages.html">Direct Messages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="federation.html">Federation (ActivityPub)</a></li>
 </ul>
@@ -255,7 +256,50 @@
           <section id="communities">
 <h1>Communities<a class="headerlink" href="#communities" title="Link to this heading">¶</a></h1>
 <p>Base path: <code class="docutils literal notranslate"><span class="pre">/api/v1/communities</span></code></p>
-<p>Write endpoints require authentication.</p>
+<p>Write endpoints require authentication. Read endpoints are public.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Rate limits: <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/communities</span></code> — 5/min.</p>
+</div>
+<hr class="docutils" />
+<section id="list-communities">
+<h2>List communities<a class="headerlink" href="#list-communities" title="Link to this heading">¶</a></h2>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">GET /api/v1/communities</span>
+</pre></div>
+</div>
+<p>List all communities with page-based pagination.</p>
+<p><strong>Query parameters</strong></p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sort</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">popular</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">popular</span></code> (most members first) · <code class="docutils literal notranslate"><span class="pre">alphabetical</span></code> · <code class="docutils literal notranslate"><span class="pre">newest</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">page</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Page number (1-indexed).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">limit</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p>Results per page. Maximum <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">200</span> <span class="pre">OK</span></code> — array of community objects.</p>
+</section>
 <hr class="docutils" />
 <section id="create-a-community">
 <h2>Create a community<a class="headerlink" href="#create-a-community" title="Link to this heading">¶</a></h2>
@@ -271,10 +315,6 @@ and first moderator, and is added as a member.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p><strong>Validation rules</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: 3–100 chars, letters/numbers/hyphens/underscores only, lowercased automatically</p></li>
-</ul>
 <p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">201</span> <span class="pre">Created</span></code></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
@@ -304,6 +344,47 @@ and first moderator, and is added as a member.</p>
 </ul>
 </section>
 <hr class="docutils" />
+<section id="list-community-posts">
+<h2>List community posts<a class="headerlink" href="#list-community-posts" title="Link to this heading">¶</a></h2>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">GET /api/v1/communities/{name}/posts</span>
+</pre></div>
+</div>
+<p>Chronological posts for a community, newest first. Cursor-paginated via <code class="docutils literal notranslate"><span class="pre">before_id</span></code>.</p>
+<p>Removed posts are hidden from public requests. Moderators of the community
+(authenticated) see removed posts with <code class="docutils literal notranslate"><span class="pre">&quot;is_removed&quot;:</span> <span class="pre">true</span></code>.</p>
+<p><strong>Query parameters</strong></p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">limit</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p>Maximum posts to return. Maximum <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">before_id</span></code></p></td>
+<td><p>—</p></td>
+<td><p>Return posts older than this post ID. Omit for the first page.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">200</span> <span class="pre">OK</span></code> — array of post objects (see <a class="reference internal" href="posts.html"><span class="doc">Posts</span></a>).</p>
+<p><strong>Errors</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">404</span></code> — community not found</p></li>
+</ul>
+</section>
+<hr class="docutils" />
 <section id="join-a-community">
 <h2>Join a community<a class="headerlink" href="#join-a-community" title="Link to this heading">¶</a></h2>
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="err">POST /api/v1/communities/{name}/join</span>
@@ -321,13 +402,12 @@ and first moderator, and is added as a member.</p>
 <p>Leave a community. Decrements <code class="docutils literal notranslate"><span class="pre">member_count</span></code>. Owners cannot leave
 without transferring ownership first (not yet implemented).</p>
 <p><strong>Response</strong> <code class="docutils literal notranslate"><span class="pre">204</span> <span class="pre">No</span> <span class="pre">Content</span></code></p>
+</section>
 <hr class="docutils" />
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><strong>Not yet implemented:</strong> listing all communities, listing posts within a community,
-community moderation tools (ban, remove post), ownership transfer.
-See <a class="reference internal" href="../missing.html"><span class="doc">Missing &amp; Planned Features</span></a>.</p>
-</div>
+<section id="moderation">
+<h2>Moderation<a class="headerlink" href="#moderation" title="Link to this heading">¶</a></h2>
+<p>See <a class="reference internal" href="moderation.html"><span class="doc">Moderation</span></a> for the full moderation API:
+post removal and restore, ban proposals, and moderator promotion.</p>
 </section>
 </section>
 
@@ -336,12 +416,12 @@ See <a class="reference internal" href="../missing.html"><span class="doc">Missi
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="messages.html">
+          <a class="next-page" href="moderation.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Direct Messages</div>
+                <div class="title">Moderation</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -387,10 +467,13 @@ See <a class="reference internal" href="../missing.html"><span class="doc">Missi
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Communities</a><ul>
+<li><a class="reference internal" href="#list-communities">List communities</a></li>
 <li><a class="reference internal" href="#create-a-community">Create a community</a></li>
 <li><a class="reference internal" href="#get-a-community">Get a community</a></li>
+<li><a class="reference internal" href="#list-community-posts">List community posts</a></li>
 <li><a class="reference internal" href="#join-a-community">Join a community</a></li>
 <li><a class="reference internal" href="#leave-a-community">Leave a community</a></li>
+<li><a class="reference internal" href="#moderation">Moderation</a></li>
 </ul>
 </li>
 </ul>

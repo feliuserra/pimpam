@@ -106,15 +106,18 @@ encrypt before calling it.
 Inbox view
 ~~~~~~~~~~
 
-**Status:** Not implemented.
+**Status:** ✅ Implemented — ``GET /api/v1/messages``
 
-``GET /api/v1/messages`` (list all conversations, grouped by user) does not exist.
-Only ``GET /api/v1/messages/{user_id}`` (a single thread) is available.
+Returns one ``ConversationSummary`` per conversation partner: other user ID,
+username, last message timestamp, and unread count. Ordered newest first.
 
 Read receipts / mark as read
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** ``Message.is_read`` field exists but is never updated.
+**Status:** ✅ Implemented — ``PATCH /api/v1/messages/{other_user_id}/read``
+
+Marks all messages from ``other_user_id`` to the current user as read.
+Call when the user opens a conversation thread.
 
 ----
 
@@ -165,16 +168,86 @@ typing indicators all require a WebSocket layer.
 Media uploads
 ~~~~~~~~~~~~~
 
-**Status:** Not implemented. ``User.avatar_url`` and ``Post.url`` accept external
-URLs only. No upload endpoint, no object storage integration (MinIO/S3), no CDN.
+**Status:** ✅ Implemented — ``POST /api/v1/media/upload``
 
-2FA (TOTP)
-~~~~~~~~~~
+- Accepts JPEG, PNG, WebP, GIF up to 10 MB.
+- Converts to WebP and strips EXIF metadata (including GPS) server-side via Pillow.
+- Avatars resized to 512×512 px. Post images resized to 2000 px on longest side.
+- Uploads to S3-compatible storage (MinIO in dev, Cloudflare R2 in prod).
+- Returns a public URL. Client uses it in ``PATCH /users/me`` or ``POST /posts``.
 
-**Status:** Not implemented. Planned in ``SECURITY.md`` but no code exists.
+**Not yet implemented:**
+
+- Content hash-matching against NCMEC database (catches known illegal images).
+  Add as an async post-upload check using the PhotoDNA or NCMEC API.
+  Keep images in a ``pending`` state until the check passes.
+- Multiple images per post — see below.
+
+See *User-provisioned storage (BYOS)* below for a scalable alternative to
+a centrally hosted bucket.
+
+Multiple images per post
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Status:** Not implemented. Current schema supports one ``image_url`` per post.
+
+To implement:
+
+1. Create a ``PostImage`` model: ``id``, ``post_id`` (FK), ``url``, ``order`` (int).
+2. Add ``Post.images`` as a ``relationship`` to ``PostImage``.
+3. Remove ``Post.image_url`` column (migration required).
+4. Change ``PostCreate.image_url: str | None`` → ``PostCreate.image_urls: list[str]``.
+5. Update ``PostPublic`` to include ``images: list[str]``.
+6. The upload endpoint (``POST /api/v1/media/upload``) stays unchanged —
+   clients call it once per image and collect the URLs before creating the post.
+
+User-provisioned storage (BYOS)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Status:** Not implemented. Planned as an *optional* power-user feature on top
+of the default centrally-hosted storage.
+
+**Default behaviour:** PimPam hosts media centrally (MinIO/S3). Zero setup
+required — works out of the box for all users.
+
+**Optional BYOS:** power users or self-hosters can plug in their own bucket
+(Backblaze B2, Cloudflare R2, AWS S3, etc.) for full data sovereignty.
+
+To implement:
+
+- Add encrypted fields to ``User``: ``storage_provider``, ``storage_bucket``,
+  ``storage_access_key`` (AES-encrypted at rest), ``storage_secret_key`` (AES-encrypted).
+- ``PATCH /api/v1/users/me/storage`` — configure a personal bucket (optional).
+- ``POST /api/v1/media/upload-url`` — server generates a pre-signed URL pointing
+  to either PimPam's central bucket or the user's own bucket; client uploads directly.
+- Store the resulting public URL in ``User.avatar_url`` or ``Post.url``.
+
+Benefits for BYOS users: data stays in their own bucket, GDPR erasure is trivial,
+no dependency on PimPam's storage infrastructure.
 
 Rate limiting on non-auth endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** Only ``/auth/register`` and ``/auth/login`` are rate-limited.
-Feed, post creation, and other write endpoints have no rate limits yet.
+**Status:** ✅ Implemented. All write endpoints and the feed are now rate-limited:
+
+- ``POST /posts`` — 10/minute
+- ``PATCH /posts/{id}`` — 20/minute
+- ``POST /posts/{id}/vote``, ``DELETE /posts/{id}/vote`` — 30/minute
+- ``GET /feed`` — 60/minute
+- ``POST /communities`` — 5/minute
+- ``POST /users/{username}/follow`` — 20/minute
+- ``POST /messages`` — 20/minute
+
+2FA (TOTP)
+~~~~~~~~~~
+
+**Status:** Not implemented. Planned — no code exists yet.
+
+To implement:
+
+- Add ``totp_secret`` (AES-encrypted) and ``totp_enabled`` fields to ``User`` model.
+- ``POST /auth/totp/setup`` — generate a TOTP secret, return QR code URI.
+- ``POST /auth/totp/verify`` — confirm setup by validating a code.
+- ``POST /auth/totp/disable`` — require password + current TOTP code to disable.
+- Require TOTP code as a second login step when ``totp_enabled=True``.
+- Use the ``pyotp`` library.

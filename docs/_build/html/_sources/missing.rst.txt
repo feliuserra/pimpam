@@ -106,15 +106,18 @@ encrypt before calling it.
 Inbox view
 ~~~~~~~~~~
 
-**Status:** Not implemented.
+**Status:** ✅ Implemented — ``GET /api/v1/messages``
 
-``GET /api/v1/messages`` (list all conversations, grouped by user) does not exist.
-Only ``GET /api/v1/messages/{user_id}`` (a single thread) is available.
+Returns one ``ConversationSummary`` per conversation partner: other user ID,
+username, last message timestamp, and unread count. Ordered newest first.
 
 Read receipts / mark as read
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** ``Message.is_read`` field exists but is never updated.
+**Status:** ✅ Implemented — ``PATCH /api/v1/messages/{other_user_id}/read``
+
+Marks all messages from ``other_user_id`` to the current user as read.
+Call when the user opens a conversation thread.
 
 ----
 
@@ -176,5 +179,26 @@ URLs only. No upload endpoint, no object storage integration (MinIO/S3), no CDN.
 Rate limiting on non-auth endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Status:** Only ``/auth/register`` and ``/auth/login`` are rate-limited.
-Feed, post creation, and other write endpoints have no rate limits yet.
+**Status:** ✅ Implemented. All write endpoints and the feed are now rate-limited:
+
+- ``POST /posts`` — 10/minute
+- ``PATCH /posts/{id}`` — 20/minute
+- ``POST /posts/{id}/vote``, ``DELETE /posts/{id}/vote`` — 30/minute
+- ``GET /feed`` — 60/minute
+- ``POST /communities`` — 5/minute
+- ``POST /users/{username}/follow`` — 20/minute
+- ``POST /messages`` — 20/minute
+
+2FA (TOTP)
+~~~~~~~~~~
+
+**Status:** Not implemented. Planned — no code exists yet.
+
+To implement:
+
+- Add ``totp_secret`` (encrypted) and ``totp_enabled`` fields to ``User`` model.
+- ``POST /auth/totp/setup`` — generate a TOTP secret, return QR code URI.
+- ``POST /auth/totp/verify`` — confirm setup by validating a code.
+- ``POST /auth/totp/disable`` — require password + current code to disable.
+- Require TOTP code on login when ``totp_enabled=True`` (second step after password).
+- Use the ``pyotp`` library.
