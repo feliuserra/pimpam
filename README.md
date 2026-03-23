@@ -12,6 +12,8 @@ The internet was supposed to connect us. Instead, we got platforms that treat pe
 
 PimPam is a rejection of all that.
 
+> **The hypothesis:** Social networks are harmful because of how they're built and who they're built for — not because social connection itself is harmful. PimPam is an experiment in what happens when you remove the incentives that cause the harm: algorithmic amplification, surveillance capitalism, centralised control. We're removing those specific structural incentives and seeing what grows in their place.
+
 We believe social media can be simple, honest, and human. A place where your feed shows posts from people you actually follow, in the order they were posted. Where communities form around shared interests, not outrage. Where your data belongs to you, full stop.
 
 Think of the warmth of early MySpace, the simplicity of Tuenti, the community spirit of old-school Reddit, and the visual appeal of Instagram — without any of the corporate machinery that ruined them.

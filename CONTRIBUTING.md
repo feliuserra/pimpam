@@ -8,6 +8,8 @@ This guide will help you get started.
 
 ## Our philosophy on contributions
 
+PimPam is built on a hypothesis: social networks are harmful because of how they're built and who they're built for — not because social connection itself is harmful. We're removing the specific structural incentives that cause most of the damage — algorithmic amplification, surveillance capitalism, centralised control — and seeing what grows in their place. Every contribution you make is part of that experiment.
+
 PimPam is built by the people, for the people. That means we actively welcome contributors of all skill levels, backgrounds, and experiences. You don't need to be a senior developer to help. If you care about building an ethical, open, human-first social platform, you belong here.
 
 We value clear communication over clever code. We value accessibility over performance tricks. We value thoughtful discussion over rapid shipping. There's no rush. We're building something meant to last.
