@@ -5,11 +5,12 @@ from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
 from app.core.redis import publish_to_user
 from app.core.search import deindex_post, index_post
-from app.crud.post import create_post, delete_post, edit_post, get_post
-from app.crud.user import get_local_follower_ids, get_remote_follower_inboxes
+from app.crud.post import create_post, create_share, delete_post, edit_post, get_post
+from app.crud.user import get_local_follower_ids, get_remote_follower_inboxes, get_user_by_id
 from app.crud.vote import cast_vote, retract_vote
 from app.federation.actor import build_announce, build_create, build_like, build_undo_like
 from app.federation.delivery import deliver_activity
+from app.schemas.comment import ShareCreate
 from app.schemas.post import PostCreate, PostPublic, PostUpdate
 from app.schemas.vote import VoteCreate, VotePublic
 
@@ -100,26 +101,18 @@ async def vote(request: Request, post_id: int, data: VoteCreate, current_user: C
     if post.author_id == current_user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Cannot vote on your own post")
 
-    vote_obj, karma_delta = await cast_vote(db, current_user.id, post_id, data.direction)
+    vote_obj = await cast_vote(db, current_user.id, post, data.direction)
 
-    if karma_delta != 0:
-        post.karma += karma_delta
-        # Reflect on the author's total karma too
-        from app.crud.user import get_user_by_id
-        author = await get_user_by_id(db, post.author_id)
-        if author:
-            author.karma += karma_delta
-        await db.commit()
-        await publish_to_user(post.author_id, "karma_update", {
-            "post_id": post_id,
-            "post_karma": post.karma,
-            "user_karma": author.karma if author else None,
-        })
+    author = await get_user_by_id(db, post.author_id)
+    await publish_to_user(post.author_id, "karma_update", {
+        "post_id": post_id,
+        "post_karma": post.karma,
+        "user_karma": author.karma if author else None,
+    })
 
     # Send AP Like for +1 votes on federated posts
     if settings.federation_enabled and data.direction == 1 and post.ap_id:
         try:
-            from app.crud.user import get_user_by_id
             author = await get_user_by_id(db, post.author_id)
             if author and author.ap_inbox:
                 activity = build_like(current_user.username, post.ap_id)
@@ -144,16 +137,11 @@ async def retract(request: Request, post_id: int, current_user: CurrentUser, db:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Cannot retract your author vote")
 
     try:
-        karma_delta = await retract_vote(db, current_user.id, post_id)
+        await retract_vote(db, current_user.id, post)
     except ValueError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No vote to retract")
 
-    post.karma += karma_delta
-    from app.crud.user import get_user_by_id
     author = await get_user_by_id(db, post.author_id)
-    if author:
-        author.karma += karma_delta
-    await db.commit()
     await publish_to_user(post.author_id, "karma_update", {
         "post_id": post_id,
         "post_karma": post.karma,
@@ -195,3 +183,35 @@ async def boost(request: Request, post_id: int, current_user: CurrentUser, db: D
             await deliver_activity(activity, current_user, inboxes)
     except Exception:
         pass  # delivery failure is silent
+
+
+@router.post("/{post_id}/share", response_model=PostPublic, status_code=status.HTTP_201_CREATED)
+@limiter.limit("20/minute")
+async def share(request: Request, post_id: int, data: ShareCreate, current_user: CurrentUser, db: DBSession):
+    """
+    Reshare a post to your followers (and optionally into a community).
+    The share appears as a new post authored by you, preserving a reference to the original.
+    You can only share a given post once. Sharing a share is not allowed — the original is linked instead.
+    """
+    original = await get_post(db, post_id)
+    if original is None or original.is_removed:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if original.author_id == current_user.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Cannot share your own post")
+
+    try:
+        post = await create_share(db, original, current_user.id, data)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(e))
+
+    # Notify local followers
+    follower_ids = await get_local_follower_ids(db, current_user.id)
+    for fid in follower_ids:
+        await publish_to_user(fid, "new_post", {
+            "id": post.id,
+            "title": post.title,
+            "author": current_user.username,
+            "shared_from_id": post.shared_from_id,
+        })
+
+    return post
