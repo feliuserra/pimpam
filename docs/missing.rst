@@ -241,13 +241,15 @@ Rate limiting on non-auth endpoints
 2FA (TOTP)
 ~~~~~~~~~~
 
-**Status:** Not implemented. Planned — no code exists yet.
+**Status:** ✅ Implemented.
 
-To implement:
+- ``POST /auth/totp/setup`` — generate a TOTP secret; returns provisioning URI (for QR code) and raw base32 secret (for manual entry). Does not activate 2FA yet.
+- ``POST /auth/totp/verify`` — confirm setup by validating a code; activates 2FA on the account.
+- ``POST /auth/totp/disable`` — requires current password + valid TOTP code; clears the secret and deactivates 2FA.
+- ``POST /auth/login`` — when ``totp_enabled=True``, returns ``401`` with ``detail: "totp_required"`` if no ``totp_code`` is provided; validates the code before issuing tokens.
 
-- Add ``totp_secret`` (AES-encrypted) and ``totp_enabled`` fields to ``User`` model.
-- ``POST /auth/totp/setup`` — generate a TOTP secret, return QR code URI.
-- ``POST /auth/totp/verify`` — confirm setup by validating a code.
-- ``POST /auth/totp/disable`` — require password + current TOTP code to disable.
-- Require TOTP code as a second login step when ``totp_enabled=True``.
-- Use the ``pyotp`` library.
+**Implementation notes:**
+
+- TOTP secrets are AES-encrypted at rest using Fernet (``cryptography`` library) with a key derived from ``ENCRYPTION_KEY`` (independent of ``SECRET_KEY`` so JWT rotation doesn't lock users out).
+- Clock drift of ±1 time-step (±30 s) is tolerated.
+- Re-enrolment requires disabling first (``POST /auth/totp/disable``), then calling setup again.
