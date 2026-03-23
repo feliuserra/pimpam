@@ -28,6 +28,9 @@ pyotp~=2.9                   # TOTP 2FA (RFC 6238)
 # --- Search ---
 meilisearch~=0.31            # full-text search client (Meilisearch v1.x)
 
+# --- Real-time ---
+redis[asyncio]~=5.0          # pub/sub backend for WebSocket fan-out
+
 # --- Federation ---
 httpx~=0.28                  # outgoing AP requests (delivery, actor fetching)
 
@@ -42,6 +45,7 @@ furo~=2024.8                     # clean modern Sphinx theme
 # --- Dev & testing ---
 pytest~=8.3
 pytest-asyncio~=0.24
+pytest-cov~=6.0                  # coverage reporting
 aiosqlite~=0.20                  # in-memory SQLite driver for tests
 ruff~=0.9
 black~=25.0
