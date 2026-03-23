@@ -47,3 +47,19 @@ class UserPublic(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+    totp_code: str | None = None  # required when the account has 2FA enabled
+
+
+class TotpSetupResponse(BaseModel):
+    """Returned by POST /auth/totp/setup. Client renders `uri` as a QR code."""
+    uri: str     # otpauth:// provisioning URI
+    secret: str  # raw base32 secret for manual entry in authenticator apps
+
+
+class TotpVerifyRequest(BaseModel):
+    code: str  # 6-digit code from authenticator app
+
+
+class TotpDisableRequest(BaseModel):
+    password: str  # current account password
+    code: str      # current valid TOTP code
