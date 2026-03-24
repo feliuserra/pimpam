@@ -41,6 +41,10 @@ async def client():
     app.dependency_overrides.clear()
     _test_session_factory = None
     shared_limiter.enabled = original_enabled
+    # Reset the module-level Redis client so the next test gets a fresh one
+    # bound to the correct event loop (prevents RuntimeError: Event loop is closed)
+    import app.core.redis as _redis_mod
+    _redis_mod._client = None
     await engine.dispose()
 
 

@@ -46,6 +46,7 @@ furo~=2024.8                     # clean modern Sphinx theme
 pytest~=8.3
 pytest-asyncio~=0.24
 pytest-cov~=6.0                  # coverage reporting
+pytest-xdist~=3.0                # parallel test execution (-n auto)
 aiosqlite~=0.20                  # in-memory SQLite driver for tests
 ruff~=0.9
 black~=25.0

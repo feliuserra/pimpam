@@ -48,6 +48,8 @@ click==8.3.1
     # via
     #   black
     #   uvicorn
+coverage==7.13.5
+    # via pytest-cov
 cryptography==43.0.3
     # via
     #   -r requirements.in
@@ -121,7 +123,9 @@ pillow==11.3.0
 platformdirs==4.9.4
     # via black
 pluggy==1.6.0
-    # via pytest
+    # via
+    #   pytest
+    #   pytest-cov
 psycopg2-binary==2.9.11
     # via -r requirements.in
 pyasn1==0.6.3
@@ -145,13 +149,18 @@ pygments==2.19.2
     #   furo
     #   pytest
     #   sphinx
+pyjwt==2.12.1
+    # via redis
 pyotp==2.9.0
     # via -r requirements.in
 pytest==8.4.2
     # via
     #   -r requirements.in
     #   pytest-asyncio
+    #   pytest-cov
 pytest-asyncio==0.26.0
+    # via -r requirements.in
+pytest-cov==6.3.0
     # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via botocore
@@ -167,6 +176,8 @@ pytokens==0.4.1
     # via black
 pyyaml==6.0.3
     # via uvicorn
+redis==5.3.1
+    # via -r requirements.in
 requests==2.32.5
     # via
     #   meilisearch
