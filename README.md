@@ -75,20 +75,21 @@ All features are exposed via a versioned REST API at `/api/v1/`. Interactive doc
 
 | Area | Endpoints |
 |------|-----------|
-| Auth | Register, login, refresh tokens, 2FA (TOTP), password reset (link or code, SMTP email) |
+| Auth | Register, login, refresh tokens, 2FA (TOTP setup/verify/disable), password reset (link or code, SMTP email), logout, change password |
 | Users | Own profile, public profile, follow/unfollow |
-| Feed | Chronological feed from followed users (cursor-paginated) |
-| Posts | Create, edit, delete, vote (+1/-1), boost (AP Announce), share (reshare to followers/community) |
+| Feed | Unified chronological feed from followed users + joined communities (cursor-paginated, deduplicated) |
+| Posts | Create, edit (1h window), delete, vote (+1/-1), boost (AP Announce), share (reshare to followers/community) |
+| Stories | Create (image + optional caption, configurable duration), feed (followed users), delete, report |
 | Comments | Nested threads (5 levels), sort by latest or top, author delete, mod remove/restore |
 | Reactions | Per-comment reactions: agree (+1 karma), love (+2), misleading (−2), disagree (requires a reply, 10/day limit) |
 | Communities | Create, list, join/leave, post listing, member karma |
 | Moderation | Remove/restore posts and comments, ban proposals, ban appeals, mod promotion, ownership transfer |
 | Messages | Send (E2EE), inbox, conversation thread, mark as read |
+| Friend groups | CRUD groups + member management, group-scoped post visibility |
 | Media | Upload images (JPEG/PNG/WebP/GIF → WebP, EXIF stripped, S3 storage) |
-| Auth | Register, login, refresh tokens, 2FA (TOTP setup/verify/disable), password reset (link or code, email delivery) |
 | Search | Full-text search over posts, users, and communities; `?type=post\|user\|community` filter |
 | Notifications | Persistent inbox, 14 event types, grouped reactions/votes, per-type opt-out |
-| Real-time | WebSocket at `WS /ws?token=<jwt>` — new_post, new_comment, new_message, karma_update, notification |
+| Real-time | WebSocket at `WS /ws?token=<jwt>` — new_post, new_comment, new_message, karma_update, notification, typing |
 | Federation | ActivityPub: WebFinger, NodeInfo, Actor, Inbox, Outbox, HTTP Signatures |
 
 ## Project status
@@ -103,25 +104,29 @@ The core backend is complete and covered by an integration test suite (`pytest -
 - Account deletion — 7-day grace period with password confirmation; posts/comments anonymised, sent messages anonymised, received messages deleted; cancellable during grace period
 - Multi-image posts — `PostImage` table ready; `MULTI_IMAGE_POSTS_ENABLED` flag (default off) gates multi-image; single `image_url` path unchanged; response always includes ordered `images` array
 - Typing indicators for DMs — client sends `{"type":"typing","recipient_id":N}` over WS; server forwards to recipient's channel in real time
-- Chronological feed — strictly time-ordered, never algorithmic
+- Unified chronological feed — posts from followed users + joined communities, deduplicated, strictly time-ordered, never algorithmic
 - Posts: create, edit (1-hour window), vote, share (reshares trace to root original)
 - Comments: nested threads up to 5 levels, sort by latest or most-reacted, author delete, mod remove/restore
 - Comment reactions: agree, love, misleading, disagree — each with a distinct karma effect; disagree requires an accompanying reply to activate, capped at 10/day
 - Two-tier karma: global (shown on profile) + per-community (unlocks trusted_member at 50, gates mod eligibility at 200/500)
 - Communities with a full moderation system: role hierarchy (member → trusted_member → moderator → senior_mod → owner), ban proposals, ban appeals, mod promotion, ownership transfer
 - End-to-end encrypted direct messages
-- Real-time updates via WebSocket (new post, new comment, new message, karma update, notifications)
+- Stories — ephemeral posts with configurable duration (12h–7d), no seen-by tracking, hourly cleanup of expired stories, report with 48h mod review retention
+- Friend groups with group-scoped post visibility
+- Real-time updates via WebSocket (new post, new comment, new message, karma update, notifications, typing indicators for DMs)
 - Persistent notification inbox: 14 event types covering social actions and moderation, with grouped counts for reactions/votes, per-type opt-out preferences
 - Full-text search via Meilisearch over posts, users, and communities; `?type=` filter to scope results
+- Multi-image posts (`PostImage` table; behind `MULTI_IMAGE_POSTS_ENABLED` flag)
+- GDPR compliance: data export endpoint, consent log at registration, 30-day consent purge
 - ActivityPub federation — follow remote users, receive posts, boost content across the fediverse
 - CI/CD with coverage enforcement (≥70%) on every push
+- 399 tests covering all endpoints
 
 **What's next:**
 - Admin layer — platform-level moderation: site admin role, global bans, user suspension, platform content removal (required before public launch)
-- React frontend (the `client/` directory is currently a skeleton)
-- Multiple images per post
-- Typing indicators in DMs
+- React frontend (the `client/` directory is currently a skeleton — see [CLAUDE.md](CLAUDE.md) for the full frontend roadmap)
 - Karma privilege thresholds (rate-limit relaxation, community creation gating for trusted users)
+- Mod rewards / separate moderation karma track
 
 Want to help? Read our [Contributing Guide](CONTRIBUTING.md) and check the open issues.
 
