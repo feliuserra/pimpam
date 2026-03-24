@@ -7,7 +7,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import ws as ws_router
-from app.api.v1 import auth, communities, feed, media, messages, moderation, notifications, posts, search, users
+from app.api.v1 import auth, communities, feed, friend_groups, media, messages, moderation, notifications, posts, search, users
 from app.api.v1.comments import comments_router, post_comments_router
 from app.api.federation import actor_routes, wellknown
 from app.core.config import settings
@@ -93,6 +93,7 @@ app.include_router(messages.router, prefix=_prefix)
 app.include_router(media.router, prefix=_prefix)
 app.include_router(search.router, prefix=_prefix)
 app.include_router(notifications.router, prefix=_prefix)
+app.include_router(friend_groups.router, prefix=_prefix)
 app.include_router(post_comments_router, prefix=_prefix)
 app.include_router(comments_router, prefix=_prefix)
 

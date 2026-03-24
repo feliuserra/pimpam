@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.follow import Follow
+from app.models.friend_group import FriendGroupMember
 from app.models.post import Post
 from app.models.post_image import PostImage
 from app.schemas.comment import ShareCreate
@@ -77,9 +78,23 @@ async def get_chronological_feed(
         Follow.is_pending == False,  # noqa: E712 — exclude pending federated follows
     )
 
+    viewer_group_ids = select(FriendGroupMember.group_id).where(
+        FriendGroupMember.member_id == user_id
+    )
+
     query = (
         select(Post)
-        .where(Post.author_id.in_(followed_ids), Post.is_removed == False)  # noqa: E712
+        .where(
+            Post.author_id.in_(followed_ids),
+            Post.is_removed == False,  # noqa: E712
+            or_(
+                Post.visibility == "public",
+                and_(
+                    Post.visibility == "group",
+                    Post.friend_group_id.in_(viewer_group_ids),
+                ),
+            ),
+        )
         .order_by(Post.created_at.desc())
         .limit(limit)
     )
@@ -113,6 +128,30 @@ async def get_community_posts(
         subq = select(Post.created_at).where(Post.id == before_id).scalar_subquery()
         query = query.where(Post.created_at < subq)
 
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+async def get_user_posts(
+    db: AsyncSession,
+    user_id: int,
+    limit: int = 20,
+    before_id: int | None = None,
+) -> list[Post]:
+    """Public, non-removed posts by user_id, newest-first, cursor-paginated."""
+    query = (
+        select(Post)
+        .where(
+            Post.author_id == user_id,
+            Post.is_removed == False,  # noqa: E712
+            Post.visibility == "public",
+        )
+        .order_by(Post.created_at.desc())
+        .limit(limit)
+    )
+    if before_id is not None:
+        subq = select(Post.created_at).where(Post.id == before_id).scalar_subquery()
+        query = query.where(Post.created_at < subq)
     result = await db.execute(query)
     return list(result.scalars().all())
 
