@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.core.config import settings
-from app.core.dependencies import CurrentUser, DBSession
+from app.core.dependencies import CurrentUser, DBSession, OptionalUser
 from app.core.limiter import limiter
 from app.core.redis import publish_to_user
 from app.core.search import deindex_post, index_post
+from app.crud.friend_group import get_group, is_member
 from app.crud.post import create_post, create_share, delete_post, edit_post, get_post
 from app.crud.user import get_local_follower_ids, get_remote_follower_inboxes, get_user_by_id
 from app.crud.vote import cast_vote, retract_vote
@@ -27,36 +28,50 @@ async def create(request: Request, data: PostCreate, current_user: CurrentUser, 
     if effective and len(effective) > settings.post_max_images:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Maximum {settings.post_max_images} images per post")
 
+    if data.visibility == "group":
+        group = await get_group(db, data.friend_group_id)
+        if group is None or group.owner_id != current_user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your group")
+
     post = await create_post(db, data, author_id=current_user.id)
-    await index_post(post)
 
-    # Notify local followers in real time
-    follower_ids = await get_local_follower_ids(db, current_user.id)
-    for fid in follower_ids:
-        await publish_to_user(fid, "new_post", {
-            "id": post.id,
-            "title": post.title,
-            "author": current_user.username,
-        })
+    if post.visibility == "public":
+        await index_post(post)
 
-    if settings.federation_enabled:
-        try:
-            inboxes = await get_remote_follower_inboxes(db, current_user.id)
-            if inboxes:
-                activity = build_create(post, current_user)
-                await deliver_activity(activity, current_user, inboxes)
-        except Exception:
-            pass  # delivery failure never breaks post creation
+        # Notify local followers in real time
+        follower_ids = await get_local_follower_ids(db, current_user.id)
+        for fid in follower_ids:
+            await publish_to_user(fid, "new_post", {
+                "id": post.id,
+                "title": post.title,
+                "author": current_user.username,
+            })
+
+        if settings.federation_enabled:
+            try:
+                inboxes = await get_remote_follower_inboxes(db, current_user.id)
+                if inboxes:
+                    activity = build_create(post, current_user)
+                    await deliver_activity(activity, current_user, inboxes)
+            except Exception:
+                pass  # delivery failure never breaks post creation
 
     return post
 
 
 @router.get("/{post_id}", response_model=PostPublic)
-async def get(post_id: int, db: DBSession):
+async def get(post_id: int, db: DBSession, current_user: OptionalUser = None):
     """Fetch a single post by ID. Removed posts are hidden unless you are a moderator."""
     post = await get_post(db, post_id)
     if post is None or post.is_removed:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if post.visibility == "group":
+        viewer_id = current_user.id if current_user else None
+        if viewer_id is None or (
+            post.author_id != viewer_id
+            and not await is_member(db, post.friend_group_id, viewer_id)
+        ):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not authorised to view this post")
     return post
 
 
@@ -213,6 +228,8 @@ async def share(request: Request, post_id: int, data: ShareCreate, current_user:
     original = await get_post(db, post_id)
     if original is None or original.is_removed:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if original.visibility != "public":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Cannot share a group post")
     if original.author_id == current_user.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Cannot share your own post")
 

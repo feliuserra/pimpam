@@ -1,26 +1,38 @@
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
 
 from app.core.config import settings  # noqa: F401 (used in delete endpoint)
-from app.core.dependencies import CurrentUser, DBSession, UnverifiedCurrentUser
+from app.core.dependencies import CurrentUser, DBSession, OptionalUser, UnverifiedCurrentUser
 from app.core.limiter import limiter
 from app.core.search import index_user
 from app.core.security import verify_password
 from app.crud.account_deletion import cancel_deletion, schedule_deletion
-from app.schemas.user import DeleteAccountRequest
-from app.crud.user import get_user_by_username
+from app.crud.post import get_user_posts
+from app.crud.user import (
+    check_is_following,
+    get_follower_count,
+    get_followers,
+    get_following,
+    get_following_count,
+    get_user_by_username,
+)
 from app.federation.actor import actor_id, build_follow, build_undo_follow
 from app.federation.delivery import deliver_activity
 from app.models.follow import Follow
-from app.schemas.user import UserPublic, UserUpdate
+from app.schemas.post import PostPublic
+from app.schemas.user import DeleteAccountRequest, UserPublic, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
  
 @router.get("/me", response_model=UserPublic)
-async def get_me(current_user: UnverifiedCurrentUser):
-    """Return the authenticated user's own profile, including verification and deletion status."""
-    return current_user
+async def get_me(current_user: UnverifiedCurrentUser, db: DBSession):
+    """Return the authenticated user's own profile, including verification, deletion status, and follower counts."""
+    fc = await get_follower_count(db, current_user.id)
+    fing = await get_following_count(db, current_user.id)
+    return UserPublic.model_validate(current_user, from_attributes=True).model_copy(
+        update={"follower_count": fc, "following_count": fing}
+    )
 
 
 @router.patch("/me", response_model=UserPublic)
@@ -31,16 +43,70 @@ async def update_me(data: UserUpdate, current_user: UnverifiedCurrentUser, db: D
     await db.commit()
     await db.refresh(current_user)
     await index_user(current_user)
-    return current_user
+    fc = await get_follower_count(db, current_user.id)
+    fing = await get_following_count(db, current_user.id)
+    return UserPublic.model_validate(current_user, from_attributes=True).model_copy(
+        update={"follower_count": fc, "following_count": fing}
+    )
 
 
 @router.get("/{username}", response_model=UserPublic)
-async def get_user(username: str, db: DBSession):
-    """Fetch a public user profile by username."""
+async def get_user(username: str, db: DBSession, current_user: OptionalUser = None):
+    """
+    Fetch a public user profile by username.
+    Includes follower/following counts and, when authenticated, an ``is_following`` flag.
+    """
     user = await get_user_by_username(db, username)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+    fc = await get_follower_count(db, user.id)
+    fing = await get_following_count(db, user.id)
+    is_following = None
+    if current_user is not None and current_user.id != user.id:
+        is_following = await check_is_following(db, current_user.id, user.id)
+    return UserPublic.model_validate(user, from_attributes=True).model_copy(
+        update={"follower_count": fc, "following_count": fing, "is_following": is_following}
+    )
+
+
+@router.get("/{username}/followers", response_model=list[UserPublic])
+async def list_followers(
+    username: str,
+    db: DBSession,
+    limit: int = Query(default=50, le=200),
+):
+    """Return the list of confirmed followers for a user, newest first."""
+    user = await get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+    return await get_followers(db, user.id, limit=limit)
+
+
+@router.get("/{username}/following", response_model=list[UserPublic])
+async def list_following(
+    username: str,
+    db: DBSession,
+    limit: int = Query(default=50, le=200),
+):
+    """Return the list of users that this user is confirmed following, newest first."""
+    user = await get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+    return await get_following(db, user.id, limit=limit)
+
+
+@router.get("/{username}/posts", response_model=list[PostPublic])
+async def list_user_posts(
+    username: str,
+    db: DBSession,
+    limit: int = Query(default=20, le=100),
+    before_id: int | None = Query(default=None),
+):
+    """Return public, non-removed posts by this user, newest first. Cursor-paginated via ``before_id``."""
+    user = await get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+    return await get_user_posts(db, user.id, limit=limit, before_id=before_id)
 
 
 @router.post("/{username}/follow", status_code=status.HTTP_204_NO_CONTENT)

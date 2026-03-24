@@ -13,4 +13,5 @@ from app.models.community_karma import CommunityKarma  # noqa: F401
 from app.models.moderation import Ban, BanProposal, BanProposalVote, BanAppeal, BanAppealVote, ModProposal, ModProposalVote, OwnershipTransfer  # noqa: F401
 from app.models.comment import Comment, CommentReaction  # noqa: F401
 from app.models.notification import Notification, NotificationPreference  # noqa: F401
+from app.models.friend_group import FriendGroup, FriendGroupMember  # noqa: F401
 from app.models.password_reset import PasswordResetToken  # noqa: F401

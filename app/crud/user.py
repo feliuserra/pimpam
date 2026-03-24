@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
@@ -61,6 +61,74 @@ async def get_local_follower_ids(db: AsyncSession, user_id: int) -> list[int]:
             User.is_remote == False,  # noqa: E712
             Follow.is_pending == False,  # noqa: E712
         )
+    )
+    return list(result.scalars().all())
+
+
+async def get_follower_count(db: AsyncSession, user_id: int) -> int:
+    """Return the number of confirmed (non-pending) followers."""
+    result = await db.execute(
+        select(func.count(Follow.id)).where(
+            Follow.followed_id == user_id,
+            Follow.is_pending == False,  # noqa: E712
+        )
+    )
+    return result.scalar_one()
+
+
+async def get_following_count(db: AsyncSession, user_id: int) -> int:
+    """Return the number of users this user is confirmed following."""
+    result = await db.execute(
+        select(func.count(Follow.id)).where(
+            Follow.follower_id == user_id,
+            Follow.is_pending == False,  # noqa: E712
+        )
+    )
+    return result.scalar_one()
+
+
+async def check_is_following(db: AsyncSession, follower_id: int, followed_id: int) -> bool:
+    """Return True if follower_id follows followed_id (confirmed, non-pending)."""
+    result = await db.execute(
+        select(Follow).where(
+            Follow.follower_id == follower_id,
+            Follow.followed_id == followed_id,
+            Follow.is_pending == False,  # noqa: E712
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def get_followers(
+    db: AsyncSession, user_id: int, limit: int = 50
+) -> list[User]:
+    """Return confirmed followers of user_id, newest first."""
+    result = await db.execute(
+        select(User)
+        .join(Follow, Follow.follower_id == User.id)
+        .where(
+            Follow.followed_id == user_id,
+            Follow.is_pending == False,  # noqa: E712
+        )
+        .order_by(Follow.id.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def get_following(
+    db: AsyncSession, user_id: int, limit: int = 50
+) -> list[User]:
+    """Return users that user_id is confirmed following, newest first."""
+    result = await db.execute(
+        select(User)
+        .join(Follow, Follow.followed_id == User.id)
+        .where(
+            Follow.follower_id == user_id,
+            Follow.is_pending == False,  # noqa: E712
+        )
+        .order_by(Follow.id.desc())
+        .limit(limit)
     )
     return list(result.scalars().all())
 

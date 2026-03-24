@@ -41,6 +41,9 @@ class UserPublic(BaseModel):
     is_verified: bool
     deletion_scheduled_at: datetime | None = None
     created_at: datetime
+    follower_count: int = 0
+    following_count: int = 0
+    is_following: bool | None = None  # None on own profile or unauthenticated
 
     model_config = {"from_attributes": True}
 

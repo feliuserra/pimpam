@@ -33,6 +33,10 @@ class Post(Base):
     # Uploaded image — URL pointing to S3-compatible storage (WebP, processed server-side)
     image_url: Mapped[str | None] = mapped_column(String(2048))
 
+    # Audience — "public" (default) or "group" (visible only to members of friend_group_id)
+    visibility: Mapped[str] = mapped_column(String(20), default="public")
+    friend_group_id: Mapped[int | None] = mapped_column(ForeignKey("friend_groups.id"), nullable=True)
+
     # ActivityPub federation — stores the remote post's URL for federated content
     ap_id: Mapped[str | None] = mapped_column(String(2048), unique=True)
 
