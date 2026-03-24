@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -23,6 +23,16 @@ class User(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )
+
+    # Incremented on password reset / logout to invalidate all outstanding refresh tokens
+    token_version: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Account deletion — set when user requests deletion; background task hard-deletes after 7 days
+    deletion_scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Email verification — token hash stored here (no separate table; one token per user at a time)
+    email_verification_token_hash: Mapped[str | None] = mapped_column(String(64))
+    email_verification_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # 2FA (TOTP) — secret is AES-encrypted at rest; totp_enabled stays False until user verifies a code
     totp_secret: Mapped[str | None] = mapped_column(String(512))  # Fernet ciphertext

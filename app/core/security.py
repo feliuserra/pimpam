@@ -35,8 +35,10 @@ def create_access_token(subject: Any) -> str:
     return create_token(subject, timedelta(minutes=settings.access_token_expire_minutes))
 
 
-def create_refresh_token(subject: Any) -> str:
-    return create_token(subject, timedelta(days=settings.refresh_token_expire_days))
+def create_refresh_token(subject: Any, token_version: int = 0) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+    payload = {"sub": str(subject), "exp": expire, "ver": token_version}
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 
 def decode_token(token: str) -> dict:

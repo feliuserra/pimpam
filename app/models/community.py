@@ -34,7 +34,7 @@ class CommunityMember(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     community_id: Mapped[int] = mapped_column(ForeignKey("communities.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    is_moderator: Mapped[bool] = mapped_column(default=False)
+    role: Mapped[str] = mapped_column(String(20), default="member")
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

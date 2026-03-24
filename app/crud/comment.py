@@ -108,6 +108,11 @@ async def mod_remove_comment(db: AsyncSession, comment: Comment, moderator_id: i
     comment.is_removed = True
     comment.removed_by_id = moderator_id
     await db.commit()
+    from app.crud.notification import notify
+    await notify(
+        db, comment.author_id, "comment_removed",
+        actor_id=moderator_id, comment_id=comment.id, post_id=comment.post_id,
+    )
 
 
 async def mod_restore_comment(db: AsyncSession, comment: Comment) -> None:
@@ -129,11 +134,58 @@ async def get_reaction_counts(db: AsyncSession, comment_id: int) -> dict[str, in
     return {row[0]: row[1] for row in result.all()}
 
 
+async def get_reaction_counts_batch(
+    db: AsyncSession, comment_ids: list[int]
+) -> dict[int, dict[str, int]]:
+    """
+    Fetch active reaction counts for multiple comments in a single query.
+    Returns {comment_id: {reaction_type: count}}.
+    """
+    if not comment_ids:
+        return {}
+    result = await db.execute(
+        select(
+            CommentReaction.comment_id,
+            CommentReaction.reaction_type,
+            func.count(CommentReaction.id).label("cnt"),
+        )
+        .where(
+            CommentReaction.comment_id.in_(comment_ids),
+            CommentReaction.activated == True,  # noqa: E712
+        )
+        .group_by(CommentReaction.comment_id, CommentReaction.reaction_type)
+    )
+    counts: dict[int, dict[str, int]] = {cid: {} for cid in comment_ids}
+    for comment_id, reaction_type, cnt in result.all():
+        counts[comment_id][reaction_type] = cnt
+    return counts
+
+
 async def get_reply_count(db: AsyncSession, comment_id: int) -> int:
     result = await db.execute(
         select(func.count(Comment.id)).where(Comment.parent_id == comment_id)
     )
     return result.scalar_one()
+
+
+async def get_reply_counts_batch(
+    db: AsyncSession, comment_ids: list[int]
+) -> dict[int, int]:
+    """
+    Fetch reply counts for multiple comments in a single query.
+    Returns {comment_id: reply_count}.
+    """
+    if not comment_ids:
+        return {}
+    result = await db.execute(
+        select(Comment.parent_id, func.count(Comment.id).label("cnt"))
+        .where(Comment.parent_id.in_(comment_ids))
+        .group_by(Comment.parent_id)
+    )
+    counts = {cid: 0 for cid in comment_ids}
+    for parent_id, cnt in result.all():
+        counts[parent_id] = cnt
+    return counts
 
 
 async def get_watchers(db: AsyncSession, post_id: int, exclude_user_id: int) -> list[int]:

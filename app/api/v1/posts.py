@@ -103,6 +103,17 @@ async def vote(request: Request, post_id: int, data: VoteCreate, current_user: C
 
     vote_obj = await cast_vote(db, current_user.id, post, data.direction)
 
+    # Grouped vote notification for post author
+    try:
+        from app.crud.notification import notify as _notify
+        await _notify(
+            db, post.author_id, "vote",
+            actor_id=current_user.id, post_id=post_id,
+            group_key=f"vote:post:{post_id}",
+        )
+    except Exception:
+        pass
+
     author = await get_user_by_id(db, post.author_id)
     await publish_to_user(post.author_id, "karma_update", {
         "post_id": post_id,
@@ -203,6 +214,16 @@ async def share(request: Request, post_id: int, data: ShareCreate, current_user:
         post = await create_share(db, original, current_user.id, data)
     except ValueError as e:
         raise HTTPException(status.HTTP_409_CONFLICT, detail=str(e))
+
+    # Notify the original post author
+    try:
+        from app.crud.notification import notify as _notify
+        await _notify(
+            db, original.author_id, "share",
+            actor_id=current_user.id, post_id=original.id,
+        )
+    except Exception:
+        pass
 
     # Notify local followers
     follower_ids = await get_local_follower_ids(db, current_user.id)

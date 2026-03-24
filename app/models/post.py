@@ -13,7 +13,7 @@ class Post(Base):
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     content: Mapped[str | None] = mapped_column(Text)
     url: Mapped[str | None] = mapped_column(String(2048))
-    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     community_id: Mapped[int | None] = mapped_column(ForeignKey("communities.id"))
     karma: Mapped[int] = mapped_column(Integer, default=1)  # starts at 1 (author's implicit vote)
     created_at: Mapped[datetime] = mapped_column(
@@ -36,6 +36,11 @@ class Post(Base):
     # ActivityPub federation — stores the remote post's URL for federated content
     ap_id: Mapped[str | None] = mapped_column(String(2048), unique=True)
 
+    # Shares — when set, this post is a reshare of another post
+    shared_from_id: Mapped[int | None] = mapped_column(ForeignKey("posts.id"), nullable=True)
+    share_comment: Mapped[str | None] = mapped_column(String(300))
+
     # Relationships
     author: Mapped["User"] = relationship(foreign_keys=[author_id], back_populates="posts", lazy="raise")
     community: Mapped["Community | None"] = relationship(back_populates="posts", lazy="raise")
+    shared_from: Mapped["Post | None"] = relationship(foreign_keys=[shared_from_id], lazy="raise")

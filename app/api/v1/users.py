@@ -1,9 +1,13 @@
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
 
-from app.core.config import settings
-from app.core.dependencies import CurrentUser, DBSession
+from app.core.config import settings  # noqa: F401 (used in delete endpoint)
+from app.core.dependencies import CurrentUser, DBSession, UnverifiedCurrentUser
 from app.core.limiter import limiter
+from app.core.search import index_user
+from app.core.security import verify_password
+from app.crud.account_deletion import cancel_deletion, schedule_deletion
+from app.schemas.user import DeleteAccountRequest
 from app.crud.user import get_user_by_username
 from app.federation.actor import actor_id, build_follow, build_undo_follow
 from app.federation.delivery import deliver_activity
@@ -14,18 +18,19 @@ router = APIRouter(prefix="/users", tags=["users"])
 
  
 @router.get("/me", response_model=UserPublic)
-async def get_me(current_user: CurrentUser):
-    """Return the authenticated user's profile."""
+async def get_me(current_user: UnverifiedCurrentUser):
+    """Return the authenticated user's own profile, including verification and deletion status."""
     return current_user
 
 
 @router.patch("/me", response_model=UserPublic)
-async def update_me(data: UserUpdate, current_user: CurrentUser, db: DBSession):
+async def update_me(data: UserUpdate, current_user: UnverifiedCurrentUser, db: DBSession):
     """Update the authenticated user's profile fields."""
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(current_user, field, value)
     await db.commit()
     await db.refresh(current_user)
+    await index_user(current_user)
     return current_user
 
 
@@ -62,6 +67,14 @@ async def follow(request: Request, username: str, current_user: CurrentUser, db:
     db.add(Follow(follower_id=current_user.id, followed_id=user.id, is_pending=is_pending))
     await db.commit()
 
+    # Notify the followed user (local only — remote users have their own notification system)
+    if not user.is_remote:
+        try:
+            from app.crud.notification import notify
+            await notify(db, user.id, "follow", actor_id=current_user.id)
+        except Exception:
+            pass
+
     if is_pending and user.ap_inbox:
         activity = build_follow(current_user.username, actor_id(user.username) if not user.ap_id else user.ap_id)
         try:
@@ -96,3 +109,44 @@ async def unfollow(username: str, current_user: CurrentUser, db: DBSession):
             await deliver_activity(activity, current_user, [user.ap_inbox])
         except Exception:
             pass
+
+
+# ---------------------------------------------------------------------------
+# Account deletion
+# ---------------------------------------------------------------------------
+
+@router.post("/me/delete", status_code=status.HTTP_202_ACCEPTED)
+async def request_deletion(data: DeleteAccountRequest, current_user: UnverifiedCurrentUser, db: DBSession):
+    """
+    Schedule the authenticated account for permanent deletion.
+
+    The account will be hard-deleted after a 7-day grace period. During that
+    window the account continues to work normally and deletion can be cancelled
+    via ``POST /users/me/delete/cancel``.
+
+    All posts and comments will be anonymised (shown as "[deleted user]").
+    Direct messages you sent will be anonymised; the other party keeps them.
+    Everything else (votes, reactions, follows, notifications) is purged.
+
+    Requires your current password to confirm intent.
+    Returns ``409`` if deletion is already scheduled.
+    """
+    if not verify_password(data.password, current_user.hashed_password):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+    if current_user.deletion_scheduled_at is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Deletion already scheduled")
+    await schedule_deletion(db, current_user)
+    return {"detail": f"Account scheduled for deletion in {settings.account_deletion_grace_days} days"}
+
+
+@router.post("/me/delete/cancel", status_code=status.HTTP_200_OK)
+async def cancel_deletion_request(current_user: UnverifiedCurrentUser, db: DBSession):
+    """
+    Cancel a pending account deletion.
+
+    Returns ``400`` if no deletion was scheduled.
+    """
+    if current_user.deletion_scheduled_at is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No deletion scheduled")
+    await cancel_deletion(db, current_user)
+    return {"detail": "Deletion cancelled"}

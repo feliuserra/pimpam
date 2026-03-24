@@ -1,6 +1,9 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.post import Post
 from app.models.vote import Vote
 
 
@@ -19,41 +22,69 @@ async def create_initial_vote(db: AsyncSession, user_id: int, post_id: int) -> V
     return vote
 
 
+async def _apply_karma(db: AsyncSession, post: Post, karma_delta: int) -> None:
+    """Apply karma_delta to the post, its author, and community karma (if applicable)."""
+    if karma_delta == 0:
+        return
+
+    post.karma += karma_delta
+
+    from app.crud.user import get_user_by_id
+    author = await get_user_by_id(db, post.author_id)
+    if author:
+        author.karma += karma_delta
+
+    # Also credit original post author when a share is voted on
+    if post.shared_from_id is not None:
+        from app.crud.post import get_post
+        original = await get_post(db, post.shared_from_id)
+        if original and original.author_id != post.author_id:
+            original_author = await get_user_by_id(db, original.author_id)
+            if original_author and karma_delta > 0:
+                original_author.karma += 1  # bonus karma for original author on +1 votes
+
+    if post.community_id is not None:
+        from app.crud.community_karma import update_community_karma
+        await update_community_karma(db, post.author_id, post.community_id, karma_delta)
+
+
 async def cast_vote(
     db: AsyncSession,
     user_id: int,
-    post_id: int,
+    post: Post,
     direction: int,
-) -> tuple[Vote, int]:
+) -> Vote:
     """
-    Cast or change a vote. Returns (vote, karma_delta).
-    karma_delta is the net change to apply to Post.karma and User.karma.
-    Does NOT commit — the caller owns the transaction so karma updates
-    on Post and User happen atomically with the vote.
+    Cast or change a vote. Applies karma changes to Post, User, and CommunityKarma
+    atomically. Commits the transaction.
     """
-    existing = await get_vote(db, user_id, post_id)
+    existing = await get_vote(db, user_id, post.id)
 
     if existing:
         if existing.direction == direction:
-            return existing, 0  # no change
-        old_direction = existing.direction
+            return existing  # no change
+        karma_delta = direction - existing.direction
         existing.direction = direction
-        return existing, direction - old_direction  # e.g. was -1, now +1 → delta = +2
+        vote = existing
     else:
-        vote = Vote(user_id=user_id, post_id=post_id, direction=direction)
+        vote = Vote(user_id=user_id, post_id=post.id, direction=direction)
         db.add(vote)
-        return vote, direction
+        karma_delta = direction
+
+    await _apply_karma(db, post, karma_delta)
+    await db.commit()
+    return vote
 
 
-async def retract_vote(db: AsyncSession, user_id: int, post_id: int) -> int:
+async def retract_vote(db: AsyncSession, user_id: int, post: Post) -> None:
     """
-    Remove a vote. Returns the karma_delta (negative of the removed direction).
-    Does NOT commit — the caller owns the transaction.
+    Remove a vote. Applies karma changes and commits.
     Raises ValueError if no vote exists.
     """
-    vote = await get_vote(db, user_id, post_id)
+    vote = await get_vote(db, user_id, post.id)
     if vote is None:
         raise ValueError("No vote to retract")
-    delta = -vote.direction
+    karma_delta = -vote.direction
     await db.delete(vote)
-    return delta
+    await _apply_karma(db, post, karma_delta)
+    await db.commit()

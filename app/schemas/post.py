@@ -30,12 +30,14 @@ class PostPublic(BaseModel):
     content: str | None
     url: str | None
     image_url: str | None
-    author_id: int
+    author_id: int | None
     community_id: int | None
     karma: int
     is_edited: bool
     edited_at: datetime | None
     is_removed: bool
     created_at: datetime
+    shared_from_id: int | None = None
+    share_comment: str | None = None
 
     model_config = {"from_attributes": True}

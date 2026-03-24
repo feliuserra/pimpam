@@ -69,5 +69,27 @@ class Settings(BaseSettings):
     # Rate limits (counts per day) for reactions that need a cap
     disagree_daily_limit: int = 10
 
+    # SMTP (password reset emails)
+    # Set smtp_enabled=true and fill in credentials to enable email delivery.
+    smtp_enabled: bool = False
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@pimpam.social"
+    smtp_tls: bool = True
+
+    # Password reset token lifetimes and per-email rate cap
+    password_reset_link_expire_minutes: int = 15
+    password_reset_code_expire_minutes: int = 10
+    password_reset_max_requests_per_hour: int = 3
+
+    # Email verification
+    email_verification_token_expire_minutes: int = 60
+    unverified_account_delete_days: int = 30
+
+    # Account deletion grace period
+    account_deletion_grace_days: int = 7
+
 
 settings = Settings()

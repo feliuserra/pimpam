@@ -11,7 +11,9 @@ class CommunityCreate(BaseModel):
     @classmethod
     def name_valid(cls, v: str) -> str:
         if not v.replace("_", "").replace("-", "").isalnum():
-            raise ValueError("Community name may only contain letters, numbers, hyphens, and underscores")
+            raise ValueError(
+                "Community name may only contain letters, numbers, hyphens, and underscores"
+            )
         if len(v) < 3 or len(v) > 100:
             raise ValueError("Community name must be between 3 and 100 characters")
         return v.lower()
@@ -24,5 +26,16 @@ class CommunityPublic(BaseModel):
     owner_id: int
     member_count: int
     created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class CommunityKarmaPublic(BaseModel):
+    """A user's karma score within a specific community."""
+
+    community_id: int
+    user_id: int
+    karma: int
+    role: str
 
     model_config = {"from_attributes": True}

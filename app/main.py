@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,7 +7,8 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import ws as ws_router
-from app.api.v1 import auth, communities, feed, media, messages, moderation, posts, search, users
+from app.api.v1 import auth, communities, feed, media, messages, moderation, notifications, posts, search, users
+from app.api.v1.comments import comments_router, post_comments_router
 from app.api.federation import actor_routes, wellknown
 from app.core.config import settings
 from app.core.limiter import limiter
@@ -31,9 +33,30 @@ async def lifespan(app: FastAPI):
         get_redis()  # eagerly create the client; actual connection is lazy
     except Exception:
         pass
+    cleanup_task = asyncio.create_task(_account_cleanup_loop())
     yield
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
     from app.core.redis import close_redis
     await close_redis()
+
+
+async def _account_cleanup_loop() -> None:
+    """Hourly background task: execute due deletions and purge expired unverified accounts."""
+    from app.crud.account_deletion import process_expired_unverified, process_pending_deletions
+    from app.db.session import AsyncSessionLocal
+
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            async with AsyncSessionLocal() as db:
+                await process_pending_deletions(db)
+                await process_expired_unverified(db)
+        except Exception:
+            pass
 
 
 app = FastAPI(
@@ -69,6 +92,9 @@ app.include_router(moderation.router, prefix=_prefix)
 app.include_router(messages.router, prefix=_prefix)
 app.include_router(media.router, prefix=_prefix)
 app.include_router(search.router, prefix=_prefix)
+app.include_router(notifications.router, prefix=_prefix)
+app.include_router(post_comments_router, prefix=_prefix)
+app.include_router(comments_router, prefix=_prefix)
 
 # WebSocket — no version prefix, mounted at root
 app.include_router(ws_router.router)

@@ -16,7 +16,7 @@ class CommentCreate(BaseModel):
 class CommentPublic(BaseModel):
     id: int
     post_id: int
-    author_id: int
+    author_id: int | None
     parent_id: int | None
     depth: int
     content: str
