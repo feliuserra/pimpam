@@ -19,7 +19,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    sender_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     recipient_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # Ciphertext only — server never holds plaintext

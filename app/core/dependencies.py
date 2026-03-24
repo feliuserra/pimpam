@@ -15,11 +15,11 @@ bearer_optional = HTTPBearer(auto_error=False)
 DBSession = Annotated[AsyncSession, Depends(get_session)]
 
 
-async def _get_current_user(
+async def _get_current_user_any(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
     db: DBSession,
 ):
-    # Import here to avoid circular imports
+    """Authenticate and return the user. Checks token validity and is_active only."""
     from app.crud.user import get_user_by_id
 
     exc = HTTPException(
@@ -35,8 +35,22 @@ async def _get_current_user(
         raise exc
 
     user = await get_user_by_id(db, int(user_id))
-    if user is None:
+    if user is None or not user.is_active:
         raise exc
+    return user
+
+
+async def _get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
+    db: DBSession,
+):
+    """Authenticate and return the user. Also requires email to be verified."""
+    user = await _get_current_user_any(credentials, db)
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="email_not_verified",
+        )
     return user
 
 
@@ -60,5 +74,11 @@ async def _get_optional_user(
     return await get_user_by_id(db, int(user_id))
 
 
+# Requires valid token + is_active + is_verified — use for all regular routes
 CurrentUser = Annotated[Any, Depends(_get_current_user)]
+
+# Requires valid token + is_active only — use for auth routes (logout, change-password,
+# totp setup/verify/disable, resend-verification, delete account, view own profile)
+UnverifiedCurrentUser = Annotated[Any, Depends(_get_current_user_any)]
+
 OptionalUser = Annotated[Any, Depends(_get_optional_user)]

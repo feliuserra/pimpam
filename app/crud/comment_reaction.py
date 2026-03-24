@@ -68,6 +68,20 @@ async def add_reaction(
 
     await db.commit()
     await db.refresh(reaction)
+
+    # Notify comment author (grouped by comment)
+    from app.crud.notification import notify
+    comment_result = await db.execute(
+        select(Comment).where(Comment.id == comment_id)
+    )
+    comment = comment_result.scalar_one_or_none()
+    if comment:
+        await notify(
+            db, comment.author_id, "reaction",
+            actor_id=user_id, comment_id=comment_id,
+            group_key=f"reaction:comment:{comment_id}",
+        )
+
     return reaction
 
 

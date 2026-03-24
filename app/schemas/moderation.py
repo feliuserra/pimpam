@@ -38,6 +38,7 @@ class BanPublic(BaseModel):
     coc_violation: str
     is_permanent: bool
     expires_at: datetime | None
+    status: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -45,6 +46,7 @@ class BanPublic(BaseModel):
 
 class ModProposalCreate(BaseModel):
     target_username: str
+    target_role: str = "moderator"
 
 
 class ModProposalPublic(BaseModel):
@@ -55,6 +57,51 @@ class ModProposalPublic(BaseModel):
     vote_count: int
     required_votes: int
     status: str
+    target_role: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class BanAppealCreate(BaseModel):
+    ban_id: int
+    reason: str
+
+
+class BanAppealPublic(BaseModel):
+    id: int
+    ban_id: int
+    appellant_id: int
+    reason: str
+    status: str
+    vote_count: int
+    required_votes: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class OwnershipTransferCreate(BaseModel):
+    recipient_username: str
+
+
+class OwnershipTransferPublic(BaseModel):
+    id: int
+    community_id: int
+    proposed_by_id: int
+    recipient_id: int
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class OwnershipTransferResponse(BaseModel):
+    accept: bool
+
+
+class CommunityKarmaPublic(BaseModel):
+    community_id: int
+    community_name: str
+    karma: int
+    role: str

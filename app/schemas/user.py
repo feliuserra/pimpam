@@ -1,6 +1,5 @@
 from datetime import datetime
-
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class UserCreate(BaseModel):
@@ -39,9 +38,15 @@ class UserPublic(BaseModel):
     bio: str | None
     avatar_url: str | None
     karma: int
+    is_verified: bool
+    deletion_scheduled_at: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(..., min_length=1)
 
 
 class UserLogin(BaseModel):

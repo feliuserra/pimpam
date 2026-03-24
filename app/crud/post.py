@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.follow import Follow
 from app.models.post import Post
+from app.schemas.comment import ShareCreate
 from app.schemas.post import PostCreate, PostUpdate
 
 EDIT_WINDOW = timedelta(hours=1)
@@ -108,3 +109,51 @@ async def get_community_posts(
 async def delete_post(db: AsyncSession, post: Post) -> None:
     await db.delete(post)
     await db.commit()
+
+
+async def create_share(
+    db: AsyncSession,
+    original: Post,
+    author_id: int,
+    data: ShareCreate,
+) -> Post:
+    """
+    Create a share (reshare) of an existing post.
+    - Traces through share chains: sharing a share links to the root original.
+    - Enforces one share per user per original post.
+    Raises ValueError('already_shared') if the user has already shared this post.
+    """
+    # Trace to root original so shares of shares still point to the root
+    root_id = original.shared_from_id if original.shared_from_id is not None else original.id
+
+    existing = await db.execute(
+        select(Post).where(
+            Post.author_id == author_id,
+            Post.shared_from_id == root_id,
+        )
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise ValueError("already_shared")
+
+    root = await get_post(db, root_id) if root_id != original.id else original
+
+    post = Post(
+        title=root.title,
+        content=root.content,
+        url=root.url,
+        image_url=root.image_url,
+        author_id=author_id,
+        community_id=data.community_id,
+        karma=1,
+        shared_from_id=root_id,
+        share_comment=data.comment,
+    )
+    db.add(post)
+    await db.flush()
+
+    from app.crud.vote import create_initial_vote
+    await create_initial_vote(db, user_id=author_id, post_id=post.id)
+
+    await db.commit()
+    await db.refresh(post)
+    return post

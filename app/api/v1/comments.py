@@ -10,9 +10,10 @@ DELETE /comments/{comment_id}/reactions/{rt}  — remove a reaction
 """
 from enum import Enum
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from app.core.dependencies import CurrentUser, DBSession
+from app.core.limiter import limiter
 from app.core.redis import publish_to_user
 from app.crud.comment import (
     create_comment,
@@ -20,7 +21,9 @@ from app.crud.comment import (
     get_comment_replies,
     get_post_comments,
     get_reaction_counts,
+    get_reaction_counts_batch,
     get_reply_count,
+    get_reply_counts_batch,
     get_watchers,
     soft_delete_comment,
 )
@@ -58,7 +61,8 @@ def _comment_to_public(comment, reaction_counts: dict, reply_count: int) -> Comm
     response_model=CommentPublic,
     status_code=status.HTTP_201_CREATED,
 )
-async def create(post_id: int, data: CommentCreate, current_user: CurrentUser, db: DBSession):
+@limiter.limit("1/30 seconds")
+async def create(request: Request, post_id: int, data: CommentCreate, current_user: CurrentUser, db: DBSession):
     """
     Create a comment on a post, or reply to another comment (via parent_id).
     Maximum nesting depth is 5 levels. Comments cannot be edited after posting.
@@ -80,6 +84,27 @@ async def create(post_id: int, data: CommentCreate, current_user: CurrentUser, d
     # If this is a reply, activate any pending 'disagree' the user has on the parent
     if data.parent_id is not None:
         await activate_disagrees_for_user(db, data.parent_id, current_user.id)
+
+    # Persistent notifications
+    try:
+        from app.crud.notification import notify
+        from app.crud.comment import get_comment as _get_comment
+        if data.parent_id is not None:
+            parent = await _get_comment(db, data.parent_id)
+            if parent and parent.author_id != current_user.id:
+                await notify(
+                    db, parent.author_id, "reply",
+                    actor_id=current_user.id, post_id=post_id, comment_id=comment.id,
+                )
+        # new_comment for the post author (skip if they're the one commenting)
+        if post.author_id != current_user.id:
+            await notify(
+                db, post.author_id, "new_comment",
+                actor_id=current_user.id, post_id=post_id, comment_id=comment.id,
+                group_key=f"comment:post:{post_id}",
+            )
+    except Exception:
+        pass
 
     # Notify all watchers (post author + everyone who commented), excluding the commenter
     watchers = await get_watchers(db, post_id, exclude_user_id=current_user.id)
@@ -112,12 +137,17 @@ async def list_comments(
 
     comments = await get_post_comments(db, post_id, sort=sort.value, limit=limit, before_id=before_id)
 
-    result = []
-    for c in comments:
-        counts = await get_reaction_counts(db, c.id)
-        replies = await get_reply_count(db, c.id)
-        result.append(_comment_to_public(c, counts, replies))
-    return result
+    if not comments:
+        return []
+
+    ids = [c.id for c in comments]
+    reaction_counts = await get_reaction_counts_batch(db, ids)
+    reply_counts = await get_reply_counts_batch(db, ids)
+
+    return [
+        _comment_to_public(c, reaction_counts.get(c.id, {}), reply_counts.get(c.id, 0))
+        for c in comments
+    ]
 
 
 @comments_router.get("/{comment_id}/replies", response_model=list[CommentPublic])
@@ -128,12 +158,18 @@ async def list_replies(comment_id: int, db: DBSession):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Comment not found")
 
     replies = await get_comment_replies(db, comment_id)
-    result = []
-    for r in replies:
-        counts = await get_reaction_counts(db, r.id)
-        reply_count = await get_reply_count(db, r.id)
-        result.append(_comment_to_public(r, counts, reply_count))
-    return result
+
+    if not replies:
+        return []
+
+    ids = [r.id for r in replies]
+    reaction_counts = await get_reaction_counts_batch(db, ids)
+    reply_counts = await get_reply_counts_batch(db, ids)
+
+    return [
+        _comment_to_public(r, reaction_counts.get(r.id, {}), reply_counts.get(r.id, 0))
+        for r in replies
+    ]
 
 
 @comments_router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)

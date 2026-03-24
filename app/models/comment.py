@@ -13,7 +13,7 @@ class Comment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     post_id: Mapped[int] = mapped_column(ForeignKey("posts.id"), nullable=False, index=True)
-    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("comments.id"), nullable=True, index=True)
     depth: Mapped[int] = mapped_column(Integer, default=0)  # 0 = top-level, max MAX_DEPTH
     content: Mapped[str] = mapped_column(String(300), nullable=False)

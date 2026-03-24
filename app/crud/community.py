@@ -17,9 +17,9 @@ async def create_community(
     db.add(community)
     await db.flush()  # get the id before adding membership
 
-    # Owner is automatically a moderator-member
+    # Owner is automatically the community owner-member
     membership = CommunityMember(
-        community_id=community.id, user_id=owner_id, is_moderator=True
+        community_id=community.id, user_id=owner_id, role="owner"
     )
     db.add(membership)
     community.member_count = 1
