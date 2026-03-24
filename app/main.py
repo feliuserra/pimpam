@@ -7,7 +7,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import ws as ws_router
-from app.api.v1 import auth, communities, feed, friend_groups, media, messages, moderation, notifications, posts, search, users
+from app.api.v1 import auth, communities, feed, friend_groups, media, messages, moderation, notifications, posts, search, stories, users
 from app.api.v1.comments import comments_router, post_comments_router
 from app.api.federation import actor_routes, wellknown
 from app.core.config import settings
@@ -64,6 +64,14 @@ async def _account_cleanup_loop() -> None:
                 # GDPR: purge consent log entries older than 30 days
                 cutoff = _dt.now(timezone.utc) - timedelta(days=30)
                 await db.execute(delete(ConsentLog).where(ConsentLog.created_at < cutoff))
+                # Stories: hard-delete expired non-reported stories
+                from app.models.story import Story
+                await db.execute(
+                    delete(Story).where(
+                        Story.expires_at < _dt.now(timezone.utc),
+                        Story.is_removed == False,  # noqa: E712 — keep reported ones for mod review
+                    )
+                )
                 await db.commit()
         except Exception:
             pass
@@ -104,6 +112,7 @@ app.include_router(media.router, prefix=_prefix)
 app.include_router(search.router, prefix=_prefix)
 app.include_router(notifications.router, prefix=_prefix)
 app.include_router(friend_groups.router, prefix=_prefix)
+app.include_router(stories.router, prefix=_prefix)
 app.include_router(post_comments_router, prefix=_prefix)
 app.include_router(comments_router, prefix=_prefix)
 
