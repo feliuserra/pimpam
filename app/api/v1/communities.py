@@ -11,7 +11,7 @@ from app.crud.community import (
     join_community,
     leave_community,
 )
-from app.crud.post import get_community_posts
+from app.crud.post import annotate_posts_with_user_vote, get_community_posts
 from app.schemas.community import CommunityCreate, CommunityKarmaPublic, CommunityPublic
 from app.schemas.post import PostPublic
 
@@ -40,6 +40,7 @@ async def list_communities(
     - **newest** — most recently created first
     """
     from sqlalchemy import select
+
     from app.models.community import Community
 
     offset = (page - 1) * limit
@@ -51,6 +52,22 @@ async def list_communities(
 
     result = await db.execute(
         select(Community).order_by(order).offset(offset).limit(limit)
+    )
+    return result.scalars().all()
+
+
+@router.get("/joined", response_model=list[CommunityPublic])
+async def list_joined(current_user: CurrentUser, db: DBSession):
+    """Return communities the authenticated user has joined, alphabetically."""
+    from sqlalchemy import select
+
+    from app.models.community import Community, CommunityMember
+
+    result = await db.execute(
+        select(Community)
+        .join(CommunityMember, CommunityMember.community_id == Community.id)
+        .where(CommunityMember.user_id == current_user.id)
+        .order_by(Community.name.asc())
     )
     return result.scalars().all()
 
@@ -99,6 +116,7 @@ async def list_posts(
     is_mod = False
     if current_user:
         from sqlalchemy import select
+
         from app.models.community import CommunityMember
 
         result = await db.execute(
@@ -110,9 +128,11 @@ async def list_posts(
         )
         is_mod = result.scalar_one_or_none() is not None
 
-    return await get_community_posts(
+    posts = await get_community_posts(
         db, community.id, limit=limit, before_id=before_id, include_removed=is_mod
     )
+    user_id = current_user.id if current_user else None
+    return await annotate_posts_with_user_vote(db, posts, user_id)
 
 
 @router.post("/{name}/join", status_code=status.HTTP_204_NO_CONTENT)

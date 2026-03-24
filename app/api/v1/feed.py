@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query, Request
 
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
-from app.crud.post import get_chronological_feed
+from app.crud.post import annotate_posts_with_user_vote, get_chronological_feed
 from app.schemas.post import PostPublic
 
 router = APIRouter(prefix="/feed", tags=["feed"])
@@ -22,4 +22,7 @@ async def get_feed(
     Cursor-based pagination via before_id.
     No ranking. No algorithms. No ML.
     """
-    return await get_chronological_feed(db, current_user.id, limit=limit, before_id=before_id)
+    posts = await get_chronological_feed(
+        db, current_user.id, limit=limit, before_id=before_id
+    )
+    return await annotate_posts_with_user_vote(db, posts, current_user.id)
