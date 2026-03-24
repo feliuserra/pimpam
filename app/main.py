@@ -45,9 +45,15 @@ async def lifespan(app: FastAPI):
 
 
 async def _account_cleanup_loop() -> None:
-    """Hourly background task: execute due deletions and purge expired unverified accounts."""
+    """Hourly background task: execute due deletions, purge expired unverified accounts, and purge old consent logs."""
+    from datetime import timedelta, timezone
+    from datetime import datetime as _dt
+
+    from sqlalchemy import delete
+
     from app.crud.account_deletion import process_expired_unverified, process_pending_deletions
     from app.db.session import AsyncSessionLocal
+    from app.models.consent import ConsentLog
 
     while True:
         await asyncio.sleep(3600)
@@ -55,6 +61,10 @@ async def _account_cleanup_loop() -> None:
             async with AsyncSessionLocal() as db:
                 await process_pending_deletions(db)
                 await process_expired_unverified(db)
+                # GDPR: purge consent log entries older than 30 days
+                cutoff = _dt.now(timezone.utc) - timedelta(days=30)
+                await db.execute(delete(ConsentLog).where(ConsentLog.created_at < cutoff))
+                await db.commit()
         except Exception:
             pass
 

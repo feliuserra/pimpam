@@ -15,6 +15,7 @@ from app.crud.user import (
     get_following,
     get_following_count,
     get_user_by_username,
+    get_user_data_export,
 )
 from app.federation.actor import actor_id, build_follow, build_undo_follow
 from app.federation.delivery import deliver_activity
@@ -178,8 +179,45 @@ async def unfollow(username: str, current_user: CurrentUser, db: DBSession):
 
 
 # ---------------------------------------------------------------------------
+# GDPR data export
+# ---------------------------------------------------------------------------
+
+@router.get("/me/data-export")
+@limiter.limit("3/hour")
+async def data_export(request: Request, current_user: CurrentUser, db: DBSession):
+    """
+    Export all personal data for the authenticated user as a JSON archive.
+
+    Includes profile, posts, comments, messages, follows, community karma, and consent log.
+    Rate-limited to 3 requests per hour. Triggers a file download in the browser.
+    """
+    data = await get_user_data_export(db, current_user.id)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        content=data,
+        headers={"Content-Disposition": f"attachment; filename=\"pimpam-export-{current_user.username}.json\""},
+    )
+
+
+# ---------------------------------------------------------------------------
 # Account deletion
 # ---------------------------------------------------------------------------
+
+@router.delete("/me", status_code=status.HTTP_202_ACCEPTED)
+async def delete_me(data: DeleteAccountRequest, current_user: UnverifiedCurrentUser, db: DBSession):
+    """
+    Schedule the authenticated account for permanent deletion (alias for ``POST /users/me/delete``).
+
+    Behaves identically to ``POST /users/me/delete`` — account is soft-deleted and hard-deleted
+    after a 7-day grace period. Use ``POST /users/me/delete/cancel`` to undo within the window.
+    """
+    if not verify_password(data.password, current_user.hashed_password):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+    if current_user.deletion_scheduled_at is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Deletion already scheduled")
+    await schedule_deletion(db, current_user)
+    return {"detail": f"Account scheduled for deletion in {settings.account_deletion_grace_days} days"}
+
 
 @router.post("/me/delete", status_code=status.HTTP_202_ACCEPTED)
 async def request_deletion(data: DeleteAccountRequest, current_user: UnverifiedCurrentUser, db: DBSession):

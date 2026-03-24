@@ -19,7 +19,7 @@ from app.core.totp import (
     verify_totp_code,
 )
 from app.crud.password_reset import consume_reset_token, count_recent_requests, create_reset_token
-from app.crud.user import authenticate_user, create_user, get_user_by_email, get_user_by_id, get_user_by_username
+from app.crud.user import authenticate_user, create_user, get_user_by_email, get_user_by_id, get_user_by_username, record_consent
 from app.schemas.token import ChangePasswordRequest, PasswordResetConfirm, PasswordResetRequest, RefreshRequest, TokenPair
 from app.schemas.user import TotpDisableRequest, TotpSetupResponse, TotpVerifyRequest, UserCreate, UserLogin, UserPublic
 
@@ -36,6 +36,10 @@ async def register(request: Request, data: UserCreate, db: DBSession):
         raise HTTPException(status.HTTP_409_CONFLICT, detail="Email already registered")
     user = await create_user(db, data)
     await index_user(user)
+    # Record GDPR consent at registration
+    client_ip = request.client.host if request.client else None
+    for consent_type in ("terms_of_service", "privacy_policy", "age_confirmation"):
+        await record_consent(db, user.id, consent_type, version="1.0", ip=client_ip)
     # Send email verification — fire and forget
     try:
         raw_token = _create_verification_token(user)
