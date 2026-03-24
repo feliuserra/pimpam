@@ -126,9 +126,9 @@ Votes update ``Post.karma``, ``User.karma`` (global), and ``CommunityKarma`` (pe
 Sharing rules: one share per user per post. Sharing a share links to the root original.
 When a share receives a ``+1`` vote, the original post author earns a ``+1`` karma bonus.
 
-**Not yet implemented:**
-
-- Multiple images per post (current schema: one ``image_url`` per post)
+**Multiple images per post:** ✅ Schema ready — ``PostImage`` table + ``MULTI_IMAGE_POSTS_ENABLED`` flag.
+Set the flag to ``true`` to allow up to ``POST_MAX_IMAGES`` images per post (default 10).
+Frontend gallery UI not yet built.
 
 ----
 
@@ -330,7 +330,7 @@ Media
 **Not yet implemented:**
 
 - Content hash-matching against NCMEC database
-- Multiple images per post (current schema: one ``image_url`` per post)
+- Multiple images per post UI — schema and flag are in place; set ``MULTI_IMAGE_POSTS_ENABLED=true`` to activate; the frontend gallery UI is not yet built
 - User-provisioned storage (BYOS)
 
 ----
@@ -366,9 +366,11 @@ Events pushed to the client:
 Connection closes after 60 s of client silence; clients reconnect (no replay).
 Redis downtime never breaks primary operations.
 
+**Typing indicators:** ✅ Implemented. Clients send ``{"type": "typing", "recipient_id": N}`` over
+the WS connection; the server forwards a ``typing`` event to the recipient's channel immediately.
+
 **Not yet implemented:**
 
-- Typing indicators for DMs
 - Live community activity (new posts in a community the user is browsing)
 
 ----
@@ -516,8 +518,7 @@ Not yet started
 ---------------
 
 - **React frontend** — the ``client/`` directory exists but the UI is a skeleton.
-- **WebSocket typing indicators** — needs client-side state management.
-- **Multiple images per post** — needs ``PostImage`` model + migration.
+- **Multiple images per post UI** — schema and ``MULTI_IMAGE_POSTS_ENABLED`` flag are in place; only the frontend gallery UI is missing.
 - **NCMEC content hash-matching** — post-upload async check.
 - **BYOS (user-provisioned storage)** — optional power-user bucket.
 - **Karma beyond mod eligibility** — rate-limit relaxation, community creation gating.

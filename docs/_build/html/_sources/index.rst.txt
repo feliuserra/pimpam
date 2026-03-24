@@ -16,9 +16,14 @@ versioned REST API (``/api/v1/``) and a set of
    api/users
    api/feed
    api/posts
+   api/comments
    api/communities
    api/moderation
    api/messages
+   api/notifications
+   api/search
+   api/media
+   api/websocket
    api/federation
 
 .. toctree::

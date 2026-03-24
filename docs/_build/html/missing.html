@@ -204,9 +204,14 @@
 <li class="toctree-l1"><a class="reference internal" href="api/users.html">Users &amp; Profiles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/feed.html">Feed</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/posts.html">Posts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/comments.html">Comments &amp; Reactions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/communities.html">Communities</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/moderation.html">Moderation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/messages.html">Direct Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/notifications.html">Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/search.html">Search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/media.html">Media Uploads</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/websocket.html">WebSocket</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/federation.html">Federation (ActivityPub)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Project</span></p>
@@ -270,6 +275,34 @@ Cross off items here as they are completed.</p>
 </ul>
 <p>Rate-limited: register 5/minute, login 10/minute.</p>
 </section>
+<section id="email-verification">
+<h3>Email Verification<a class="headerlink" href="#email-verification" title="Link to this heading">¶</a></h3>
+<p><strong>Status:</strong> ✅ Implemented.</p>
+<p>Every new account starts <strong>unverified</strong>. A signed token is emailed on registration; users click the link (or hit <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/auth/verify?token=&lt;token&gt;</span></code>) to activate their account. Tokens expire after 60 minutes.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span>&#160; <span class="pre">/api/v1/auth/verify?token=&lt;token&gt;</span></code> — verify email; token is single-use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/auth/resend-verification</span></code> — issue a new token (authenticated, unverified users only; returns <code class="docutils literal notranslate"><span class="pre">400</span></code> if already verified)</p></li>
+</ul>
+<p>Access gating: all endpoints that require <code class="docutils literal notranslate"><span class="pre">CurrentUser</span></code> return <code class="docutils literal notranslate"><span class="pre">403</span> <span class="pre">email_not_verified</span></code> for unverified accounts. The only exceptions are <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/users/me</span></code>, <code class="docutils literal notranslate"><span class="pre">PATCH</span> <span class="pre">/users/me</span></code>, <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/auth/logout</span></code>, account deletion routes, and all auth endpoints.</p>
+<p>Expiry: unverified accounts that have not verified within 30 days are automatically hard-deleted by the hourly background task.</p>
+</section>
+<section id="password-reset">
+<h3>Password Reset<a class="headerlink" href="#password-reset" title="Link to this heading">¶</a></h3>
+<p><strong>Status:</strong> ✅ Implemented.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/auth/password-reset/request</span></code> — send a reset email; returns <code class="docutils literal notranslate"><span class="pre">202</span></code> regardless of whether the address exists (no user enumeration). Rate-limited to 3 requests/hour per account.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/auth/password-reset/confirm</span></code> — apply the new password. Accepts either a signed link token (15-minute expiry) or a 6-digit code (10-minute expiry).</p></li>
+</ul>
+<p>On success: the user’s <code class="docutils literal notranslate"><span class="pre">token_version</span></code> is incremented, invalidating all outstanding refresh tokens.</p>
+</section>
+<section id="logout-change-password">
+<h3>Logout / Change Password<a class="headerlink" href="#logout-change-password" title="Link to this heading">¶</a></h3>
+<p><strong>Status:</strong> ✅ Implemented.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/auth/logout</span></code> — invalidate the current refresh token (server-side <code class="docutils literal notranslate"><span class="pre">token_version</span></code> bump); returns <code class="docutils literal notranslate"><span class="pre">204</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/auth/change-password</span></code> — authenticated; requires current password. On success, <code class="docutils literal notranslate"><span class="pre">token_version</span></code> is bumped (forces re-login on all devices). Returns <code class="docutils literal notranslate"><span class="pre">200</span></code>.</p></li>
+</ul>
+</section>
 <section id="fa-totp">
 <h3>2FA (TOTP)<a class="headerlink" href="#fa-totp" title="Link to this heading">¶</a></h3>
 <p><strong>Status:</strong> ✅ Implemented.</p>
@@ -286,12 +319,29 @@ Cross off items here as they are completed.</p>
 <h2>Users<a class="headerlink" href="#users" title="Link to this heading">¶</a></h2>
 <p><strong>Status:</strong> ✅ Implemented.</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">GET</span>&#160; <span class="pre">/api/v1/users/me</span></code> — own profile</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span>&#160; <span class="pre">/api/v1/users/me</span></code> — own profile (includes <code class="docutils literal notranslate"><span class="pre">is_verified</span></code> and <code class="docutils literal notranslate"><span class="pre">deletion_scheduled_at</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PATCH</span> <span class="pre">/api/v1/users/me</span></code> — update display name, bio, avatar URL</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">GET</span>&#160; <span class="pre">/api/v1/users/{username}</span></code> — public profile</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/users/{username}/follow</span></code> — follow a user (federated: sends AP Follow, marks pending)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/users/{username}/follow</span></code> — unfollow (federated: sends AP Undo{Follow})</p></li>
 </ul>
+<section id="account-deletion">
+<h3>Account Deletion<a class="headerlink" href="#account-deletion" title="Link to this heading">¶</a></h3>
+<p><strong>Status:</strong> ✅ Implemented — hard delete with a 7-day grace period.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/users/me/delete</span></code> — schedule deletion; requires current password. Returns <code class="docutils literal notranslate"><span class="pre">202</span></code>. No-op if already scheduled (<code class="docutils literal notranslate"><span class="pre">409</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/users/me/delete/cancel</span></code> — cancel a pending deletion during the grace period. Returns <code class="docutils literal notranslate"><span class="pre">200</span></code>. Returns <code class="docutils literal notranslate"><span class="pre">400</span></code> if nothing is scheduled.</p></li>
+</ul>
+<p>Deletion cascade (executed after the 7-day grace period by the hourly background task):</p>
+<ul class="simple">
+<li><p>Posts and comments: <code class="docutils literal notranslate"><span class="pre">author_id</span></code> set to <code class="docutils literal notranslate"><span class="pre">NULL</span></code> — content stays visible as “[deleted user]”.</p></li>
+<li><p>Messages <em>sent</em> by the user: <code class="docutils literal notranslate"><span class="pre">sender_id</span></code> set to <code class="docutils literal notranslate"><span class="pre">NULL</span></code> — the recipient keeps the message anonymised.</p></li>
+<li><p>Messages <em>received</em> by the user: deleted (they’re private to the user).</p></li>
+<li><p>Everything else (votes, reactions, follows, karma, notifications, moderation rows): hard-deleted in FK-safe order.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">User</span></code> row itself is then hard-deleted.</p></li>
+</ul>
+<p>The account remains fully functional during the grace period; deletion can be cancelled at any time before the background task runs.</p>
+</section>
 </section>
 <hr class="docutils" />
 <section id="feed">
@@ -318,10 +368,9 @@ Pending federated follows are excluded until the remote server sends Accept.</p>
 Votes update <code class="docutils literal notranslate"><span class="pre">Post.karma</span></code>, <code class="docutils literal notranslate"><span class="pre">User.karma</span></code> (global), and <code class="docutils literal notranslate"><span class="pre">CommunityKarma</span></code> (per-community, if the post belongs to a community).</p>
 <p>Sharing rules: one share per user per post. Sharing a share links to the root original.
 When a share receives a <code class="docutils literal notranslate"><span class="pre">+1</span></code> vote, the original post author earns a <code class="docutils literal notranslate"><span class="pre">+1</span></code> karma bonus.</p>
-<p><strong>Not yet implemented:</strong></p>
-<ul class="simple">
-<li><p>Multiple images per post (current schema: one <code class="docutils literal notranslate"><span class="pre">image_url</span></code> per post)</p></li>
-</ul>
+<p><strong>Multiple images per post:</strong> ✅ Schema ready — <code class="docutils literal notranslate"><span class="pre">PostImage</span></code> table + <code class="docutils literal notranslate"><span class="pre">MULTI_IMAGE_POSTS_ENABLED</span></code> flag.
+Set the flag to <code class="docutils literal notranslate"><span class="pre">true</span></code> to allow up to <code class="docutils literal notranslate"><span class="pre">POST_MAX_IMAGES</span></code> images per post (default 10).
+Frontend gallery UI not yet built.</p>
 </section>
 <hr class="docutils" />
 <section id="comments">
@@ -555,7 +604,7 @@ Exposed at <code class="docutils literal notranslate"><span class="pre">GET</spa
 <p><strong>Not yet implemented:</strong></p>
 <ul class="simple">
 <li><p>Content hash-matching against NCMEC database</p></li>
-<li><p>Multiple images per post (current schema: one <code class="docutils literal notranslate"><span class="pre">image_url</span></code> per post)</p></li>
+<li><p>Multiple images per post UI — schema and flag are in place; set <code class="docutils literal notranslate"><span class="pre">MULTI_IMAGE_POSTS_ENABLED=true</span></code> to activate; the frontend gallery UI is not yet built</p></li>
 <li><p>User-provisioned storage (BYOS)</p></li>
 </ul>
 </section>
@@ -564,10 +613,11 @@ Exposed at <code class="docutils literal notranslate"><span class="pre">GET</spa
 <h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
 <p><strong>Status:</strong> ✅ Implemented — <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/search</span></code></p>
 <ul class="simple">
-<li><p>Full-text search over post titles, content, and URLs via Meilisearch.</p></li>
-<li><p>Optional <code class="docutils literal notranslate"><span class="pre">?community=&lt;name&gt;</span></code> scopes results to one community.</p></li>
+<li><p>Full-text search across three Meilisearch indexes: <code class="docutils literal notranslate"><span class="pre">posts</span></code> (title, content, URL), <code class="docutils literal notranslate"><span class="pre">users</span></code> (username, bio), and <code class="docutils literal notranslate"><span class="pre">communities</span></code> (name, description).</p></li>
+<li><p>Optional <code class="docutils literal notranslate"><span class="pre">?type=post|user|community</span></code> scopes results to one kind (defaults to all three, fan-out search).</p></li>
+<li><p>Optional <code class="docutils literal notranslate"><span class="pre">?community=&lt;name&gt;</span></code> further scopes post results to one community.</p></li>
 <li><p>Removed posts always excluded.</p></li>
-<li><p>Indexed automatically on create/edit/delete (fire-and-forget).</p></li>
+<li><p>All three indexes are updated automatically on create/edit/delete (fire-and-forget).</p></li>
 <li><p>Returns <code class="docutils literal notranslate"><span class="pre">503</span></code> if <code class="docutils literal notranslate"><span class="pre">SEARCH_ENABLED=false</span></code> or Meilisearch is unreachable.</p></li>
 </ul>
 </section>
@@ -585,9 +635,10 @@ Exposed at <code class="docutils literal notranslate"><span class="pre">GET</spa
 </ul>
 <p>Connection closes after 60 s of client silence; clients reconnect (no replay).
 Redis downtime never breaks primary operations.</p>
+<p><strong>Typing indicators:</strong> ✅ Implemented. Clients send <code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;typing&quot;,</span> <span class="pre">&quot;recipient_id&quot;:</span> <span class="pre">N}</span></code> over
+the WS connection; the server forwards a <code class="docutils literal notranslate"><span class="pre">typing</span></code> event to the recipient’s channel immediately.</p>
 <p><strong>Not yet implemented:</strong></p>
 <ul class="simple">
-<li><p>Typing indicators for DMs</p></li>
 <li><p>Live community activity (new posts in a community the user is browsing)</p></li>
 </ul>
 </section>
@@ -783,8 +834,7 @@ pushed to the user if connected. Failure of either step never breaks the trigger
 <h2>Not yet started<a class="headerlink" href="#not-yet-started" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><strong>React frontend</strong> — the <code class="docutils literal notranslate"><span class="pre">client/</span></code> directory exists but the UI is a skeleton.</p></li>
-<li><p><strong>WebSocket typing indicators</strong> — needs client-side state management.</p></li>
-<li><p><strong>Multiple images per post</strong> — needs <code class="docutils literal notranslate"><span class="pre">PostImage</span></code> model + migration.</p></li>
+<li><p><strong>Multiple images per post UI</strong> — schema and <code class="docutils literal notranslate"><span class="pre">MULTI_IMAGE_POSTS_ENABLED</span></code> flag are in place; only the frontend gallery UI is missing.</p></li>
 <li><p><strong>NCMEC content hash-matching</strong> — post-upload async check.</p></li>
 <li><p><strong>BYOS (user-provisioned storage)</strong> — optional power-user bucket.</p></li>
 <li><p><strong>Karma beyond mod eligibility</strong> — rate-limit relaxation, community creation gating.</p></li>
@@ -851,10 +901,16 @@ pushed to the user if connected. Failure of either step never breaks the trigger
 <li><a class="reference internal" href="#">Missing &amp; Planned Features</a><ul>
 <li><a class="reference internal" href="#auth">Auth</a><ul>
 <li><a class="reference internal" href="#register-login-refresh">Register / Login / Refresh</a></li>
+<li><a class="reference internal" href="#email-verification">Email Verification</a></li>
+<li><a class="reference internal" href="#password-reset">Password Reset</a></li>
+<li><a class="reference internal" href="#logout-change-password">Logout / Change Password</a></li>
 <li><a class="reference internal" href="#fa-totp">2FA (TOTP)</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#users">Users</a></li>
+<li><a class="reference internal" href="#users">Users</a><ul>
+<li><a class="reference internal" href="#account-deletion">Account Deletion</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#feed">Feed</a></li>
 <li><a class="reference internal" href="#posts">Posts</a></li>
 <li><a class="reference internal" href="#comments">Comments</a><ul>
