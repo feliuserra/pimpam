@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,26 +14,31 @@ from app.api.federation import actor_routes, wellknown
 from app.core.config import settings
 from app.core.limiter import limiter
 
+logger = logging.getLogger("pimpam.main")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.core.logging import setup_logging
+    setup_logging()
+
     if settings.storage_enabled:
         from app.core.storage import ensure_bucket_exists
         try:
             ensure_bucket_exists()
         except Exception:
-            pass  # storage unavailable at startup — upload endpoints will return 502
+            logger.exception("Storage unavailable at startup — upload endpoints will return 502")
     if settings.search_enabled:
         from app.core.search import configure_index
         try:
             configure_index()
         except Exception:
-            pass  # search unavailable at startup — search endpoints will return 503
+            logger.exception("Search unavailable at startup — search endpoints will return 503")
     from app.core.redis import get_redis
     try:
         get_redis()  # eagerly create the client; actual connection is lazy
     except Exception:
-        pass
+        logger.exception("Redis unavailable at startup — real-time features will be degraded")
     cleanup_task = asyncio.create_task(_account_cleanup_loop())
     yield
     cleanup_task.cancel()
@@ -74,7 +80,7 @@ async def _account_cleanup_loop() -> None:
                 )
                 await db.commit()
         except Exception:
-            pass
+            logger.exception("Account cleanup loop failed")
 
 
 app = FastAPI(

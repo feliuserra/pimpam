@@ -3,7 +3,7 @@ import base64
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -25,21 +25,34 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(_prehash(plain), hashed)
 
 
-def create_token(subject: Any, expires_delta: timedelta) -> str:
-    expire = datetime.now(timezone.utc) + expires_delta
-    payload = {"sub": str(subject), "exp": expire}
-    return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
-
-
 def create_access_token(subject: Any) -> str:
-    return create_token(subject, timedelta(minutes=settings.access_token_expire_minutes))
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+    payload = {"sub": str(subject), "exp": expire, "type": "access"}
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 
 def create_refresh_token(subject: Any, token_version: int = 0) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
-    payload = {"sub": str(subject), "exp": expire, "ver": token_version}
+    payload = {"sub": str(subject), "exp": expire, "ver": token_version, "type": "refresh"}
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 
 def decode_token(token: str) -> dict:
+    """Decode a JWT without checking the type claim. Prefer the typed variants below."""
     return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+
+
+def decode_access_token(token: str) -> dict:
+    """Decode and verify this is an access token."""
+    payload = decode_token(token)
+    if payload.get("type") != "access":
+        raise JWTError("Not an access token")
+    return payload
+
+
+def decode_refresh_token(token: str) -> dict:
+    """Decode and verify this is a refresh token."""
+    payload = decode_token(token)
+    if payload.get("type") != "refresh":
+        raise JWTError("Not a refresh token")
+    return payload

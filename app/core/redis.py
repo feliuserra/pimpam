@@ -7,10 +7,13 @@ Message shape: ``{"type": "new_post"|"new_message"|"karma_update", "data": {...}
 All publish calls are fire-and-forget — Redis being down never breaks a primary operation.
 """
 import json
+import logging
 
 import redis.asyncio as aioredis
 
 from app.core.config import settings
+
+logger = logging.getLogger("pimpam.redis")
 
 _client: aioredis.Redis | None = None
 
@@ -39,4 +42,4 @@ async def publish_to_user(user_id: int, event_type: str, data: dict) -> None:
         payload = json.dumps({"type": event_type, "data": data})
         await get_redis().publish(f"pimpam:user:{user_id}", payload)
     except Exception:
-        pass
+        logger.exception("Failed to publish event '%s' to user %s", event_type, user_id)

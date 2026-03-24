@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification import Notification, NotificationPreference
+
+logger = logging.getLogger("pimpam.notifications")
 
 
 async def is_opted_out(db: AsyncSession, user_id: int, notification_type: str) -> bool:
@@ -86,7 +89,7 @@ async def notify(
             "community_id": community_id,
         })
     except Exception:
-        pass  # notifications must never break primary operations
+        logger.exception("Failed to create notification (type=%s, user=%s)", notification_type, user_id)
 
 
 async def get_notifications(

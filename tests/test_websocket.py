@@ -57,7 +57,7 @@ def test_ws_accepts_valid_token():
     mock_redis.pubsub.return_value = mock_pubsub
 
     with patch("app.api.ws.get_redis", return_value=mock_redis), \
-         patch("app.api.ws.decode_token", return_value={"sub": "1"}):
+         patch("app.api.ws.decode_access_token", return_value={"sub": "1", "type": "access"}):
         with TestClient(app) as tc:
             with tc.websocket_connect(f"/ws?token={token}") as ws:
                 # Connection accepted — send a ping to confirm it's live

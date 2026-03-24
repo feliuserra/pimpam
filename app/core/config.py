@@ -95,5 +95,12 @@ class Settings(BaseSettings):
     multi_image_posts_enabled: bool = False
     post_max_images: int = 10
 
+    def model_post_init(self, __context) -> None:
+        if self.environment != "development":
+            if self.secret_key == "change-me-in-production":
+                raise SystemExit("FATAL: SECRET_KEY must be changed in production")
+            if self.encryption_key == "change-me-in-production":
+                raise SystemExit("FATAL: ENCRYPTION_KEY must be changed in production")
+
 
 settings = Settings()

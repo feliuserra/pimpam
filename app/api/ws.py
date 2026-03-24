@@ -17,12 +17,15 @@ and will receive only events published after reconnection (no catch-up / replay)
 """
 import asyncio
 import json
+import logging
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from jose import JWTError
 
 from app.core.redis import get_redis, publish_to_user
-from app.core.security import decode_token
+from app.core.security import decode_access_token
+
+logger = logging.getLogger("pimpam.ws")
 
 router = APIRouter(tags=["websocket"])
 
@@ -59,7 +62,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
     forward a typing indicator to the recipient user in real time.
     """
     try:
-        payload = decode_token(token)
+        payload = decode_access_token(token)
         user_id = int(payload["sub"])
     except (JWTError, KeyError, ValueError):
         await websocket.accept()
@@ -76,7 +79,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
             if user:
                 username = user.username
     except Exception:
-        pass  # username stays empty; typing events will still be forwarded without it
+        logger.exception("Failed to fetch username for WebSocket user %s", user_id)
 
     await websocket.accept()
 
@@ -101,7 +104,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
                 try:
                     await process_client_frame(raw, user_id, username)
                 except Exception:
-                    pass  # ignore malformed or unknown frames
+                    logger.warning("Malformed WebSocket frame from user %s", user_id, exc_info=True)
         except (asyncio.TimeoutError, WebSocketDisconnect):
             pass
 
@@ -118,4 +121,4 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
         try:
             await websocket.close()
         except Exception:
-            pass
+            logger.debug("WebSocket already closed for user %s", user_id, exc_info=True)
