@@ -61,7 +61,7 @@ PimPam is built with a modern, accessible stack designed for community contribut
 | Migrations | Alembic |
 | Real-time | WebSockets via FastAPI + Redis pub/sub |
 | Federation | ActivityPub (HTTP Signatures, WebFinger) |
-| Search | Meilisearch (full-text over posts) |
+| Search | Meilisearch (full-text over posts, users, and communities) |
 | Media storage | S3-compatible (MinIO in dev, Cloudflare R2 in prod) |
 | DM encryption | End-to-end (client-side keys; server stores ciphertext only) |
 | Rate limiting | slowapi |
@@ -75,7 +75,7 @@ All features are exposed via a versioned REST API at `/api/v1/`. Interactive doc
 
 | Area | Endpoints |
 |------|-----------|
-| Auth | Register, login, refresh tokens, 2FA (TOTP setup/verify/disable) |
+| Auth | Register, login, refresh tokens, 2FA (TOTP), password reset (link or code, SMTP email) |
 | Users | Own profile, public profile, follow/unfollow |
 | Feed | Chronological feed from followed users (cursor-paginated) |
 | Posts | Create, edit, delete, vote (+1/-1), boost (AP Announce), share (reshare to followers/community) |
@@ -85,7 +85,8 @@ All features are exposed via a versioned REST API at `/api/v1/`. Interactive doc
 | Moderation | Remove/restore posts and comments, ban proposals, ban appeals, mod promotion, ownership transfer |
 | Messages | Send (E2EE), inbox, conversation thread, mark as read |
 | Media | Upload images (JPEG/PNG/WebP/GIF → WebP, EXIF stripped, S3 storage) |
-| Search | Full-text search over post titles and content (`GET /api/v1/search`) |
+| Auth | Register, login, refresh tokens, 2FA (TOTP setup/verify/disable), password reset (link or code, email delivery) |
+| Search | Full-text search over posts, users, and communities; `?type=post\|user\|community` filter |
 | Notifications | Persistent inbox, 14 event types, grouped reactions/votes, per-type opt-out |
 | Real-time | WebSocket at `WS /ws?token=<jwt>` — new_post, new_comment, new_message, karma_update, notification |
 | Federation | ActivityPub: WebFinger, NodeInfo, Actor, Inbox, Outbox, HTTP Signatures |
@@ -96,6 +97,10 @@ The core backend is complete and covered by an integration test suite (`pytest -
 
 **What's working today:**
 - Full auth flow with optional 2FA (TOTP, secrets encrypted at rest)
+- Password reset — link mode (15 min) or code mode (6-digit, 10 min), delivered via SMTP, rate-limited to 3/hour per account; resets invalidate all outstanding refresh tokens
+- Email verification — new accounts are gated until verified; tokens expire in 60 min; unverified accounts auto-deleted after 30 days; resend endpoint included
+- Logout (server-side token invalidation) and change-password (requires current password, forces re-login on all devices)
+- Account deletion — 7-day grace period with password confirmation; posts/comments anonymised, sent messages anonymised, received messages deleted; cancellable during grace period
 - Chronological feed — strictly time-ordered, never algorithmic
 - Posts: create, edit (1-hour window), vote, share (reshares trace to root original)
 - Comments: nested threads up to 5 levels, sort by latest or most-reacted, author delete, mod remove/restore
@@ -105,11 +110,12 @@ The core backend is complete and covered by an integration test suite (`pytest -
 - End-to-end encrypted direct messages
 - Real-time updates via WebSocket (new post, new comment, new message, karma update, notifications)
 - Persistent notification inbox: 14 event types covering social actions and moderation, with grouped counts for reactions/votes, per-type opt-out preferences
-- Full-text search via Meilisearch
+- Full-text search via Meilisearch over posts, users, and communities; `?type=` filter to scope results
 - ActivityPub federation — follow remote users, receive posts, boost content across the fediverse
 - CI/CD with coverage enforcement (≥70%) on every push
 
 **What's next:**
+- Admin layer — platform-level moderation: site admin role, global bans, user suspension, platform content removal (required before public launch)
 - React frontend (the `client/` directory is currently a skeleton)
 - Multiple images per post
 - Typing indicators in DMs
