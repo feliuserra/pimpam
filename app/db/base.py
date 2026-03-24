@@ -15,3 +15,4 @@ from app.models.comment import Comment, CommentReaction  # noqa: F401
 from app.models.notification import Notification, NotificationPreference  # noqa: F401
 from app.models.friend_group import FriendGroup, FriendGroupMember  # noqa: F401
 from app.models.password_reset import PasswordResetToken  # noqa: F401
+from app.models.consent import ConsentLog  # noqa: F401
