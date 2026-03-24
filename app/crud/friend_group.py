@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,6 +7,8 @@ from app.models.follow import Follow
 from app.models.friend_group import FriendGroup, FriendGroupMember
 from app.models.user import User
 from app.schemas.friend_group import FriendGroupMemberPublic, FriendGroupPublic
+
+logger = logging.getLogger("pimpam.friend_groups")
 
 
 async def get_or_create_close_friends(db: AsyncSession, owner_id: int) -> FriendGroup:
@@ -143,7 +147,7 @@ async def add_member(db: AsyncSession, group: FriendGroup, user_id: int) -> Frie
         from app.crud.notification import notify
         await notify(db, user_id, "friend_group_added", actor_id=group.owner_id)
     except Exception:
-        pass
+        logger.exception("Failed to send friend group add notification to user %s", user_id)
 
     return member
 
@@ -171,7 +175,7 @@ async def remove_member(db: AsyncSession, group: FriendGroup, user_id: int) -> N
         from app.crud.notification import notify
         await notify(db, user_id, "friend_group_removed", actor_id=group.owner_id)
     except Exception:
-        pass
+        logger.exception("Failed to send friend group removal notification to user %s", user_id)
 
 
 async def is_member(db: AsyncSession, group_id: int, user_id: int) -> bool:

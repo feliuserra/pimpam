@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
 
 from app.core.config import settings  # noqa: F401 (used in delete endpoint)
+
+logger = logging.getLogger("pimpam.users")
 from app.core.dependencies import CurrentUser, DBSession, OptionalUser, UnverifiedCurrentUser
 from app.core.limiter import limiter
 from app.core.search import index_user
@@ -140,14 +144,14 @@ async def follow(request: Request, username: str, current_user: CurrentUser, db:
             from app.crud.notification import notify
             await notify(db, user.id, "follow", actor_id=current_user.id)
         except Exception:
-            pass
+            logger.exception("Failed to send follow notification to user %s", user.id)
 
     if is_pending and user.ap_inbox:
         activity = build_follow(current_user.username, actor_id(user.username) if not user.ap_id else user.ap_id)
         try:
             await deliver_activity(activity, current_user, [user.ap_inbox])
         except Exception:
-            pass  # delivery failure never blocks the local follow row
+            logger.exception("Failed to deliver AP Follow to %s", user.ap_inbox)
 
 
 @router.delete("/{username}/follow", status_code=status.HTTP_204_NO_CONTENT)
@@ -175,7 +179,7 @@ async def unfollow(username: str, current_user: CurrentUser, db: DBSession):
         try:
             await deliver_activity(activity, current_user, [user.ap_inbox])
         except Exception:
-            pass
+            logger.exception("Failed to deliver AP Undo{Follow} to %s", user.ap_inbox)
 
 
 # ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@ Bucket setup:
   Cloudflare R2: create in the Cloudflare dashboard, enable public access.
 """
 import io
+import logging
 import uuid
 
 import boto3
@@ -17,6 +18,8 @@ from botocore.config import Config
 from PIL import Image
 
 from app.core.config import settings
+
+logger = logging.getLogger("pimpam.storage")
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
@@ -106,4 +109,4 @@ def ensure_bucket_exists() -> None:
         try:
             client.create_bucket(Bucket=settings.storage_bucket)
         except Exception:
-            pass  # bucket already exists or storage unavailable at startup
+            logger.exception("Failed to create storage bucket '%s'", settings.storage_bucket)

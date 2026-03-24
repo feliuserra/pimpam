@@ -1,6 +1,10 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.core.config import settings
+
+logger = logging.getLogger("pimpam.posts")
 from app.core.dependencies import CurrentUser, DBSession, OptionalUser
 from app.core.limiter import limiter
 from app.core.redis import publish_to_user
@@ -54,7 +58,7 @@ async def create(request: Request, data: PostCreate, current_user: CurrentUser, 
                     activity = build_create(post, current_user)
                     await deliver_activity(activity, current_user, inboxes)
             except Exception:
-                pass  # delivery failure never breaks post creation
+                logger.exception("Failed to deliver federation activity for post %s", post.id)
 
     return post
 
@@ -133,7 +137,7 @@ async def vote(request: Request, post_id: int, data: VoteCreate, current_user: C
             group_key=f"vote:post:{post_id}",
         )
     except Exception:
-        pass
+        logger.exception("Failed to send vote notification for post %s", post_id)
 
     author = await get_user_by_id(db, post.author_id)
     await publish_to_user(post.author_id, "karma_update", {
@@ -150,7 +154,7 @@ async def vote(request: Request, post_id: int, data: VoteCreate, current_user: C
                 activity = build_like(current_user.username, post.ap_id)
                 await deliver_activity(activity, current_user, [author.ap_inbox])
         except Exception:
-            pass
+            logger.exception("Failed to deliver AP Like for post %s", post_id)
 
     return vote_obj
 
@@ -188,7 +192,7 @@ async def retract(request: Request, post_id: int, current_user: CurrentUser, db:
                 activity = build_undo_like(current_user.username, post.ap_id)
                 await deliver_activity(activity, current_user, [author.ap_inbox])
         except Exception:
-            pass
+            logger.exception("Failed to deliver AP Undo{Like} for post %s", post_id)
 
 
 @router.post("/{post_id}/boost", status_code=status.HTTP_204_NO_CONTENT)
@@ -214,7 +218,7 @@ async def boost(request: Request, post_id: int, current_user: CurrentUser, db: D
             activity = build_announce(current_user.username, post.ap_id)
             await deliver_activity(activity, current_user, inboxes)
     except Exception:
-        pass  # delivery failure is silent
+        logger.exception("Failed to deliver AP Announce for post %s", post_id)
 
 
 @router.post("/{post_id}/share", response_model=PostPublic, status_code=status.HTTP_201_CREATED)
@@ -246,7 +250,7 @@ async def share(request: Request, post_id: int, data: ShareCreate, current_user:
             actor_id=current_user.id, post_id=original.id,
         )
     except Exception:
-        pass
+        logger.exception("Failed to send share notification for post %s", original.id)
 
     # Notify local followers
     follower_ids = await get_local_follower_ids(db, current_user.id)

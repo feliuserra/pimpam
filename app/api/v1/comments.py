@@ -8,9 +8,12 @@ DELETE /comments/{comment_id}                 — author soft-deletes own commen
 POST   /comments/{comment_id}/reactions       — add a reaction
 DELETE /comments/{comment_id}/reactions/{rt}  — remove a reaction
 """
+import logging
 from enum import Enum
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
+
+logger = logging.getLogger("pimpam.comments")
 
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
@@ -104,7 +107,7 @@ async def create(request: Request, post_id: int, data: CommentCreate, current_us
                 group_key=f"comment:post:{post_id}",
             )
     except Exception:
-        pass
+        logger.exception("Failed to send comment notification for post %s", post_id)
 
     # Notify all watchers (post author + everyone who commented), excluding the commenter
     watchers = await get_watchers(db, post_id, exclude_user_id=current_user.id)

@@ -7,6 +7,7 @@ TODO: Move to a background task queue (ARQ + Redis) once follower counts grow.
 """
 import asyncio
 import json
+import logging
 from datetime import datetime, timezone
 from email.utils import format_datetime
 from urllib.parse import urlparse
@@ -15,6 +16,8 @@ import httpx
 
 from app.core.config import settings
 from app.federation.crypto import sha256_digest, sign_request
+
+logger = logging.getLogger("pimpam.federation")
 
 
 async def deliver_activity(
@@ -53,7 +56,7 @@ async def _post(inbox_url: str, body: bytes, private_key_pem: str, key_id: str) 
         try:
             await client.post(inbox_url, content=body, headers=headers)
         except httpx.RequestError:
-            pass  # Log and move on — remote servers can be unreliable
+            logger.warning("Federation delivery failed for inbox %s", inbox_url, exc_info=True)
 
 
 def _deduplicate_inboxes(inbox_urls: list[str]) -> list[str]:

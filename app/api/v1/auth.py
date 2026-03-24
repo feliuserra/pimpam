@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.core.dependencies import CurrentUser, DBSession, UnverifiedCurrentUser
@@ -7,10 +9,12 @@ from app.core.search import index_user
 from app.core.security import (
     create_access_token,
     create_refresh_token,
-    decode_token,
+    decode_refresh_token,
     hash_password,
     verify_password,
 )
+
+logger = logging.getLogger("pimpam.auth")
 from app.core.totp import (
     decrypt_totp_secret,
     encrypt_totp_secret,
@@ -46,7 +50,7 @@ async def register(request: Request, data: UserCreate, db: DBSession):
         await db.commit()
         await send_verification_email(user.email, raw_token)
     except Exception:
-        pass
+        logger.exception("Failed to send verification email for user %s", data.username)
     return user
 
 
@@ -91,7 +95,7 @@ async def refresh(data: RefreshRequest, db: DBSession):
     from jose import JWTError
 
     try:
-        payload = decode_token(data.refresh_token)
+        payload = decode_refresh_token(data.refresh_token)
         user_id = int(payload["sub"])
         token_version = int(payload.get("ver", 0))
     except (JWTError, KeyError, ValueError, TypeError):
@@ -180,7 +184,7 @@ async def password_reset_request(request: Request, data: PasswordResetRequest, d
     try:
         await send_password_reset_email(user.email, raw_token, data.mode)
     except Exception:
-        pass  # email failure must never surface to the caller
+        logger.exception("Failed to send password reset email to user %s", user.id)
 
     return {"detail": "Password reset email sent"}
 
@@ -288,7 +292,7 @@ async def resend_verification(request: Request, current_user: UnverifiedCurrentU
     try:
         await send_verification_email(current_user.email, raw_token)
     except Exception:
-        pass
+        logger.exception("Failed to resend verification email for user %s", current_user.id)
 
     return {"detail": "Verification email sent"}
 

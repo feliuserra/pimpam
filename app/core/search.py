@@ -10,10 +10,13 @@ delete operations succeed normally and the search index is simply out of sync
 until the service recovers.
 """
 import asyncio
+import logging
 
 import meilisearch
 
 from app.core.config import settings
+
+logger = logging.getLogger("pimpam.search")
 
 _POSTS_INDEX = "posts"
 _USERS_INDEX = "users"
@@ -155,7 +158,7 @@ async def index_post(post) -> None:
     try:
         await asyncio.to_thread(_index_post, post)
     except Exception:
-        pass
+        logger.exception("Failed to index post %s", post.id)
 
 
 async def deindex_post(post_id: int) -> None:
@@ -164,7 +167,7 @@ async def deindex_post(post_id: int) -> None:
     try:
         await asyncio.to_thread(_deindex_post, post_id)
     except Exception:
-        pass
+        logger.exception("Failed to deindex post %s", post_id)
 
 
 async def index_user(user) -> None:
@@ -173,7 +176,7 @@ async def index_user(user) -> None:
     try:
         await asyncio.to_thread(_index_user, user)
     except Exception:
-        pass
+        logger.exception("Failed to index user %s", user.id)
 
 
 async def deindex_user(user_id: int) -> None:
@@ -182,7 +185,7 @@ async def deindex_user(user_id: int) -> None:
     try:
         await asyncio.to_thread(_deindex_user, user_id)
     except Exception:
-        pass
+        logger.exception("Failed to deindex user %s", user_id)
 
 
 async def index_community(community) -> None:
@@ -191,7 +194,7 @@ async def index_community(community) -> None:
     try:
         await asyncio.to_thread(_index_community, community)
     except Exception:
-        pass
+        logger.exception("Failed to index community %s", community.id)
 
 
 async def deindex_community(community_id: int) -> None:
@@ -200,4 +203,4 @@ async def deindex_community(community_id: int) -> None:
     try:
         await asyncio.to_thread(_deindex_community, community_id)
     except Exception:
-        pass
+        logger.exception("Failed to deindex community %s", community_id)

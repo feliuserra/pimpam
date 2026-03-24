@@ -5,7 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_token
+from app.core.security import decode_access_token
 from app.db.session import get_session
 
 bearer = HTTPBearer()
@@ -27,7 +27,7 @@ async def _get_current_user_any(
         detail="Invalid or expired token",
     )
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_access_token(credentials.credentials)
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise exc
@@ -64,7 +64,7 @@ async def _get_optional_user(
     from app.crud.user import get_user_by_id
 
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_access_token(credentials.credentials)
         user_id: str | None = payload.get("sub")
         if user_id is None:
             return None
