@@ -7,9 +7,11 @@ from pydantic import BaseModel, model_validator
 class PostCreate(BaseModel):
     title: str
     content: str | None = None
-    url: str | None = None        # external link
+    url: str | None = None  # external link
     image_url: str | None = None  # single uploaded image (backward compat)
-    image_urls: list[str] = []    # multi-image; takes precedence over image_url when non-empty
+    image_urls: list[
+        str
+    ] = []  # multi-image; takes precedence over image_url when non-empty
     community_id: int | None = None
     visibility: Literal["public", "group"] = "public"
     friend_group_id: int | None = None
@@ -48,8 +50,12 @@ class PostPublic(BaseModel):
     image_url: str | None
     images: list[PostImagePublic] = []
     author_id: int | None
+    author_username: str | None = None
+    author_avatar_url: str | None = None
     community_id: int | None
+    community_name: str | None = None
     karma: int
+    comment_count: int = 0
     is_edited: bool
     edited_at: datetime | None
     is_removed: bool
@@ -58,5 +64,6 @@ class PostPublic(BaseModel):
     share_comment: str | None = None
     visibility: str = "public"
     friend_group_id: int | None = None
+    user_vote: int | None = None
 
     model_config = {"from_attributes": True}
