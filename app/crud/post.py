@@ -68,14 +68,23 @@ async def get_chronological_feed(
     before_id: int | None = None,
 ) -> list[Post]:
     """
-    Returns posts from users the given user follows, newest first.
+    Returns posts from users the viewer follows AND communities they have joined,
+    merged into a single chronological stream, newest first.
+
     Uses cursor-based pagination (before_id) — never offset-based.
     No ranking, no ML, no algorithmic ordering. Chronological only.
-    Removed posts are excluded from the feed.
+    Removed posts are excluded. A post that matches both conditions (followed
+    author AND joined community) appears only once via the OR condition.
     """
+    from app.models.community import CommunityMember
+
     followed_ids = select(Follow.followed_id).where(
         Follow.follower_id == user_id,
         Follow.is_pending == False,  # noqa: E712 — exclude pending federated follows
+    )
+
+    joined_community_ids = select(CommunityMember.community_id).where(
+        CommunityMember.user_id == user_id
     )
 
     viewer_group_ids = select(FriendGroupMember.group_id).where(
@@ -85,7 +94,10 @@ async def get_chronological_feed(
     query = (
         select(Post)
         .where(
-            Post.author_id.in_(followed_ids),
+            or_(
+                Post.author_id.in_(followed_ids),
+                Post.community_id.in_(joined_community_ids),
+            ),
             Post.is_removed == False,  # noqa: E712
             or_(
                 Post.visibility == "public",
