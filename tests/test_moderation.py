@@ -1,9 +1,11 @@
-from tests.conftest import setup_user, register
+from tests.conftest import setup_user, register, get_test_db
+from app.models.community_karma import CommunityKarma
+from app.models.community import CommunityMember
 
 
 async def _setup(client):
     """
-    alice creates a community (making her a mod).
+    alice creates a community (making her owner).
     bob joins the community and creates a post.
     Returns (alice_h, bob_h, community, post).
     """
@@ -22,6 +24,30 @@ async def _setup(client):
         "title": "Bob's post", "content": "Hello", "community_id": community["id"]
     })
     return alice_h, bob_h, community, post_r.json()
+
+
+async def _seed_community_karma(user_id: int, community_id: int, karma: int) -> None:
+    """Directly seed community karma for a user via DB session."""
+    from sqlalchemy import select
+    async for session in get_test_db():
+        result = await session.execute(
+            select(CommunityKarma).where(
+                CommunityKarma.user_id == user_id,
+                CommunityKarma.community_id == community_id,
+            )
+        )
+        ck = result.scalar_one_or_none()
+        if ck is None:
+            session.add(CommunityKarma(user_id=user_id, community_id=community_id, karma=karma))
+        else:
+            ck.karma = karma
+        await session.commit()
+
+
+async def _get_user_id(client, username: str, auth_headers: dict) -> int:
+    """Return user ID by fetching their own profile (requires auth for /me or use username lookup)."""
+    r = await client.get(f"/api/v1/users/{username}")
+    return r.json()["id"]
 
 
 # --- Post removal ---
@@ -145,18 +171,25 @@ async def test_cannot_ban_self(client):
 
 async def test_propose_mod_promotion(client):
     alice_h, bob_h, community, post = await _setup(client)
+    # Bob needs 200 community karma to be nominated as moderator
+    bob_id = await _get_user_id(client, "bob", bob_h)
+    await _seed_community_karma(bob_id, community["id"], 200)
     r = await client.post("/api/v1/communities/general/moderators", headers=alice_h, json={
         "target_username": "bob"
     })
-    assert r.status_code == 201
+    assert r.status_code == 201, r.json()
     body = r.json()
     assert body["status"] == "pending"
     assert body["vote_count"] == 1     # proposer's vote is automatic
     assert body["required_votes"] == 2  # max(2, ceil(1 mod / 2))
+    assert body["target_role"] == "moderator"
 
 
 async def test_propose_mod_promotion_duplicate_vote(client):
     alice_h, bob_h, community, post = await _setup(client)
+    # Bob needs 200 community karma
+    bob_id = await _get_user_id(client, "bob", bob_h)
+    await _seed_community_karma(bob_id, community["id"], 200)
     proposal_r = await client.post(
         "/api/v1/communities/general/moderators", headers=alice_h, json={"target_username": "bob"}
     )
