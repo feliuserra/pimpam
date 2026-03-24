@@ -21,6 +21,9 @@ client/.vite/
 .DS_Store
 Thumbs.db
 
+# Docs build output
+docs/_build/
+
 # Editor
 .vscode/
 .idea/
