@@ -21,6 +21,7 @@ versioned REST API (``/api/v1/``) and a set of
    api/moderation
    api/messages
    api/notifications
+   api/friend_groups
    api/search
    api/media
    api/websocket
