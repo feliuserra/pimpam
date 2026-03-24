@@ -3,6 +3,7 @@
 from app.db.base_class import Base  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.post import Post  # noqa: F401
+from app.models.post_image import PostImage  # noqa: F401
 from app.models.community import Community, CommunityMember  # noqa: F401
 from app.models.message import Message  # noqa: F401
 from app.models.follow import Follow  # noqa: F401

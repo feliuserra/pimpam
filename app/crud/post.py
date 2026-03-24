@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.follow import Follow
 from app.models.post import Post
+from app.models.post_image import PostImage
 from app.schemas.comment import ShareCreate
 from app.schemas.post import PostCreate, PostUpdate
 
@@ -12,9 +13,19 @@ EDIT_WINDOW = timedelta(hours=1)
 
 
 async def create_post(db: AsyncSession, data: PostCreate, author_id: int) -> Post:
-    post = Post(**data.model_dump(), author_id=author_id, karma=1)
+    effective = data.image_urls if data.image_urls else ([data.image_url] if data.image_url else [])
+    post_data = data.model_dump(exclude={"image_url", "image_urls"})
+    post = Post(
+        **post_data,
+        author_id=author_id,
+        karma=1,
+        image_url=effective[0] if effective else None,
+    )
     db.add(post)
-    await db.flush()  # get post.id before creating the vote
+    await db.flush()  # get post.id before creating images and the vote
+
+    for i, url in enumerate(effective):
+        db.add(PostImage(post_id=post.id, url=url, display_order=i))
 
     # Author's implicit +1 — cannot be changed or retracted
     from app.crud.vote import create_initial_vote

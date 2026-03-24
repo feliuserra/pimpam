@@ -91,5 +91,9 @@ class Settings(BaseSettings):
     # Account deletion grace period
     account_deletion_grace_days: int = 7
 
+    # Multi-image posts
+    multi_image_posts_enabled: bool = False
+    post_max_images: int = 10
+
 
 settings = Settings()
