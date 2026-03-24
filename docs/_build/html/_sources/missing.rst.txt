@@ -20,6 +20,38 @@ Register / Login / Refresh
 
 Rate-limited: register 5/minute, login 10/minute.
 
+Email Verification
+~~~~~~~~~~~~~~~~~~
+
+**Status:** ✅ Implemented.
+
+Every new account starts **unverified**. A signed token is emailed on registration; users click the link (or hit ``GET /api/v1/auth/verify?token=<token>``) to activate their account. Tokens expire after 60 minutes.
+
+- ``GET  /api/v1/auth/verify?token=<token>`` — verify email; token is single-use
+- ``POST /api/v1/auth/resend-verification`` — issue a new token (authenticated, unverified users only; returns ``400`` if already verified)
+
+Access gating: all endpoints that require ``CurrentUser`` return ``403 email_not_verified`` for unverified accounts. The only exceptions are ``GET /users/me``, ``PATCH /users/me``, ``POST /auth/logout``, account deletion routes, and all auth endpoints.
+
+Expiry: unverified accounts that have not verified within 30 days are automatically hard-deleted by the hourly background task.
+
+Password Reset
+~~~~~~~~~~~~~~
+
+**Status:** ✅ Implemented.
+
+- ``POST /api/v1/auth/password-reset/request`` — send a reset email; returns ``202`` regardless of whether the address exists (no user enumeration). Rate-limited to 3 requests/hour per account.
+- ``POST /api/v1/auth/password-reset/confirm`` — apply the new password. Accepts either a signed link token (15-minute expiry) or a 6-digit code (10-minute expiry).
+
+On success: the user's ``token_version`` is incremented, invalidating all outstanding refresh tokens.
+
+Logout / Change Password
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Status:** ✅ Implemented.
+
+- ``POST /api/v1/auth/logout`` — invalidate the current refresh token (server-side ``token_version`` bump); returns ``204``.
+- ``POST /api/v1/auth/change-password`` — authenticated; requires current password. On success, ``token_version`` is bumped (forces re-login on all devices). Returns ``200``.
+
 2FA (TOTP)
 ~~~~~~~~~~
 
@@ -38,11 +70,29 @@ Users
 
 **Status:** ✅ Implemented.
 
-- ``GET  /api/v1/users/me`` — own profile
+- ``GET  /api/v1/users/me`` — own profile (includes ``is_verified`` and ``deletion_scheduled_at``)
 - ``PATCH /api/v1/users/me`` — update display name, bio, avatar URL
 - ``GET  /api/v1/users/{username}`` — public profile
 - ``POST /api/v1/users/{username}/follow`` — follow a user (federated: sends AP Follow, marks pending)
 - ``DELETE /api/v1/users/{username}/follow`` — unfollow (federated: sends AP Undo{Follow})
+
+Account Deletion
+~~~~~~~~~~~~~~~~
+
+**Status:** ✅ Implemented — hard delete with a 7-day grace period.
+
+- ``POST /api/v1/users/me/delete`` — schedule deletion; requires current password. Returns ``202``. No-op if already scheduled (``409``).
+- ``POST /api/v1/users/me/delete/cancel`` — cancel a pending deletion during the grace period. Returns ``200``. Returns ``400`` if nothing is scheduled.
+
+Deletion cascade (executed after the 7-day grace period by the hourly background task):
+
+- Posts and comments: ``author_id`` set to ``NULL`` — content stays visible as "[deleted user]".
+- Messages *sent* by the user: ``sender_id`` set to ``NULL`` — the recipient keeps the message anonymised.
+- Messages *received* by the user: deleted (they're private to the user).
+- Everything else (votes, reactions, follows, karma, notifications, moderation rows): hard-deleted in FK-safe order.
+- The ``User`` row itself is then hard-deleted.
+
+The account remains fully functional during the grace period; deletion can be cancelled at any time before the background task runs.
 
 ----
 
@@ -76,9 +126,9 @@ Votes update ``Post.karma``, ``User.karma`` (global), and ``CommunityKarma`` (pe
 Sharing rules: one share per user per post. Sharing a share links to the root original.
 When a share receives a ``+1`` vote, the original post author earns a ``+1`` karma bonus.
 
-**Not yet implemented:**
-
-- Multiple images per post (current schema: one ``image_url`` per post)
+**Multiple images per post:** ✅ Schema ready — ``PostImage`` table + ``MULTI_IMAGE_POSTS_ENABLED`` flag.
+Set the flag to ``true`` to allow up to ``POST_MAX_IMAGES`` images per post (default 10).
+Frontend gallery UI not yet built.
 
 ----
 
@@ -280,7 +330,7 @@ Media
 **Not yet implemented:**
 
 - Content hash-matching against NCMEC database
-- Multiple images per post (current schema: one ``image_url`` per post)
+- Multiple images per post UI — schema and flag are in place; set ``MULTI_IMAGE_POSTS_ENABLED=true`` to activate; the frontend gallery UI is not yet built
 - User-provisioned storage (BYOS)
 
 ----
@@ -290,10 +340,11 @@ Search
 
 **Status:** ✅ Implemented — ``GET /api/v1/search``
 
-- Full-text search over post titles, content, and URLs via Meilisearch.
-- Optional ``?community=<name>`` scopes results to one community.
+- Full-text search across three Meilisearch indexes: ``posts`` (title, content, URL), ``users`` (username, bio), and ``communities`` (name, description).
+- Optional ``?type=post|user|community`` scopes results to one kind (defaults to all three, fan-out search).
+- Optional ``?community=<name>`` further scopes post results to one community.
 - Removed posts always excluded.
-- Indexed automatically on create/edit/delete (fire-and-forget).
+- All three indexes are updated automatically on create/edit/delete (fire-and-forget).
 - Returns ``503`` if ``SEARCH_ENABLED=false`` or Meilisearch is unreachable.
 
 ----
@@ -315,9 +366,11 @@ Events pushed to the client:
 Connection closes after 60 s of client silence; clients reconnect (no replay).
 Redis downtime never breaks primary operations.
 
+**Typing indicators:** ✅ Implemented. Clients send ``{"type": "typing", "recipient_id": N}`` over
+the WS connection; the server forwards a ``typing`` event to the recipient's channel immediately.
+
 **Not yet implemented:**
 
-- Typing indicators for DMs
 - Live community activity (new posts in a community the user is browsing)
 
 ----
@@ -465,8 +518,7 @@ Not yet started
 ---------------
 
 - **React frontend** — the ``client/`` directory exists but the UI is a skeleton.
-- **WebSocket typing indicators** — needs client-side state management.
-- **Multiple images per post** — needs ``PostImage`` model + migration.
+- **Multiple images per post UI** — schema and ``MULTI_IMAGE_POSTS_ENABLED`` flag are in place; only the frontend gallery UI is missing.
 - **NCMEC content hash-matching** — post-upload async check.
 - **BYOS (user-provisioned storage)** — optional power-user bucket.
 - **Karma beyond mod eligibility** — rate-limit relaxation, community creation gating.
