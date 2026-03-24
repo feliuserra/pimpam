@@ -20,6 +20,38 @@ Register / Login / Refresh
 
 Rate-limited: register 5/minute, login 10/minute.
 
+Email Verification
+~~~~~~~~~~~~~~~~~~
+
+**Status:** ✅ Implemented.
+
+Every new account starts **unverified**. A signed token is emailed on registration; users click the link (or hit ``GET /api/v1/auth/verify?token=<token>``) to activate their account. Tokens expire after 60 minutes.
+
+- ``GET  /api/v1/auth/verify?token=<token>`` — verify email; token is single-use
+- ``POST /api/v1/auth/resend-verification`` — issue a new token (authenticated, unverified users only; returns ``400`` if already verified)
+
+Access gating: all endpoints that require ``CurrentUser`` return ``403 email_not_verified`` for unverified accounts. The only exceptions are ``GET /users/me``, ``PATCH /users/me``, ``POST /auth/logout``, account deletion routes, and all auth endpoints.
+
+Expiry: unverified accounts that have not verified within 30 days are automatically hard-deleted by the hourly background task.
+
+Password Reset
+~~~~~~~~~~~~~~
+
+**Status:** ✅ Implemented.
+
+- ``POST /api/v1/auth/password-reset/request`` — send a reset email; returns ``202`` regardless of whether the address exists (no user enumeration). Rate-limited to 3 requests/hour per account.
+- ``POST /api/v1/auth/password-reset/confirm`` — apply the new password. Accepts either a signed link token (15-minute expiry) or a 6-digit code (10-minute expiry).
+
+On success: the user's ``token_version`` is incremented, invalidating all outstanding refresh tokens.
+
+Logout / Change Password
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Status:** ✅ Implemented.
+
+- ``POST /api/v1/auth/logout`` — invalidate the current refresh token (server-side ``token_version`` bump); returns ``204``.
+- ``POST /api/v1/auth/change-password`` — authenticated; requires current password. On success, ``token_version`` is bumped (forces re-login on all devices). Returns ``200``.
+
 2FA (TOTP)
 ~~~~~~~~~~
 
@@ -38,11 +70,29 @@ Users
 
 **Status:** ✅ Implemented.
 
-- ``GET  /api/v1/users/me`` — own profile
+- ``GET  /api/v1/users/me`` — own profile (includes ``is_verified`` and ``deletion_scheduled_at``)
 - ``PATCH /api/v1/users/me`` — update display name, bio, avatar URL
 - ``GET  /api/v1/users/{username}`` — public profile
 - ``POST /api/v1/users/{username}/follow`` — follow a user (federated: sends AP Follow, marks pending)
 - ``DELETE /api/v1/users/{username}/follow`` — unfollow (federated: sends AP Undo{Follow})
+
+Account Deletion
+~~~~~~~~~~~~~~~~
+
+**Status:** ✅ Implemented — hard delete with a 7-day grace period.
+
+- ``POST /api/v1/users/me/delete`` — schedule deletion; requires current password. Returns ``202``. No-op if already scheduled (``409``).
+- ``POST /api/v1/users/me/delete/cancel`` — cancel a pending deletion during the grace period. Returns ``200``. Returns ``400`` if nothing is scheduled.
+
+Deletion cascade (executed after the 7-day grace period by the hourly background task):
+
+- Posts and comments: ``author_id`` set to ``NULL`` — content stays visible as "[deleted user]".
+- Messages *sent* by the user: ``sender_id`` set to ``NULL`` — the recipient keeps the message anonymised.
+- Messages *received* by the user: deleted (they're private to the user).
+- Everything else (votes, reactions, follows, karma, notifications, moderation rows): hard-deleted in FK-safe order.
+- The ``User`` row itself is then hard-deleted.
+
+The account remains fully functional during the grace period; deletion can be cancelled at any time before the background task runs.
 
 ----
 
@@ -290,10 +340,11 @@ Search
 
 **Status:** ✅ Implemented — ``GET /api/v1/search``
 
-- Full-text search over post titles, content, and URLs via Meilisearch.
-- Optional ``?community=<name>`` scopes results to one community.
+- Full-text search across three Meilisearch indexes: ``posts`` (title, content, URL), ``users`` (username, bio), and ``communities`` (name, description).
+- Optional ``?type=post|user|community`` scopes results to one kind (defaults to all three, fan-out search).
+- Optional ``?community=<name>`` further scopes post results to one community.
 - Removed posts always excluded.
-- Indexed automatically on create/edit/delete (fire-and-forget).
+- All three indexes are updated automatically on create/edit/delete (fire-and-forget).
 - Returns ``503`` if ``SEARCH_ENABLED=false`` or Meilisearch is unreachable.
 
 ----
@@ -399,6 +450,65 @@ CI / CD
 - pytest with coverage; fails if overall coverage drops below 70 %.
 - Coverage report written to the GitHub Actions job summary.
 - Branch protection on ``main``: merge blocked until ``Tests & Coverage`` passes.
+
+----
+
+Notifications
+-------------
+
+**Status:** ✅ Implemented.
+
+- ``GET    /api/v1/notifications`` — inbox, unread first then read, newest first (``?limit=20&before_id=``)
+- ``GET    /api/v1/notifications/unread-count`` — badge counter
+- ``PATCH  /api/v1/notifications/{id}/read`` — mark one notification as read
+- ``PATCH  /api/v1/notifications/read-all`` — mark all notifications as read
+- ``GET    /api/v1/notifications/preferences`` — list disabled notification types
+- ``PATCH  /api/v1/notifications/preferences`` — enable or disable a type (body: ``{"notification_type": "vote", "enabled": false}``)
+
+Notification types:
+
++----------------------+---------+-------------------------------------------+
+| Type                 | Grouped | Trigger                                   |
++======================+=========+===========================================+
+| ``reply``            | no      | Someone replied to your comment           |
++----------------------+---------+-------------------------------------------+
+| ``reaction``         | yes     | Someone reacted to your comment           |
++----------------------+---------+-------------------------------------------+
+| ``new_comment``      | yes     | Someone commented on your post            |
++----------------------+---------+-------------------------------------------+
+| ``share``            | no      | Someone shared your post                  |
++----------------------+---------+-------------------------------------------+
+| ``follow``           | no      | Someone followed you                      |
++----------------------+---------+-------------------------------------------+
+| ``vote``             | yes     | Someone voted on your post                |
++----------------------+---------+-------------------------------------------+
+| ``post_removed``     | no      | A mod removed your post                   |
++----------------------+---------+-------------------------------------------+
+| ``comment_removed``  | no      | A mod removed your comment                |
++----------------------+---------+-------------------------------------------+
+| ``ban_proposed``     | no      | A ban was proposed against you            |
++----------------------+---------+-------------------------------------------+
+| ``banned``           | no      | You were banned from a community          |
++----------------------+---------+-------------------------------------------+
+| ``appeal_resolved``  | no      | Your ban appeal was resolved              |
++----------------------+---------+-------------------------------------------+
+| ``mod_nominated``    | no      | You were nominated for mod promotion      |
++----------------------+---------+-------------------------------------------+
+| ``mod_promoted``     | no      | You were promoted to a mod role           |
++----------------------+---------+-------------------------------------------+
+| ``ownership_offered``| no      | You were offered community ownership      |
++----------------------+---------+-------------------------------------------+
+
+**Grouping:** Grouped types (reactions, votes, new comments) upsert into a single unread row per
+group key, incrementing ``group_count``. Marking a grouped notification as read closes the group;
+subsequent events start fresh. The DB stores the real count — clients should render ``>99`` when
+``group_count > 99``.
+
+**Preferences:** All types are enabled by default. A ``NotificationPreference`` row is only
+created when a type is disabled (opt-out list). No rows = all on.
+
+**Delivery:** Every notification is stored immediately and a ``notification`` WebSocket event is
+pushed to the user if connected. Failure of either step never breaks the triggering operation.
 
 ----
 
