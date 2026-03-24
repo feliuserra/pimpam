@@ -12,33 +12,74 @@
   --blue-300: #90e0ef;   /* soft blue — secondary surfaces, badges */
   --blue-100: #caf0f8;   /* pale sky — subtle backgrounds, highlights */
 
+  /* Semantic aliases */
+  --bg: #ffffff;
   --color-bg: #ffffff;
-  --color-surface: #f8fcfe;          /* near-white with a blue tint */
+  --surface: #f8fcfe;
+  --color-surface: #f8fcfe;
   --color-surface-2: var(--blue-100);
+  --border: #daf0f5;
   --color-border: #daf0f5;
-  --color-text: #03045e;             /* --blue-900 for strong contrast */
+  --text: #03045e;
+  --color-text: #03045e;
+  --text-secondary: #4a6fa5;
   --color-text-muted: #4a6fa5;
+  --accent: var(--blue-500);
   --color-primary: var(--blue-900);
   --color-primary-hover: var(--blue-700);
   --color-accent: var(--blue-500);
   --color-accent-subtle: var(--blue-300);
+
+  /* Grays */
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-600: #4b5563;
+
+  /* Spacing & layout */
   --radius: 8px;
+  --radius-lg: 12px;
+  --tab-bar-height: 56px;
+  --header-height: 48px;
+  --sidebar-width: 240px;
   --font: system-ui, -apple-system, sans-serif;
+
+  /* Z-index scale */
+  --z-tab-bar: 100;
+  --z-header: 100;
+  --z-sidebar: 100;
+  --z-modal: 10000;
+  --z-toast: 9999;
 }
 
 body {
   font-family: var(--font);
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--bg);
+  color: var(--text);
   line-height: 1.6;
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--accent);
   text-decoration: none;
 }
 
 button {
   cursor: pointer;
   font-family: var(--font);
+}
+
+/* Focus-visible outlines — never removed */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,30 +1,41 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../api/client";
+import { register } from "../api/auth";
+import { useAuth } from "../contexts/AuthContext";
 import styles from "./Auth.module.css";
+import regStyles from "./Register.module.css";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [consent, setConsent] = useState({ tos: false, privacy: false, age: false });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const allConsented = consent.tos && consent.privacy && consent.age;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!allConsented) {
+      setError("You must accept all required agreements to create an account.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      await api.post("/auth/register", form);
-      // Auto-login after registration
-      const { data } = await api.post("/auth/login", {
-        username: form.username,
-        password: form.password,
-      });
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-      navigate("/");
+      await register(form);
+      await login(form.username, form.password);
+      navigate("/verify-email-sent");
     } catch (err) {
-      setError(err.response?.data?.detail ?? "Registration failed");
+      const detail = err.response?.data?.detail;
+      if (typeof detail === "string") {
+        setError(detail);
+      } else if (Array.isArray(detail)) {
+        setError(detail.map((e) => e.msg || e).join(". "));
+      } else {
+        setError(err.message || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -67,10 +78,38 @@ export default function Register() {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
 
+        <fieldset className={regStyles.consent}>
+          <legend className={regStyles.legend}>Required agreements</legend>
+          <label className={regStyles.check}>
+            <input
+              type="checkbox"
+              checked={consent.tos}
+              onChange={(e) => setConsent({ ...consent, tos: e.target.checked })}
+            />
+            <span>I accept the Terms of Service</span>
+          </label>
+          <label className={regStyles.check}>
+            <input
+              type="checkbox"
+              checked={consent.privacy}
+              onChange={(e) => setConsent({ ...consent, privacy: e.target.checked })}
+            />
+            <span>I accept the Privacy Policy</span>
+          </label>
+          <label className={regStyles.check}>
+            <input
+              type="checkbox"
+              checked={consent.age}
+              onChange={(e) => setConsent({ ...consent, age: e.target.checked })}
+            />
+            <span>I am at least 13 years old</span>
+          </label>
+        </fieldset>
+
         {error && <p className={styles.error} role="alert">{error}</p>}
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creating account…" : "Create account"}
+        <button type="submit" disabled={loading || !allConsented}>
+          {loading ? "Creating account\u2026" : "Create account"}
         </button>
       </form>
 

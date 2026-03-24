@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../api/client";
+import { useAuth } from "../contexts/AuthContext";
 import styles from "./Auth.module.css";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -14,12 +15,15 @@ export default function Login() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post("/auth/login", form);
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
+      await login(form.username, form.password);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.detail ?? "Login failed");
+      const detail = err.response?.data?.detail;
+      if (detail === "totp_required") {
+        navigate("/login/totp", { state: { username: form.username, password: form.password } });
+        return;
+      }
+      setError(typeof detail === "string" ? detail : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -54,10 +58,13 @@ export default function Login() {
         {error && <p className={styles.error} role="alert">{error}</p>}
 
         <button type="submit" disabled={loading}>
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? "Signing in\u2026" : "Sign in"}
         </button>
       </form>
 
+      <p className={styles.footer}>
+        <Link to="/forgot-password">Forgot password?</Link>
+      </p>
       <p className={styles.footer}>
         No account? <Link to="/register">Create one</Link>
       </p>

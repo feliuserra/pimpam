@@ -3,6 +3,12 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/test/setup.js",
+    css: { modules: { classNameStrategy: "non-scoped" } },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -23,8 +29,11 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      // Proxy API calls to FastAPI during development
       "/api": "http://localhost:8000",
+      "/ws": {
+        target: "ws://localhost:8000",
+        ws: true,
+      },
     },
   },
 });

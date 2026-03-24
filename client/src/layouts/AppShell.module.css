@@ -1,0 +1,21 @@
+.shell {
+  min-height: 100dvh;
+}
+
+.main {
+  padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0));
+}
+
+@media (min-width: 1024px) {
+  .main {
+    margin-left: var(--sidebar-width);
+    padding-bottom: 0;
+  }
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+}

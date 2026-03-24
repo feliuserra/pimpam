@@ -1,0 +1,32 @@
+.banner {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.resend {
+  background: none;
+  border: 1px solid #92400e;
+  color: #92400e;
+  border-radius: var(--radius);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.resend:hover:not(:disabled) {
+  background: rgba(146, 64, 14, 0.1);
+}
+
+.resend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

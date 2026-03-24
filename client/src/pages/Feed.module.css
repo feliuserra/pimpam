@@ -1,40 +1,73 @@
 .container {
   max-width: 640px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0 1rem 1rem;
 }
 
-.header {
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 1rem;
+.iconBtn {
+  background: none;
+  border: none;
+  color: var(--text);
+  padding: 0.375rem;
+  display: flex;
+  align-items: center;
 }
 
-.header h1 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--color-primary);
-}
-
-.status {
-  text-align: center;
-  color: var(--color-text-muted);
-  margin-top: 4rem;
-}
-
-.loadMore {
-  display: block;
+.banner {
   width: 100%;
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  padding: 0.625rem;
+  background: var(--blue-100);
+  color: var(--blue-700);
+  border: none;
   border-radius: var(--radius);
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  transition: background 0.15s;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
 }
 
-.loadMore:hover {
-  background: var(--color-border);
+.banner:hover {
+  background: var(--blue-300);
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: 3rem;
+  line-height: 1.8;
+}
+
+.sentinel {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+.fab {
+  position: fixed;
+  bottom: calc(var(--tab-bar-height) + 1rem + env(safe-area-inset-bottom, 0));
+  right: 1rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 50;
+}
+
+.fab:hover {
+  opacity: 0.9;
+}
+
+@media (min-width: 1024px) {
+  .fab {
+    bottom: 2rem;
+    right: 2rem;
+  }
 }

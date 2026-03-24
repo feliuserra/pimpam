@@ -12,12 +12,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401, attempt a token refresh then retry once
+// On 401, attempt a token refresh then retry once.
+// Skip refresh for auth endpoints — login/register 401s should surface to the caller.
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const url = original?.url || "";
+    const isAuthRoute = url.startsWith("/auth/");
+    if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       original._retry = true;
       try {
         const refresh_token = localStorage.getItem("refresh_token");

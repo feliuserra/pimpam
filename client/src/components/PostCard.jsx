@@ -1,26 +1,217 @@
+import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
+import Avatar from "./ui/Avatar";
+import RelativeTime from "./ui/RelativeTime";
+import VoteButtons from "./VoteButtons";
+import CommentIcon from "./ui/icons/CommentIcon";
+import ShareIcon from "./ui/icons/ShareIcon";
+import BoostIcon from "./ui/icons/BoostIcon";
+import MoreIcon from "./ui/icons/MoreIcon";
+import ExternalLinkIcon from "./ui/icons/ExternalLinkIcon";
+import { useAuth } from "../contexts/AuthContext";
+import * as postsApi from "../api/posts";
 import styles from "./PostCard.module.css";
 
-export default function PostCard({ post }) {
-  const date = new Date(post.created_at).toLocaleString();
+const EDIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+export default function PostCard({ post, onDelete, onUpdate }) {
+  const { user } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  const isAuthor = user && post.author_id === user.id;
+  const canEdit =
+    isAuthor && Date.now() - new Date(post.created_at).getTime() < EDIT_WINDOW_MS;
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  const handleDelete = async () => {
+    setMenuOpen(false);
+    if (!window.confirm("Delete this post?")) return;
+    try {
+      await postsApi.remove(post.id);
+      onDelete?.(post.id);
+    } catch {
+      // silent — toast could be added later
+    }
+  };
+
+  // Shared-from header
+  const isShare = post.shared_from_id != null;
 
   return (
     <article className={styles.card}>
+      {/* Share header */}
+      {isShare && (
+        <div className={styles.shareHeader}>
+          <ShareIcon size={14} />
+          <span>
+            <Link to={`/@${post.author_username}`}>
+              @{post.author_username}
+            </Link>{" "}
+            shared
+          </span>
+        </div>
+      )}
+
+      {/* Share comment */}
+      {isShare && post.share_comment && (
+        <p className={styles.shareComment}>{post.share_comment}</p>
+      )}
+
+      {/* Author row */}
+      <div className={styles.authorRow}>
+        <Link to={`/@${post.author_username}`} className={styles.authorLink}>
+          <Avatar
+            src={post.author_avatar_url}
+            alt={`@${post.author_username}`}
+            size={32}
+          />
+          <span className={styles.authorName}>@{post.author_username}</span>
+        </Link>
+
+        {post.community_name && (
+          <>
+            <span className={styles.separator}>in</span>
+            <Link
+              to={`/c/${post.community_name}`}
+              className={styles.communityBadge}
+            >
+              c/{post.community_name}
+            </Link>
+          </>
+        )}
+
+        <span className={styles.dot}>·</span>
+        <RelativeTime date={post.created_at} />
+
+        {post.is_edited && (
+          <span className={styles.edited} title={post.edited_at ? `Edited ${new Date(post.edited_at).toLocaleString()}` : "Edited"}>
+            (edited)
+          </span>
+        )}
+      </div>
+
+      {/* Title */}
       <h2 className={styles.title}>
         {post.url ? (
           <a href={post.url} target="_blank" rel="noopener noreferrer">
             {post.title}
+            <ExternalLinkIcon size={14} />
           </a>
         ) : (
-          post.title
+          <Link to={`/posts/${post.id}`}>{post.title}</Link>
         )}
       </h2>
 
-      {post.content && <p className={styles.content}>{post.content}</p>}
+      {/* Content (truncated) */}
+      {post.content && (
+        <p className={styles.content}>{post.content}</p>
+      )}
 
-      <footer className={styles.meta}>
-        <span>{date}</span>
-        <span>{post.karma} karma</span>
-      </footer>
+      {/* Images */}
+      {post.images && post.images.length > 0 && (
+        <Link to={`/posts/${post.id}`} className={styles.imageContainer}>
+          <img
+            src={post.images[0].url}
+            alt=""
+            className={styles.image}
+            loading="lazy"
+          />
+          {post.images.length > 1 && (
+            <span className={styles.imageBadge}>+{post.images.length - 1}</span>
+          )}
+        </Link>
+      )}
+
+      {/* Single image fallback */}
+      {(!post.images || post.images.length === 0) && post.image_url && (
+        <Link to={`/posts/${post.id}`} className={styles.imageContainer}>
+          <img
+            src={post.image_url}
+            alt=""
+            className={styles.image}
+            loading="lazy"
+          />
+        </Link>
+      )}
+
+      {/* Action bar */}
+      <div className={styles.actions}>
+        <VoteButtons
+          postId={post.id}
+          karma={post.karma}
+          userVote={post.user_vote}
+          onKarmaChange={(newKarma, newVote) =>
+            onUpdate?.({ ...post, karma: newKarma, user_vote: newVote })
+          }
+        />
+
+        <Link to={`/posts/${post.id}`} className={styles.actionBtn}>
+          <CommentIcon size={18} />
+          {post.comment_count > 0 && (
+            <span className={styles.actionCount}>{post.comment_count}</span>
+          )}
+        </Link>
+
+        <button className={styles.actionBtn} aria-label="Share">
+          <ShareIcon size={18} />
+        </button>
+
+        <button className={styles.actionBtn} aria-label="Boost">
+          <BoostIcon size={18} />
+        </button>
+
+        {/* Overflow menu */}
+        {isAuthor && (
+          <div className={styles.menuWrapper} ref={menuRef}>
+            <button
+              className={styles.actionBtn}
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="More options"
+              aria-expanded={menuOpen}
+            >
+              <MoreIcon size={18} />
+            </button>
+            {menuOpen && (
+              <div className={styles.menu} role="menu">
+                {canEdit && (
+                  <Link
+                    to={`/posts/${post.id}`}
+                    className={styles.menuItem}
+                    role="menuitem"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Edit
+                  </Link>
+                )}
+                <button
+                  className={`${styles.menuItem} ${styles.danger}`}
+                  role="menuitem"
+                  onClick={handleDelete}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Visibility indicator */}
+      {post.visibility === "group" && (
+        <div className={styles.visibilityTag}>Friends only</div>
+      )}
     </article>
   );
 }
