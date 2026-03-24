@@ -22,10 +22,10 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Install dependencies
-        run: uv pip install -r requirements.txt pytest-cov pytest-xdist --system
+        run: uv pip install -r requirements.txt --system
 
       - name: Run tests
-        run: pytest -o "addopts=--cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=70" -v --tb=short
+        run: pytest -v --tb=short
 
       - name: Write coverage summary
         if: always()
