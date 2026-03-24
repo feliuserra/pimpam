@@ -44,3 +44,10 @@ class Post(Base):
     author: Mapped["User"] = relationship(foreign_keys=[author_id], back_populates="posts", lazy="raise")
     community: Mapped["Community | None"] = relationship(back_populates="posts", lazy="raise")
     shared_from: Mapped["Post | None"] = relationship(foreign_keys=[shared_from_id], lazy="raise")
+    images: Mapped[list["PostImage"]] = relationship(
+        "PostImage",
+        back_populates="post",
+        lazy="selectin",
+        order_by="PostImage.display_order",
+        cascade="all, delete-orphan",
+    )

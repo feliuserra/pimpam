@@ -21,6 +21,12 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 @limiter.limit("10/minute")
 async def create(request: Request, data: PostCreate, current_user: CurrentUser, db: DBSession):
     """Create a new post, optionally within a community."""
+    effective = data.image_urls if data.image_urls else ([data.image_url] if data.image_url else [])
+    if len(effective) > 1 and not settings.multi_image_posts_enabled:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Multiple images per post is not enabled")
+    if effective and len(effective) > settings.post_max_images:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Maximum {settings.post_max_images} images per post")
+
     post = await create_post(db, data, author_id=current_user.id)
     await index_post(post)
 
