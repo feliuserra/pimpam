@@ -25,7 +25,7 @@ jobs:
         run: uv pip install -r requirements.txt pytest-cov pytest-xdist --system
 
       - name: Run tests
-        run: pytest -v --tb=short
+        run: pytest -n0 -v --tb=short
 
       - name: Write coverage summary
         if: always()
