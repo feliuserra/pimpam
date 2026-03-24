@@ -22,6 +22,7 @@ versioned REST API (``/api/v1/``) and a set of
    api/messages
    api/notifications
    api/friend_groups
+   api/stories
    api/search
    api/media
    api/websocket

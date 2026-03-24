@@ -5,14 +5,23 @@
 }
 
 :root {
+  /* Shades of Blue palette */
+  --blue-900: #03045e;   /* near-navy — primary actions, headings */
+  --blue-700: #0077b6;   /* royal blue — hover states, links */
+  --blue-500: #00b4d8;   /* sky blue — accent, active tab indicator, story ring */
+  --blue-300: #90e0ef;   /* soft blue — secondary surfaces, badges */
+  --blue-100: #caf0f8;   /* pale sky — subtle backgrounds, highlights */
+
   --color-bg: #ffffff;
-  --color-surface: #f4f4f5;
-  --color-border: #e4e4e7;
-  --color-text: #18181b;
-  --color-text-muted: #71717a;
-  --color-primary: #1a1a2e;
-  --color-primary-hover: #16213e;
-  --color-accent: #6366f1;
+  --color-surface: #f8fcfe;          /* near-white with a blue tint */
+  --color-surface-2: var(--blue-100);
+  --color-border: #daf0f5;
+  --color-text: #03045e;             /* --blue-900 for strong contrast */
+  --color-text-muted: #4a6fa5;
+  --color-primary: var(--blue-900);
+  --color-primary-hover: var(--blue-700);
+  --color-accent: var(--blue-500);
+  --color-accent-subtle: var(--blue-300);
   --radius: 8px;
   --font: system-ui, -apple-system, sans-serif;
 }
