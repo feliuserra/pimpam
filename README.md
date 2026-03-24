@@ -101,6 +101,8 @@ The core backend is complete and covered by an integration test suite (`pytest -
 - Email verification — new accounts are gated until verified; tokens expire in 60 min; unverified accounts auto-deleted after 30 days; resend endpoint included
 - Logout (server-side token invalidation) and change-password (requires current password, forces re-login on all devices)
 - Account deletion — 7-day grace period with password confirmation; posts/comments anonymised, sent messages anonymised, received messages deleted; cancellable during grace period
+- Multi-image posts — `PostImage` table ready; `MULTI_IMAGE_POSTS_ENABLED` flag (default off) gates multi-image; single `image_url` path unchanged; response always includes ordered `images` array
+- Typing indicators for DMs — client sends `{"type":"typing","recipient_id":N}` over WS; server forwards to recipient's channel in real time
 - Chronological feed — strictly time-ordered, never algorithmic
 - Posts: create, edit (1-hour window), vote, share (reshares trace to root original)
 - Comments: nested threads up to 5 levels, sort by latest or most-reacted, author delete, mod remove/restore
