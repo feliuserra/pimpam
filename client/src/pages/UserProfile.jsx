@@ -5,6 +5,7 @@ import Avatar from "../components/ui/Avatar";
 import Spinner from "../components/ui/Spinner";
 import PostCard from "../components/PostCard";
 import UserCard from "../components/UserCard";
+import CropModal from "../components/CropModal";
 import SettingsIcon from "../components/ui/icons/SettingsIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
@@ -34,6 +35,8 @@ export default function UserProfile() {
   const [saving, setSaving] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [cropSrc, setCropSrc] = useState(null); // object URL for crop modal
+  const [cropType, setCropType] = useState(null); // "avatar" or "cover"
 
   // Pinned post
   const [pinnedPost, setPinnedPost] = useState(null);
@@ -142,34 +145,42 @@ export default function UserProfile() {
     setDraft({});
   };
 
-  // Cover image upload
-  const handleCoverUpload = async (e) => {
+  // File selection — opens crop modal
+  const handleFileSelect = (e, type) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setCoverUploading(true);
+    e.target.value = ""; // reset so same file can be re-selected
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropType(type);
+  };
+
+  // Crop confirmed — upload the cropped blob
+  const handleCropConfirm = async (blob) => {
+    const type = cropType;
+    setCropSrc(null);
+    setCropType(null);
+
+    const file = new File([blob], `${type}.webp`, { type: "image/webp" });
+    const mediaType = type === "cover" ? "cover_image" : "avatar";
+    const setUploading = type === "cover" ? setCoverUploading : setAvatarUploading;
+    const draftKey = type === "cover" ? "cover_image_url" : "avatar_url";
+
+    setUploading(true);
     try {
-      const res = await mediaApi.upload(file, "cover_image");
-      setDraft((d) => ({ ...d, cover_image_url: res.data.url }));
+      const res = await mediaApi.upload(file, mediaType);
+      setDraft((d) => ({ ...d, [draftKey]: res.data.url }));
     } catch {
-      addToast("Failed to upload cover image", "error");
+      addToast(`Failed to upload ${type === "cover" ? "cover image" : "avatar"}`, "error");
     } finally {
-      setCoverUploading(false);
+      setUploading(false);
     }
   };
 
-  // Avatar upload
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarUploading(true);
-    try {
-      const res = await mediaApi.upload(file, "avatar");
-      setDraft((d) => ({ ...d, avatar_url: res.data.url }));
-    } catch {
-      addToast("Failed to upload avatar", "error");
-    } finally {
-      setAvatarUploading(false);
-    }
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropType(null);
   };
 
   // Drag and drop for layout sections
@@ -351,7 +362,7 @@ export default function UserProfile() {
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                onChange={handleCoverUpload}
+                onChange={(e) => handleFileSelect(e, "cover")}
                 className={styles.fileInput}
                 disabled={coverUploading}
               />
@@ -373,7 +384,7 @@ export default function UserProfile() {
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
-                  onChange={handleAvatarUpload}
+                  onChange={(e) => handleFileSelect(e, "avatar")}
                   className={styles.fileInput}
                   disabled={avatarUploading}
                 />
@@ -557,6 +568,17 @@ export default function UserProfile() {
         {tab === "Followers" && <UserListTab username={profile.username} type="followers" />}
         {tab === "Following" && <UserListTab username={profile.username} type="following" />}
       </div>
+
+      {/* Crop modal */}
+      {cropSrc && (
+        <CropModal
+          src={cropSrc}
+          aspect={cropType === "cover" ? 3 : 1}
+          shape={cropType === "cover" ? "rect" : "circle"}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
     </>
   );
 }
