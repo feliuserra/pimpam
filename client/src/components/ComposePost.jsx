@@ -9,13 +9,13 @@ import ImageIcon from "./ui/icons/ImageIcon";
 import CloseIcon from "./ui/icons/CloseIcon";
 import styles from "./ComposePost.module.css";
 
-export default function ComposePost({ open, onClose, onCreated }) {
+export default function ComposePost({ open, onClose, onCreated, defaultCommunityId }) {
   const { addToast } = useToast();
   const fileRef = useRef(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [url, setUrl] = useState("");
-  const [communityId, setCommunityId] = useState("");
+  const [communityId, setCommunityId] = useState(defaultCommunityId ? String(defaultCommunityId) : "");
   const [communities, setCommunities] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -51,7 +51,7 @@ export default function ComposePost({ open, onClose, onCreated }) {
     setTitle("");
     setContent("");
     setUrl("");
-    setCommunityId("");
+    setCommunityId(defaultCommunityId ? String(defaultCommunityId) : "");
     removeImage();
   };
 
@@ -62,7 +62,7 @@ export default function ComposePost({ open, onClose, onCreated }) {
     try {
       let image_url = null;
       if (imageFile) {
-        const { data: media } = await upload(imageFile, "post");
+        const { data: media } = await upload(imageFile, "post_image");
         image_url = media.url;
       }
       const body = {

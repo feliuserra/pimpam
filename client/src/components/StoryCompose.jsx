@@ -42,7 +42,7 @@ export default function StoryCompose({ open, onClose }) {
     if (!file) return;
     setLoading(true);
     try {
-      const { data: media } = await upload(file, "story");
+      const { data: media } = await upload(file, "post_image");
       await create({ image_url: media.url, caption: caption || null, duration_hours: duration });
       addToast("Story posted!", "success");
       reset();

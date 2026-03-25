@@ -20,6 +20,16 @@ const Communities = lazy(() => import("./pages/Communities"));
 const Messages = lazy(() => import("./pages/Messages"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
+const PostDetail = lazy(() => import("./pages/PostDetail"));
+const CommunityPage = lazy(() => import("./pages/CommunityPage"));
+const Search = lazy(() => import("./pages/Search"));
+const MessageThread = lazy(() => import("./pages/MessageThread"));
+const Settings = lazy(() => import("./pages/Settings"));
+const AccountSettings = lazy(() => import("./pages/settings/AccountSettings"));
+const ProfileSettings = lazy(() => import("./pages/settings/ProfileSettings"));
+const NotificationSettings = lazy(() => import("./pages/settings/NotificationSettings"));
+const FriendGroupSettings = lazy(() => import("./pages/settings/FriendGroupSettings"));
+const DataSettings = lazy(() => import("./pages/settings/DataSettings"));
 
 function PageLoader() {
   return (
@@ -50,7 +60,18 @@ export default function App() {
                     <Route path="/communities" element={<Communities />} />
                     <Route path="/messages" element={<Messages />} />
                     <Route path="/notifications" element={<Notifications />} />
-                    <Route path="/@:username" element={<UserProfile />} />
+                    <Route path="/u/:username" element={<UserProfile />} />
+                    <Route path="/posts/:id" element={<PostDetail />} />
+                    <Route path="/c/:name" element={<CommunityPage />} />
+                    <Route path="/search" element={<Search />} />
+                    <Route path="/messages/:userId" element={<MessageThread />} />
+                    <Route path="/settings" element={<Settings />}>
+                      <Route index element={<AccountSettings />} />
+                      <Route path="profile" element={<ProfileSettings />} />
+                      <Route path="notifications" element={<NotificationSettings />} />
+                      <Route path="friend-groups" element={<FriendGroupSettings />} />
+                      <Route path="data" element={<DataSettings />} />
+                    </Route>
                   </Route>
                 </Routes>
               </Suspense>

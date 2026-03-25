@@ -17,7 +17,7 @@ export default function BottomTabBar() {
     { to: "/communities", icon: <CommunityIcon size={22} />, label: "Communities" },
     { to: "/messages", icon: <MessageIcon size={22} />, label: "Messages", badge: unreadMessages },
     { to: "/notifications", icon: <BellIcon size={22} />, label: "Notifications", badge: unreadNotifications },
-    { to: `/@${user?.username || ""}`, icon: <UserIcon size={22} />, label: "Profile" },
+    { to: `/u/${user?.username || ""}`, icon: <UserIcon size={22} />, label: "Profile" },
   ];
 
   return (

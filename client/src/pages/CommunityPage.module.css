@@ -1,0 +1,91 @@
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.error,
+.empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Header */
+.header {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 12px;
+}
+
+.name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.desc {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.members {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+}
+
+/* Join button */
+.joinBtn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+
+.joinBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.joinBtn.joined {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.joinBtn.joined:hover:not(:disabled) {
+  border-color: var(--color-danger, #e53e3e);
+  color: var(--color-danger, #e53e3e);
+}
+
+.sentinel {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}

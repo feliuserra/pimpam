@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import PostCard from "../components/PostCard";
 import StoriesRow from "../components/StoriesRow";
@@ -14,6 +15,7 @@ import { getFeed } from "../api/feed";
 import styles from "./Feed.module.css";
 
 export default function Feed() {
+  const navigate = useNavigate();
   const [composeOpen, setComposeOpen] = useState(false);
   const [storyComposeOpen, setStoryComposeOpen] = useState(false);
   const [viewingStory, setViewingStory] = useState(null);
@@ -49,7 +51,7 @@ export default function Feed() {
         left={<span>PimPam</span>}
         right={
           <>
-            <button className={styles.iconBtn} aria-label="Search">
+            <button className={styles.iconBtn} aria-label="Search" onClick={() => navigate("/search")}>
               <SearchIcon size={20} />
             </button>
             <button

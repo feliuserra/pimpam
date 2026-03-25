@@ -1,0 +1,65 @@
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.card:hover .name {
+  text-decoration: underline;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.members {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.joinBtn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-accent);
+  border-radius: 50%;
+  background: none;
+  color: var(--color-accent);
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.joinBtn:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.joinBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

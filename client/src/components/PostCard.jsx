@@ -56,7 +56,7 @@ export default function PostCard({ post, onDelete, onUpdate }) {
         <div className={styles.shareHeader}>
           <ShareIcon size={14} />
           <span>
-            <Link to={`/@${post.author_username}`}>
+            <Link to={`/u/${post.author_username}`}>
               @{post.author_username}
             </Link>{" "}
             shared
@@ -71,7 +71,7 @@ export default function PostCard({ post, onDelete, onUpdate }) {
 
       {/* Author row */}
       <div className={styles.authorRow}>
-        <Link to={`/@${post.author_username}`} className={styles.authorLink}>
+        <Link to={`/u/${post.author_username}`} className={styles.authorLink}>
           <Avatar
             src={post.author_avatar_url}
             alt={`@${post.author_username}`}

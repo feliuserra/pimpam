@@ -17,7 +17,7 @@ export default function Sidebar() {
     { to: "/communities", icon: <CommunityIcon size={20} />, label: "Communities" },
     { to: "/messages", icon: <MessageIcon size={20} />, label: "Messages", badge: unreadMessages },
     { to: "/notifications", icon: <BellIcon size={20} />, label: "Notifications", badge: unreadNotifications },
-    { to: `/@${user?.username || ""}`, icon: <UserIcon size={20} />, label: "Profile" },
+    { to: `/u/${user?.username || ""}`, icon: <UserIcon size={20} />, label: "Profile" },
   ];
 
   return (
