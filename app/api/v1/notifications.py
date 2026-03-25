@@ -26,7 +26,37 @@ async def list_notifications(
     Cursor-paginated via ``before_id``.
     The client should render ``group_count`` as ``>99`` when it exceeds 99.
     """
-    return await get_notifications(db, current_user.id, limit=limit, before_id=before_id)
+    from sqlalchemy import select as sa_select
+
+    from app.models.user import User
+
+    notifs = await get_notifications(
+        db, current_user.id, limit=limit, before_id=before_id
+    )
+
+    actor_ids = {n.actor_id for n in notifs if n.actor_id is not None}
+    actors: dict[int, tuple[str, str | None]] = {}
+    if actor_ids:
+        rows = await db.execute(
+            sa_select(User.id, User.username, User.avatar_url).where(
+                User.id.in_(actor_ids)
+            )
+        )
+        actors = {r.id: (r.username, r.avatar_url) for r in rows}
+
+    return [
+        NotificationPublic.model_validate(n, from_attributes=True).model_copy(
+            update={
+                "actor_username": actors.get(n.actor_id, (None, None))[0]
+                if n.actor_id
+                else None,
+                "actor_avatar_url": actors.get(n.actor_id, (None, None))[1]
+                if n.actor_id
+                else None,
+            }
+        )
+        for n in notifs
+    ]
 
 
 @router.get("/unread-count", response_model=UnreadCount)
@@ -61,7 +91,9 @@ async def list_preferences(current_user: CurrentUser, db: DBSession):
 
 
 @router.patch("/preferences", status_code=status.HTTP_204_NO_CONTENT)
-async def update_preference(data: PreferenceUpdate, current_user: CurrentUser, db: DBSession):
+async def update_preference(
+    data: PreferenceUpdate, current_user: CurrentUser, db: DBSession
+):
     """
     Enable or disable a notification type.
     Send ``{"notification_type": "vote", "enabled": false}`` to opt out of vote notifications.

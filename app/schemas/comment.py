@@ -17,6 +17,8 @@ class CommentPublic(BaseModel):
     id: int
     post_id: int
     author_id: int | None
+    author_username: str | None = None
+    author_avatar_url: str | None = None
     parent_id: int | None
     depth: int
     content: str
