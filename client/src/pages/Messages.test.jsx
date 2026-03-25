@@ -18,11 +18,34 @@ vi.mock("../contexts/NotificationContext", () => ({
     unreadMessages: 0,
     clearNotifications: vi.fn(),
     decrementNotifications: vi.fn(),
+    refetch: vi.fn(),
   })),
 }));
 
 vi.mock("../api/messages", () => ({
   getInbox: vi.fn(),
+}));
+
+vi.mock("../api/users", () => ({
+  getFollowing: vi.fn(() => Promise.resolve({ data: [] })),
+}));
+
+vi.mock("../components/Header", () => ({
+  default: ({ left, right }) => (
+    <header data-testid="header">
+      {left}
+      {right}
+    </header>
+  ),
+}));
+
+vi.mock("../components/NewMessageModal", () => ({
+  default: ({ open, onClose }) =>
+    open ? (
+      <div role="dialog" aria-label="New message">
+        <button onClick={onClose}>Close</button>
+      </div>
+    ) : null,
 }));
 
 import * as messagesApi from "../api/messages";

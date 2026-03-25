@@ -20,7 +20,12 @@ vi.mock("../../contexts/NotificationContext", () => ({
     unreadMessages: 0,
     clearNotifications: vi.fn(),
     decrementNotifications: vi.fn(),
+    refetch: vi.fn(),
   })),
+}));
+
+vi.mock("../../hooks/useTheme", () => ({
+  useTheme: vi.fn(() => ({ theme: "light", toggle: vi.fn() })),
 }));
 
 vi.mock("../../api/auth", () => ({

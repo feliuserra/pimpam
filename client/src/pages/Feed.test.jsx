@@ -19,7 +19,13 @@ vi.mock("../contexts/NotificationContext", () => ({
   })),
 }));
 vi.mock("../contexts/ToastContext", () => ({
-  useToast: vi.fn(() => vi.fn()),
+  useToast: vi.fn(() => ({ addToast: vi.fn() })),
+}));
+vi.mock("../api/friendGroups", () => ({
+  getCloseFriends: vi.fn(() => Promise.resolve({ data: { members: [] } })),
+}));
+vi.mock("../components/PostCardSkeleton", () => ({
+  default: () => <div data-testid="skeleton">Skeleton</div>,
 }));
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -65,7 +71,7 @@ beforeEach(() => {
 });
 
 describe("Feed", () => {
-  it("shows spinner while loading", async () => {
+  it("shows skeleton placeholders while loading", async () => {
     // getFeed never resolves, so loading stays true once triggered
     getFeed.mockReturnValue(new Promise(() => {}));
 
@@ -79,7 +85,7 @@ describe("Feed", () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+      expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
     });
   });
 

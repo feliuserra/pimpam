@@ -1,0 +1,88 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for ios/App/App/public/assets/ModPanel-BcHCks-R.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../../index.html">All files</a> / <a href="index.html">ios/App/App/public/assets</a> ModPanel-BcHCks-R.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import{g as f,r as c,j as e,S as C,x as P,u as B,L as k}from"./index-1wLJYpWP.js";import{H as N}from"./Header-XdYRMuO-.js";import{R as S}from"./RelativeTime-7xofYZQY.js";import{g as R}from"./communities-EUqstku0.js";const M=(t,a)=&gt;f.delete(`/communities/${t}/posts/${a}`),F=(t,a)=&gt;f.post(`/communities/${t}/posts/${a}/restore`),L=(t,a)=&gt;f.delete(`/communities/${t}/comments/${a}`),D=(t,a)=&gt;f.post(`/communities/${t}/comments/${a}/restore`),A=(t,a)=&gt;f.post(`/communities/${t}/bans`,a),$=t=&gt;f.get(`/communities/${t}/bans`),I=(t,a)=&gt;f.post(`/communities/${t}/appeals/${a}/vote`),w=t=&gt;f.get(`/communities/${t}/appeals`),q=(t,a)=&gt;f.post(`/communities/${t}/moderators`,a),H=(t,a)=&gt;f.post(`/communities/${t}/ownership-transfer`,a),U="_section_34vx7_1",V="_heading_34vx7_5",E="_subheading_34vx7_11",O="_sectionHeader_34vx7_17",z="_hint_34vx7_24",W="_form_34vx7_30",G="_inlineForm_34vx7_37",J="_input_34vx7_43",K="_textarea_34vx7_44",Q="_btn_34vx7_68",X="_dangerBtn_34vx7_85",Y="_smallBtn_34vx7_102",Z="_checkLabel_34vx7_113",ee="_error_34vx7_120",se="_success_34vx7_126",te="_empty_34vx7_132",ae="_loader_34vx7_138",re="_list_34vx7_145",ne="_card_34vx7_151",oe="_cardRow_34vx7_158",ce="_cardText_34vx7_165",ie="_cardMeta_34vx7_171",le="_badge_34vx7_179",s={section:U,heading:V,subheading:E,sectionHeader:O,hint:z,form:W,inlineForm:G,input:J,textarea:K,btn:Q,dangerBtn:X,smallBtn:Y,checkLabel:Z,error:ee,success:se,empty:te,loader:ae,list:re,card:ne,cardRow:oe,cardText:ce,cardMeta:ie,badge:le};function de({communityName:t}){const[a,h]=c.useState(""),[l,x]=c.useState(""),[p,r]=c.useState(null),[d,n]=c.useState(!1),o=async m=&gt;{var _,i;if(m.preventDefault(),!(!a.trim()||d)){n(!0),r(null);try{await F(t,a.trim()),r({type:"success",msg:`Post ${a} restored.`}),h("")}catch(v){r({type:"error",msg:((i=(_=v.response)==null?void 0:_.data)==null?void 0:i.detail)||"Failed to restore post"})}finally{n(!1)}}},u=async m=&gt;{var _,i;if(m.preventDefault(),!(!a.trim()||d)){n(!0),r(null);try{await M(t,a.trim()),r({type:"success",msg:`Post ${a} removed.`}),h("")}catch(v){r({type:"error",msg:((i=(_=v.response)==null?void 0:_.data)==null?void 0:i.detail)||"Failed to remove post"})}finally{n(!1)}}},b=async m=&gt;{var _,i;if(m.preventDefault(),!(!l.trim()||d)){n(!0),r(null);try{await D(t,l.trim()),r({type:"success",msg:`Comment ${l} restored.`}),x("")}catch(v){r({type:"error",msg:((i=(_=v.response)==null?void 0:_.data)==null?void 0:i.detail)||"Failed to restore comment"})}finally{n(!1)}}},j=async m=&gt;{var _,i;if(m.preventDefault(),!(!l.trim()||d)){n(!0),r(null);try{await L(t,l.trim()),r({type:"success",msg:`Comment ${l} removed.`}),x("")}catch(v){r({type:"error",msg:((i=(_=v.response)==null?void 0:_.data)==null?void 0:i.detail)||"Failed to remove comment"})}finally{n(!1)}}};return e.jsxs("div",{children:[p&amp;&amp;e.jsx("p",{className:p.type==="error"?s.error:s.success,role:"alert",children:p.msg}),e.jsxs("section",{className:s.section,children:[e.jsx("h3",{className:s.heading,children:"Posts"}),e.jsxs("form",{className:s.inlineForm,onSubmit:o,children:[e.jsx("input",{className:s.input,value:a,onChange:m=&gt;h(m.target.value),placeholder:"Post ID",type:"number"}),e.jsx("button",{type:"submit",className:s.btn,disabled:d||!a.trim(),children:"Restore"}),e.jsx("button",{type:"button",className:s.dangerBtn,disabled:d||!a.trim(),onClick:u,children:"Remove"})]})]}),e.jsxs("section",{className:s.section,children:[e.jsx("h3",{className:s.heading,children:"Comments"}),e.jsxs("form",{className:s.inlineForm,onSubmit:b,children:[e.jsx("input",{className:s.input,value:l,onChange:m=&gt;x(m.target.value),placeholder:"Comment ID",type:"number"}),e.jsx("button",{type:"submit",className:s.btn,disabled:d||!l.trim(),children:"Restore"}),e.jsx("button",{type:"button",className:s.dangerBtn,disabled:d||!l.trim(),onClick:j,children:"Remove"})]})]})]})}const me=["harassment","hate_speech","spam","misinformation","illegal_content","other"];function ue({communityName:t}){const[a,h]=c.useState([]),[l,x]=c.useState([]),[p,r]=c.useState(!0),[d,n]=c.useState(!1);return c.useEffect(()=&gt;{Promise.all([$(t),w(t)]).then(([o,u])=&gt;{h(o.data),x(u.data)}).catch(()=&gt;{}).finally(()=&gt;r(!1))},[t]),p?e.jsx("div",{className:s.loader,children:e.jsx(C,{size:20})}):e.jsxs("div",{children:[e.jsxs("div",{className:s.sectionHeader,children:[e.jsx("h3",{className:s.heading,children:"Ban Proposals"}),e.jsx("button",{className:s.btn,onClick:()=&gt;n(!d),children:d?"Cancel":"Propose Ban"})]}),d&amp;&amp;e.jsx(he,{communityName:t,onCreated:()=&gt;{n(!1),$(t).then(o=&gt;h(o.data)).catch(()=&gt;{})}}),e.jsxs("h4",{className:s.subheading,children:["Active Bans (",a.length,")"]}),a.length===0?e.jsx("p",{className:s.empty,children:"No active bans."}):e.jsx("div",{className:s.list,children:a.map(o=&gt;e.jsxs("div",{className:s.card,children:[e.jsxs("div",{className:s.cardRow,children:[e.jsxs("strong",{children:["User #",o.user_id]}),e.jsx("span",{className:s.badge,children:o.is_permanent?"Permanent":"Temporary"})]}),e.jsx("p",{className:s.cardText,children:o.reason}),e.jsxs("div",{className:s.cardMeta,children:[e.jsxs("span",{children:["Violation: ",o.coc_violation]}),e.jsx(S,{date:o.created_at})]})]},o.id))}),e.jsxs("h4",{className:s.subheading,children:["Pending Appeals (",l.length,")"]}),l.length===0?e.jsx("p",{className:s.empty,children:"No pending appeals."}):e.jsx("div",{className:s.list,children:l.map(o=&gt;e.jsxs("div",{className:s.card,children:[e.jsx("p",{className:s.cardText,children:o.reason}),e.jsxs("div",{className:s.cardMeta,children:[e.jsxs("span",{children:["Votes: ",o.vote_count,"/",o.required_votes]}),e.jsx(S,{date:o.created_at})]}),e.jsx("button",{className:s.smallBtn,onClick:()=&gt;{I(t,o.id).then(()=&gt;w(t).then(u=&gt;x(u.data))).catch(()=&gt;{})},children:"Vote to Accept"})]},o.id))})]})}function he({communityName:t,onCreated:a}){const[h,l]=c.useState(""),[x,p]=c.useState(""),[r,d]=c.useState("other"),[n,o]=c.useState(!0),[u,b]=c.useState(!1),[j,m]=c.useState(""),_=async i=&gt;{var v,y;if(i.preventDefault(),!u){b(!0),m("");try{await A(t,{target_username:h.trim(),reason:x.trim(),coc_violation:r,is_permanent:n}),a()}catch(T){m(((y=(v=T.response)==null?void 0:v.data)==null?void 0:y.detail)||"Failed to propose ban")}finally{b(!1)}}};return e.jsxs("form",{className:s.form,onSubmit:_,children:[e.jsx("input",{className:s.input,value:h,onChange:i=&gt;l(i.target.value),placeholder:"Username to ban",required:!0}),e.jsx("textarea",{className:s.textarea,value:x,onChange:i=&gt;p(i.target.value),placeholder:"Reason for ban",rows:2,required:!0}),e.jsx("select",{className:s.input,value:r,onChange:i=&gt;d(i.target.value),children:me.map(i=&gt;e.jsx("option",{value:i,children:i.replace(/_/g," ")},i))}),e.jsxs("label",{className:s.checkLabel,children:[e.jsx("input",{type:"checkbox",checked:n,onChange:i=&gt;o(i.target.checked)}),"Permanent ban"]}),j&amp;&amp;e.jsx("p",{className:s.error,role:"alert",children:j}),e.jsx("button",{type:"submit",className:s.dangerBtn,disabled:u,children:u?"Submitting...":"Propose Ban"})]})}function pe({communityName:t}){const[a,h]=c.useState(""),[l,x]=c.useState("moderator"),[p,r]=c.useState(!1),[d,n]=c.useState(null),o=async u=&gt;{var b,j;if(u.preventDefault(),!(p||!a.trim())){r(!0),n(null);try{const m=await q(t,{target_username:a.trim(),target_role:l});n({type:"success",msg:`Proposal created. Votes: ${m.data.vote_count}/${m.data.required_votes}`}),h("")}catch(m){n({type:"error",msg:((j=(b=m.response)==null?void 0:b.data)==null?void 0:j.detail)||"Failed to propose"})}finally{r(!1)}}};return e.jsxs("div",{children:[e.jsx("h3",{className:s.heading,children:"Propose Moderator"}),e.jsx("p",{className:s.hint,children:"Target must have 200+ community karma for moderator, 500+ for senior mod."}),e.jsxs("form",{className:s.form,onSubmit:o,children:[e.jsx("input",{className:s.input,value:a,onChange:u=&gt;h(u.target.value),placeholder:"Username",required:!0}),e.jsxs("select",{className:s.input,value:l,onChange:u=&gt;x(u.target.value),children:[e.jsx("option",{value:"moderator",children:"Moderator"}),e.jsx("option",{value:"senior_mod",children:"Senior Moderator"})]}),d&amp;&amp;e.jsx("p",{className:d.type==="error"?s.error:s.success,role:"alert",children:d.msg}),e.jsx("button",{type:"submit",className:s.btn,disabled:p||!a.trim(),children:p?"Submitting...":"Propose"})]})]})}function xe({communityName:t}){const[a,h]=c.useState(""),[l,x]=c.useState(!1),[p,r]=c.useState(null),d=async n=&gt;{var o,u;if(n.preventDefault(),!(l||!a.trim())&amp;&amp;window.confirm(`Transfer o</span></span>wnership of c/${t} to @${a.trim()}?`)){x(!0),r(null);try{await H(t,{recipient_username:a.trim()}),r({type:"success",msg:"Transfer proposed. Waiting for recipient to accept."}),h("")}catch(b){r({type:"error",msg:((u=(o=b.response)==null?void 0:o.data)==null?void 0:u.detail)||"Failed to propose transfer"})}finally{x(!1)}}};return e.jsxs("div",{children:[e.jsx("h3",{className:s.heading,children:"Ownership Transfer"}),e.jsx("p",{className:s.hint,children:"Transfer community ownership to another senior moderator. The recipient must accept."}),e.jsxs("form",{className:s.form,onSubmit:d,children:[e.jsx("input",{className:s.input,value:a,onChange:n=&gt;h(n.target.value),placeholder:"Recipient username",required:!0}),p&amp;&amp;e.jsx("p",{className:p.type==="error"?s.error:s.success,role:"alert",children:p.msg}),e.jsx("button",{type:"submit",className:`${s.dangerBtn}`,disabled:l||!a.trim(),children:l?"Submitting...":"Propose Transfer"})]})]})}const _e="_container_kw7yo_1",ve="_headerLeft_kw7yo_7",fe="_back_kw7yo_13",be="_headerTitle_kw7yo_23",ge="_loader_kw7yo_28",je="_tabs_kw7yo_34",ye="_tab_kw7yo_34",Ne="_activeTab_kw7yo_57",g={container:_e,headerLeft:ve,back:fe,headerTitle:be,loader:ge,tabs:je,tab:ye,activeTab:Ne},Se=["Removed","Bans","Moderators","Transfer"];function Pe(){const{name:t}=P(),a=B(),[h,l]=c.useState(null),[x,p]=c.useState(!0),[r,d]=c.useState("Removed");return c.useEffect(()=&gt;{R(t).then(n=&gt;l(n.data)).catch(()=&gt;a(`/c/${t}`,{replace:!0})).finally(()=&gt;p(!1))},[t,a]),x?e.jsxs(e.Fragment,{children:[e.jsx(N,{left:e.jsxs("span",{children:["Mod: c/",t]})}),e.jsx("div",{className:g.loader,children:e.jsx(C,{size:28})})]}):h?e.jsxs(e.Fragment,{children:[e.jsx(N,{left:e.jsxs("div",{className:g.headerLeft,children:[e.jsxs(k,{to:`/c/${t}`,className:g.back,children:["← c/",t]}),e.jsx("span",{className:g.headerTitle,children:"Mod Panel"})]})}),e.jsxs("div",{className:g.container,children:[e.jsx("nav",{className:g.tabs,"aria-label":"Moderation tabs",children:Se.map(n=&gt;e.jsx("button",{className:`${g.tab} ${r===n?g.activeTab:""}`,onClick:()=&gt;d(n),"aria-selected":r===n,role:"tab",children:n},n))}),r==="Removed"&amp;&amp;e.jsx(de,{communityName:t}),r==="Bans"&amp;&amp;e.jsx(ue,{communityName:t}),r==="Moderators"&amp;&amp;e.jsx(pe,{communityName:t}),r==="Transfer"&amp;&amp;e.jsx(xe,{communityName:t})]})]}):null}export{Pe as default};</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-03-25T13:32:00.109Z
+            </div>
+        <script src="../../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../../sorter.js"></script>
+        <script src="../../../../../block-navigation.js"></script>
+    </body>
+</html>
+    

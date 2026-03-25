@@ -1,0 +1,88 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for ios/App/App/public/assets/Feed-BTCH1413.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../../index.html">All files</a> / <a href="index.html">ios/App/App/public/assets</a> Feed-BTCH1413.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import{g as U,a as J,r as t,j as e,u as W,h as K,i as G,B as M,k as X,T as Q,S as Y}from"./index-1wLJYpWP.js";import{P as Z}from"./PostCard-BhrhqIti.js";import{C as ee}from"./CloseIcon-TLfDiRjv.js";import{u as se}from"./media-CUKYrKTM.js";import{M as te}from"./Modal-C3aGxRwN.js";import{I as ne,C as ae}from"./ComposePost-ONH8TFb4.js";import{g as re,P as O}from"./feed-B5d_vSXc.js";import{P as z}from"./PlusIcon-DgvW8Fvn.js";import{S as oe}from"./SearchIcon-DYE_IEKR.js";import{u as ce}from"./useInfiniteList-_a5owtVi.js";import{g as le}from"./friendGroups-qzp-e_Yf.js";import"./Avatar-BtAsWYgD.js";import"./RelativeTime-7xofYZQY.js";import"./ExternalLinkIcon-rXoNYG9N.js";import"./communities-EUqstku0.js";const ie=a=&gt;U.post("/stories",a),ue=a=&gt;U.get("/stories/feed",{params:a}),de=()=&gt;U.get("/stories/me"),q="pimpam_seen_stories";function T(){try{const a=localStorage.getItem(q);return a?new Set(JSON.parse(a)):new Set}catch{return new Set}}function me(a){const h=T();for(const j of a)h.add(j);const r=[...h],c=r.length&gt;500?r.slice(r.length-500):r;try{localStorage.setItem(q,JSON.stringify(c))}catch{}}const he="_wrapper_11rbo_1",_e="_collapseBtn_11rbo_5",pe="_collapseLabel_11rbo_17",fe="_unseenBadge_11rbo_23",ve="_chevron_11rbo_32",be="_chevronUp_11rbo_40",xe="_chevronDown_11rbo_44",ge="_row_11rbo_48",je="_item_11rbo_61",we="_thumb_11rbo_75",ye="_unseenRing_11rbo_85",Se="_seenRing_11rbo_89",Ne="_ownRing_11rbo_94",ke="_thumbImg_11rbo_98",Ce="_thumbFallback_11rbo_105",Re="_avatarOverlay_11rbo_118",Be="_addBadge_11rbo_131",Pe="_label_11rbo_148",l={wrapper:he,collapseBtn:_e,collapseLabel:pe,unseenBadge:fe,chevron:ve,chevronUp:be,chevronDown:xe,row:ge,item:je,thumb:we,unseenRing:ye,seenRing:Se,ownRing:Ne,thumbImg:ke,thumbFallback:Ce,avatarOverlay:Re,addBadge:Be,label:Pe},Le=4,H="pimpam_stories_collapsed";function Fe({onView:a,onCompose:h}){const{user:r}=J(),[c,j]=t.useState([]),[w,y]=t.useState([]),[E,C]=t.useState(()=&gt;T()),[i,x]=t.useState(()=&gt;localStorage.getItem(H)==="1"),R=t.useRef(null),f=t.useRef(!0),p=t.useRef(null),L=t.useCallback(async()=&gt;{try{const[s,_]=await Promise.all([ue(),de()]),g=new Map;for(const o of s.data){const m=o.author_username||o.author_id;g.has(m)||g.set(m,{author:{username:o.author_username,avatar_url:o.author_avatar_url},items:[]}),g.get(m).items.push(o)}const I=[...g.values()],u=T();I.sort((o,m)=&gt;{const S=o.items.every(A=&gt;u.has(A.id)),D=m.items.every(A=&gt;u.has(A.id));return S===D?0:S?1:-1}),j(I),y(_.data)}catch{}},[]);t.useEffect(()=&gt;{L()},[L]),t.useEffect(()=&gt;{const s=R.current;if(!s)return;const _=()=&gt;s.scrollWidth&gt;s.clientWidth;let g=0,I=0;const u=S=&gt;{if(g){const D=(S-g)/1e3;if(f.current&amp;&amp;_()&amp;&amp;s.scrollLeft&lt;s.scrollWidth-s.clientWidth&amp;&amp;(I+=Le*D,I&gt;=1)){const A=Math.floor(I);s.scrollLeft+=A,I-=A}}g=S,p.current=requestAnimationFrame(u)};p.current=requestAnimationFrame(u);const o=()=&gt;{f.current=!1},m=()=&gt;{f.current=!0,g=0,I=0};return s.addEventListener("pointerdown",o),s.addEventListener("pointerup",m),s.addEventListener("pointerleave",m),s.addEventListener("touchstart",o,{passive:!0}),s.addEventListener("touchend",m),()=&gt;{p.current&amp;&amp;cancelAnimationFrame(p.current),s.removeEventListener("pointerdown",o),s.removeEventListener("pointerup",m),s.removeEventListener("pointerleave",m),s.removeEventListener("touchstart",o),s.removeEventListener("touchend",m)}},[c]);const F=s=&gt;{a(s);const _=s.items.map(g=&gt;g.id);me(_),C(T())},B=()=&gt;{if(w.length&gt;0){const s={author:{username:r.username,avatar_url:r.avatar_url},items:w};a(s)}else h()},d=()=&gt;{x(s=&gt;{const _=!s;return localStorage.setItem(H,_?"1":"0"),_})},n=s=&gt;s.items.every(_=&gt;E.has(_.id)),v=s=&gt;{var _;return(_=s.items[0])==null?void 0:_.image_url},P=w.length&gt;0,$=c.filter(s=&gt;!n(s)).length;return e.jsxs("div",{className:l.wrapper,children:[e.jsxs("button",{className:l.collapseBtn,onClick:d,"aria-label":i?"Show stories":"Hide stories",children:[e.jsxs("span",{className:l.collapseLabel,children:["Stories",($&gt;0&amp;&amp;!i,"")]}),i&amp;&amp;$&gt;0&amp;&amp;e.jsxs("span",{className:l.unseenBadge,children:[$," new"]}),e.jsx("span",{className:`${l.chevron} ${i?l.chevronDown:l.chevronUp}`,children:"›"})]}),!i&amp;&amp;e.jsxs("div",{className:l.row,ref:R,"aria-label":"Stories",children:[e.jsxs("button",{className:l.item,onClick:B,"aria-label":P?"View your story":"Add story",children:[e.jsxs("div",{className:`${l.thumb} ${P?l.ownRing:""}`,children:[r!=null&amp;&amp;r.avatar_url?e.jsx("img",{className:l.thumbImg,src:r.avatar_url,alt:`@${r.username}`}):e.jsx("span",{className:l.thumbFallback,children:((r==null?void 0:r.username)||"?").slice(0,2).toUpperCase()}),e.jsx("span",{className:l.addBadge,onClick:s=&gt;{s.stopPropagation(),h()},children:"+"})]}),e.jsx("span",{className:l.label,children:"Your story"})]}),c.map(s=&gt;e.jsxs("button",{className:l.item,onClick:()=&gt;F(s),"aria-label":`View ${s.author.username}'s story`,children:[e.jsxs("div",{className:`${l.thumb} ${n(s)?l.seenRing:l.unseenRing}`,children:[v(s)?e.jsx("img",{className:l.thumbImg,src:v(s),alt:`${s.author.username}'s story`}):e.jsx("span",{className:l.thumbFallback,children:(s.author.username||"?").slice(0,2).toUpperCase()}),s.author.avatar_url&amp;&amp;e.jsx("img",{className:l.avatarOverlay,src:s.author.avatar_url,alt:`@${s.author.username}`})]}),e.jsx("span",{className:l.label,children:s.author.username})]},s.author.username))]})]})}const Ie="_overlay_1px2k_1",Ee="_progressRow_1px2k_11",$e="_progressTrack_1px2k_18",Ae="_progressFill_1px2k_26",Oe="_topBar_1px2k_41",Te="_authorBtn_1px2k_49",De="_close_1px2k_65",Ue="_content_1px2k_74",Me="_image_1px2k_85",Ye="_nav_1px2k_91",ze="_navLeft_1px2k_106",He="_navRight_1px2k_110",Ve="_caption_1px2k_114",b={overlay:Ie,progressRow:Ee,progressTrack:$e,progressFill:Ae,topBar:Oe,authorBtn:Te,close:De,content:Ue,image:Me,nav:Ye,navLeft:ze,navRight:He,caption:Ve},V=6e3;function We({group:a,onClose:h}){var F,B;const r=W(),[c,j]=t.useState(0),[w,y]=t.useState(!1),[E,C]=t.useState(0),i=t.useRef(null),x=t.useRef(null),R=t.useRef(0),f=a.items[c],p=t.useCallback(()=&gt;{c&lt;a.items.length-1?j(d=&gt;d+1):h()},[c,a.items.length,h]),L=t.useCallback(()=&gt;{c&gt;0&amp;&amp;j(d=&gt;d-1)},[c]);return t.useEffect(()=&gt;{C(0),x.current=null,R.current=0},[c]),t.useEffect(()=&gt;{if(w){R.current=E,i.current&amp;&amp;cancelAnimationFrame(i.current);return}const d=R.current*V;x.current=performance.now()-d;const n=v=&gt;{const P=v-x.current,$=Math.min(P/V,1);C($),$&lt;1?i.current=requestAnimationFrame(n):p()};return i.current=requestAnimationFrame(n),()=&gt;{i.current&amp;&amp;cancelAnimationFrame(i.current)}},[c,w,p]),t.useEffect(()=&gt;{const d=n=&gt;{n.key==="Escape"&amp;&amp;h(),n.key==="ArrowRight"&amp;&amp;p(),n.key==="ArrowLeft"&amp;&amp;L(),n.key===" "&amp;&amp;(n.preventDefault(),y(v=&gt;!v))};return document.addEventListener("keydown",d),()=&gt;document.removeEventListener("keydown",d)},[h,p,L]),f?K.createPortal(e.jsxs("div",{className:b.overlay,role:"dialog","aria-modal":"true","aria-label":"Story viewer",children:[e.jsx("div",{className:b.progressRow,children:a.items.map((d,n)=&gt;e.jsx("div",{className:b.progressTrack,children:e.jsx("div",{className:b.progressFill,style:{width:n&lt;c?"100%":n===c?`${E*100}%`:"0%"}})},n))}),e.jsxs("div",{className:b.topBar,children:[e.jsx("button",{className:b.authorBtn,onClick:()=&gt;{var d;h(),r(`/u/${(d=a.author)==null?void 0:d.username}`)},children:((F=a.author)==null?void 0:F.display_name)||((B=a.author)==null?void 0:B.username)}),e.jsx("button",{className:b.close,onClick:h,"aria-label":"Close",children:e.jsx(ee,{size:24})})]}),e.jsxs("div",{className:b.content,onPointerDown:()=&gt;y(!0),onPointerUp:()=&gt;y(!1),onPointerLeave:()=&gt;y(!1),children:[e.jsx("button",{className:`${b.nav} ${b.navLeft}`,onClick:L,disabled:c===0,"aria-label":"Previous story"}),e.jsx("button",{className:`${b.nav} ${b.navRight}`,onClick:p,"aria-label":"Next story"}),e.jsx("img",{className:b.image,src:f.image_url,alt:f.caption||"Story"}),f.caption&amp;&amp;e.jsx("div",{className:b.caption,children:f.caption})]})]}),document.body):null}const qe="_picker_65i7j_1",Je="_pickBtn_65i7j_8",Ke="_form_65i7j_27",Ge="_preview_65i7j_33",Xe="_label_65i7j_41",Qe="_input_65i7j_48",Ze="_charCount_65i7j_61",es="_durations_65i7j_67",ss="_durBtn_65i7j_72",ts="_durActive_65i7j_86",ns="_actions_65i7j_92",N={picker:qe,pickBtn:Je,form:Ke,preview:Ge,label:Xe,input:Qe,charCount:Ze,durations:es,durBtn:ss,durActive:ts,actions:ns},as=[{label:"12h",value:12},{label:"24h",value:24},{label:"48h",value:48},{label:"7 days",value:168}];function rs({open:a,onClose:h}){const{addToast:r}=G(),c=t.useRef(null),[j,w]=t.useState(null),[y,E]=t.useState(null),[C,i]=t.useState(""),[x,R]=t.useState(24),[f,p]=t.useState(!1),L=n=&gt;{var P;const v=(P=n.target.files)==null?void 0:P[0];v&amp;&amp;(E(v),w(URL.createObjectURL(v)))},F=()=&gt;{w(null),E(null),i(""),R(24),c.current&amp;&amp;(c.current.value="")},B=async()=&gt;{if(y){p(!0);try{const{data:n}=await se(y,"post_image");await ie({image_url:n.url,caption:C||null,duration_hours:x}),r("Story posted!","success"),F(),h()}catch{r("Failed to post story.","error")}finally{p(!1)}}},d=()=&gt;{F(),h()};return e.jsx(te,{open:a,onClose:d,title:"New story",children:j?e.jsxs("div",{className:N.form,children:[e.jsx("img",{src:j,alt:"Preview",className:N.preview}),e.jsx("label",{htmlFor:"story-caption",className:N.label,children:"Caption (optional)"}),e.jsx("input",{id:"story-caption",type:"text",maxLength:200,value:C,onChange:n=&gt;i(n.target.value),placeholder:"Add a caption...",className:N.input}),e.jsxs("span",{className:N.charCount,children:[C.length,"/200"]}),e.jsx("label",{className:N.label,children:"Duration"}),e.jsx("div",{className:N.durations,children:as.map(n=&gt;e.jsx("button",{type:"button",className:`${N.durBtn} ${x===n.value?N.durActive:""}`,onClick:()=&gt;R(n.value),children:n.label},n.value))}),e.jsxs("div",{className:N.actions,children:[e.jsx(M,{variant:"ghost",onClick:d,children:"Cancel"}),e.jsx(M,{loading:f,onClick:B,children:"Post story"})]})]}):e.jsxs("div",{className:N.picker,children:[e.jsxs("button",{className:N.pickBtn,onClick:()=&gt;{var n;return(n=c.current)==null?void 0:n.click()},"aria-label":"Choose image",children:[e.jsx(ne,{size:32}),e.jsx("span",{children:"Choose an image"})]}),e.jsx("input",{ref:c,type:"file",accept:"image/*",onChange:L,hidden:!0})]})})}const os="_brandHeader_oc9dn_2",cs="_brandName_oc9dn_14",ls="_searchBar_oc9dn_26",is="_searchPill_oc9dn_35",us="_container_oc9dn_53",ds="_iconBtn_oc9dn_59",ms="_banner_oc9dn_69",hs="_empty_oc9dn_86",_s="_pullIndicator_oc9dn_93",ps="_sentinel_oc9dn_101",fs="_fab_oc9dn_107",k={brandHeader:os,brandName:cs,searchBar:ls,searchPill:is,container:us,iconBtn:ds,b</span></span>anner:ms,empty:hs,pullIndicator:_s,sentinel:ps,fab:fs};function Fs(){const a=W(),[h,r]=t.useState(!1),[c,j]=t.useState(!1),[w,y]=t.useState(null),[E,C]=t.useState(!1),[i,x]=t.useState(0),[R,f]=t.useState(!1),[p,L]=t.useState(new Set),F=t.useRef(0),B=t.useRef(!1);t.useEffect(()=&gt;{le().then(u=&gt;{var m;const o=new Set((((m=u.data)==null?void 0:m.members)||[]).map(S=&gt;S.user_id));L(o)}).catch(()=&gt;{})},[]);const d=t.useCallback(u=&gt;re({limit:20,before_id:u}),[]),{items:n,setItems:v,loading:P,hasMore:$,sentinelRef:s,refresh:_}=ce(d);X("new_post",t.useCallback(()=&gt;{C(!0)},[]));const g=async()=&gt;{C(!1),await _()},I=u=&gt;{v(o=&gt;[u,...o])};return e.jsxs(e.Fragment,{children:[e.jsx("header",{className:k.brandHeader,children:e.jsx("button",{className:k.brandName,onClick:()=&gt;{window.scrollTo({top:0,behavior:"smooth"}),_()},children:"ピムパム"})}),e.jsxs("div",{className:k.searchBar,children:[e.jsxs("button",{className:k.searchPill,onClick:()=&gt;a("/search"),children:[e.jsx(oe,{size:16}),e.jsx("span",{children:"Search..."})]}),e.jsx("button",{className:k.iconBtn,onClick:()=&gt;a("/discover"),"aria-label":"Discover",children:e.jsx(Q,{size:20})}),e.jsx("button",{className:k.iconBtn,onClick:()=&gt;r(!0),"aria-label":"New post",children:e.jsx(z,{size:20})})]}),e.jsxs("div",{className:k.container,onTouchStart:u=&gt;{window.scrollY===0&amp;&amp;(F.current=u.touches[0].clientY,B.current=!0)},onTouchMove:u=&gt;{if(!B.current)return;const o=u.touches[0].clientY-F.current;o&gt;0&amp;&amp;window.scrollY===0?x(Math.min(o*.4,80)):x(0)},onTouchEnd:async()=&gt;{B.current&amp;&amp;(B.current=!1,i&gt;50&amp;&amp;(f(!0),x(40),await _(),f(!1)),x(0))},children:[i&gt;0&amp;&amp;e.jsx("div",{className:k.pullIndicator,style:{height:i},children:R?e.jsx(Y,{size:18}):e.jsx("span",{style:{opacity:Math.min(i/50,1),fontSize:"0.8rem",color:"var(--color-text-muted)"},children:i&gt;50?"Release to refresh":"Pull to refresh"})}),e.jsx(Fe,{onCompose:()=&gt;j(!0),onView:u=&gt;y(u)}),E&amp;&amp;e.jsx("button",{className:k.banner,onClick:g,children:"New posts available"}),n.length===0&amp;&amp;P&amp;&amp;e.jsxs("div",{"aria-label":"Loading feed",children:[e.jsx(O,{}),e.jsx(O,{}),e.jsx(O,{}),e.jsx(O,{})]}),n.length===0&amp;&amp;!P&amp;&amp;e.jsxs("div",{className:k.empty,children:[e.jsx("p",{children:"Nothing here yet."}),e.jsx("p",{children:"Follow people or join a community to see posts!"})]}),e.jsx("section",{"aria-label":"Feed",children:n.map(u=&gt;e.jsx(Z,{post:u,isCloseFriend:p.has(u.author_id),onDelete:o=&gt;v(m=&gt;m.filter(S=&gt;S.id!==o)),onUpdate:o=&gt;v(m=&gt;m.map(S=&gt;S.id===o.id?o:S))},u.id))}),$&amp;&amp;e.jsx("div",{ref:s,className:k.sentinel,children:P&amp;&amp;n.length&gt;0&amp;&amp;e.jsx(Y,{size:24})})]}),e.jsx("button",{className:k.fab,onClick:()=&gt;r(!0),"aria-label":"Create post",children:e.jsx(z,{size:24})}),e.jsx(ae,{open:h,onClose:()=&gt;r(!1),onCreated:I}),e.jsx(rs,{open:c,onClose:()=&gt;j(!1)}),w&amp;&amp;e.jsx(We,{group:w,onClose:()=&gt;y(null)})]})}export{Fs as default};</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-03-25T13:32:00.109Z
+            </div>
+        <script src="../../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../../sorter.js"></script>
+        <script src="../../../../../block-navigation.js"></script>
+    </body>
+</html>
+    

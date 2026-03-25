@@ -8,10 +8,34 @@ vi.mock("../contexts/AuthContext", () => ({
   useAuth: vi.fn(() => ({ user: { id: 1, username: "testuser" } })),
 }));
 
+vi.mock("../contexts/ToastContext", () => ({
+  useToast: vi.fn(() => ({ addToast: vi.fn() })),
+}));
+
 vi.mock("../api/posts", () => ({
   remove: vi.fn(),
   vote: vi.fn(),
   retractVote: vi.fn(),
+  boost: vi.fn(),
+}));
+
+// Mock child components
+vi.mock("./VoteButtons", () => ({
+  default: ({ karma }) => (
+    <div data-testid="vote-buttons">
+      <button aria-label="Upvote">Up</button>
+      <span>{karma}</span>
+      <button aria-label="Downvote">Down</button>
+    </div>
+  ),
+}));
+
+vi.mock("./ShareModal", () => ({
+  default: () => null,
+}));
+
+vi.mock("./LinkPreview", () => ({
+  default: () => null,
 }));
 
 // Mock CSS module

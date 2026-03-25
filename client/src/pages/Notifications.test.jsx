@@ -11,12 +11,14 @@ vi.mock("../api/notifications", () => ({
 // Mock contexts
 const mockClearNotifications = vi.fn();
 const mockDecrementNotifications = vi.fn();
+const mockRefetch = vi.fn();
 vi.mock("../contexts/NotificationContext", () => ({
   useNotifications: vi.fn(() => ({
     unreadNotifications: 3,
     unreadMessages: 0,
     clearNotifications: mockClearNotifications,
     decrementNotifications: mockDecrementNotifications,
+    refetch: mockRefetch,
   })),
 }));
 vi.mock("../contexts/AuthContext", () => ({

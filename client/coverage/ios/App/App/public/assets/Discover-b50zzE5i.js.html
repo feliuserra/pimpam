@@ -1,0 +1,88 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for ios/App/App/public/assets/Discover-b50zzE5i.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../../index.html">All files</a> / <a href="index.html">ios/App/App/public/assets</a> Discover-b50zzE5i.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import{r,j as e,S as b}from"./index-1wLJYpWP.js";import{H as v}from"./Header-XdYRMuO-.js";import{P as x}from"./PostCard-BhrhqIti.js";import{a as g,P as f,b as N}from"./feed-B5d_vSXc.js";import"./Avatar-BtAsWYgD.js";import"./RelativeTime-7xofYZQY.js";import"./ExternalLinkIcon-rXoNYG9N.js";import"./Modal-C3aGxRwN.js";import"./communities-EUqstku0.js";const P="_container_1k7rr_1",y="_tabs_1k7rr_7",S="_tab_1k7rr_7",T="_activeTab_1k7rr_31",L="_windowPicker_1k7rr_36",D="_windowLabel_1k7rr_43",C="_windowBtn_1k7rr_48",A="_windowActive_1k7rr_66",B="_hint_1k7rr_72",E="_loader_1k7rr_78",M="_empty_1k7rr_84",W="_list_1k7rr_91",$="_ranked_1k7rr_96",R="_rank_1k7rr_96",U="_postWrap_1k7rr_112",t={container:P,tabs:y,tab:S,activeTab:T,windowPicker:L,windowLabel:D,windowBtn:C,windowActive:A,hint:B,loader:E,empty:M,list:W,ranked:$,rank:R,postWrap:U},H=["Trending","News"];function Y(){const[a,c]=r.useState("Trending");return e.jsxs(e.Fragment,{children:[e.jsx(v,{left:e.jsx("span",{children:"Discover"})}),e.jsxs("div",{className:t.container,children:[e.jsx("nav",{className:t.tabs,"aria-label":"Discover tabs",children:H.map(i=&gt;e.jsx("button",{className:`${t.tab} ${a===i?t.activeTab:""}`,onClick:()=&gt;c(i),"aria-selected":a===i,role:"tab",children:i},i))}),a==="Trending"&amp;&amp;e.jsx(z,{}),a==="News"&amp;&amp;e.jsx(F,{})]})]})}function z(){const[a,c]=r.useState([]),[i,p]=r.useState(!0),[l,k]=r.useState(24),_=r.useCallback(async()=&gt;{p(!0);try{const s=await g({limit:15,hours:l});c(s.data)}catch{}finally{p(!1)}},[l]);r.useEffect(()=&gt;{_()},[_]);const h=s=&gt;{c(d=&gt;d.map(w=&gt;w.id===s.id?s:w))},u=s=&gt;{c(d=&gt;d.filter(w=&gt;w.id!==s))};return e.jsxs("div",{children:[e.jsxs("div",{className:t.windowPicker,children:[e.jsx("span",{className:t.windowLabel,children:"Time window:"}),[24,48,168].map(s=&gt;e.jsx("button",{className:`${t.windowBtn} ${l===s?t.windowActive:""}`,onClick:()=&gt;k(s),children:s===168?"7d":`${s}h`},s))]}),e.jsx("p",{className:t.hint,children:"Ranked by karma + comments. Non-personalised, transparent."}),i?e.jsx("div",{children:[1,2,3].map(s=&gt;e.jsx(f,{},s))}):a.length===0?e.jsx("p",{className:t.empty,children:"No trending posts in this time window."}):e.jsx("div",{className:t.list,children:a.map((s,d)=&gt;e.jsxs("div",{className:t.ranked,children:[e.jsxs("span",{className:t.rank,children:["#",d+1]}),e.jsx("div",{clas</span></span>sName:t.postWrap,children:e.jsx(x,{post:s,onUpdate:h,onDelete:u})})]},s.id))})]})}function F(){const[a,c]=r.useState([]),[i,p]=r.useState(!0),[l,k]=r.useState(!0),[_,h]=r.useState(!1),u=r.useRef(null),s=r.useCallback(async n=&gt;{try{const o=(await N({limit:20,...n?{before_id:n}:{}})).data;o.length&lt;20&amp;&amp;k(!1),c(j=&gt;n?[...j,...o]:o)}catch{}finally{p(!1),h(!1)}},[]);r.useEffect(()=&gt;{s()},[s]),r.useEffect(()=&gt;{if(!l||i)return;const n=u.current;if(!n)return;const m=new IntersectionObserver(([o])=&gt;{o.isIntersecting&amp;&amp;!_&amp;&amp;a.length&gt;0&amp;&amp;(h(!0),s(a[a.length-1].id))},{rootMargin:"200px"});return m.observe(n),()=&gt;m.disconnect()},[l,i,_,a,s]);const d=n=&gt;{c(m=&gt;m.map(o=&gt;o.id===n.id?n:o))},w=n=&gt;{c(m=&gt;m.filter(o=&gt;o.id!==n))};return i?e.jsx("div",{children:[1,2,3].map(n=&gt;e.jsx(f,{},n))}):a.length===0?e.jsx("p",{className:t.empty,children:"No news posts yet. Join news communities to see content here."}):e.jsxs("div",{className:t.list,children:[a.map(n=&gt;e.jsx(x,{post:n,onUpdate:d,onDelete:w},n.id)),l&amp;&amp;e.jsx("div",{ref:u,className:t.loader,children:e.jsx(b,{size:16})})]})}export{Y as default};</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-03-25T13:32:00.109Z
+            </div>
+        <script src="../../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../../sorter.js"></script>
+        <script src="../../../../../block-navigation.js"></script>
+    </body>
+</html>
+    

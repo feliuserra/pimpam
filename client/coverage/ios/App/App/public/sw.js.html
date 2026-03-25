@@ -1,0 +1,88 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for ios/App/App/public/sw.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">ios/App/App/public</a> sw.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >if(!self.define){let s,e={};const l=(l,i)=&gt;(l=new URL(l+".js",i).href,e[l]||new Promise(e=&gt;{if("document"in self){const s=document.createElement("script");s.src=l,s.onload=e,document.head.appendChild(s)}else s=l,importScripts(l),e()}).then(()=&gt;{let s=e[l];if(!s)throw new Error(`Module ${l} didn’t register its module`);return s}));self.define=(i,n)=&gt;{const r=s||("document"in self?document.currentScript.src:"")||location.href;if(e[r])return;let u={};const t=s=&gt;l(s,r),o={module:{uri:r},exports:u,require:t};e[r]=Promise.all(i.map(s=&gt;o[s]||t(s))).then(s=&gt;(n(...s),u))}}define(["./workbox-e8238316"],function(s){"use strict";self.addEventListener("message",s=&gt;{s.data&amp;&amp;"SKIP_WAITING"===s.data.type&amp;&amp;self.skipWaiting()}),s.precacheAndRoute([{url:"index.html",revision:"a6f04cca4a7b244cd0b4e61e44f40084"},{url:"assets/workbox-window.prod.es5-vqzQaGvo.js",revision:null},{url:"assets/useInfiniteList-_a5owtVi.js",revision:null},{url:"assets/media-CUKYrKTM.js",revision:null},{url:"assets/index-BAwMv-di.css",revision:null},{url:"assets/index-1wLJYpWP.js",revision:null},{url:"assets/friendGroups-qzp-e_Yf.js",revision:null},{url:"assets/feed-B5d_vSXc.js",revision:null},{url:"assets/encrypt-DPXobOXl.js",revision:null},{url:"assets/communities-EUqstku0.js",revision:null},{url:"assets/VerifyEmailSent-rZweDHMk.js",revision:null},{url:"assets/VerifyEmail-BZPWkRbY.js",revision:null},{url:"assets/UserProfile-DQ8hLdNl.css",revision:null},{url:"assets/UserProfile-CRtxWOlZ.js",revision:null},{url:"assets/UserCard-CbsGvfL7.js",revision:null},{url:"assets/UserCard-CHvvTKJu.css",revision:null},{url:"assets/SettingsForm.module-BdaPBPpA.js",revision:null},{url:"assets/SettingsForm-BFWk3Aq0.css",revision:null},{url:"assets/Settings-ZwufmKMl.js",revision:null},{url:"assets/Settings-DOtIiW_b.css",revision:null},{url:"assets/SearchIcon-DYE_IEKR.js",revision:null},{url:"assets/Search-dzbu2soY.js",revision:null},{url:"assets/Search-dbPtvBYU.css",revision:null},{url:"assets/ResetPassword-BRd9kc2h.js",revision:null},{url:"assets/RelativeTime-7xofYZQY.js",revision:null},{url:"assets/Register-G4_l4Gxp.css",revision:null},{url:"assets/Register-Bgdbv9Sp.js",revision:null},{url:"assets/ProfileSettings-CEsCCHU5.js",revision:null},{url:"assets/PostDetail-JMM_l9vp.js",revision:null},{url:"assets/PostDetail-BSvaT9qo.css",revision:null},{url:"assets/PostCard-hHkLtrXZ.css",revision:null},{url:"assets/PostCard-BhrhqIti.js",revision:null},{url:"assets/PlusIcon-DgvW8Fvn.js",revision:null},{url:"assets/Offline-DXHn-6YZ.css",revision:null},{url:"assets/Offline-CmfPsPai.js",revision:null},{url:"assets/Notifications-DOBfn1Pb.css",revision:null},{url:"assets/Notifications-BB69GHbi.js",revision:null},{url:"assets/NotificationSettings-BUgigule.js",revision:null},{url:"assets/Modal-C3aGxRwN.js",revision:null},{url:"assets/Modal-BZlLKbtb.css",revision:null},{url:"assets/ModPanel-BcHCks-R.js",revision:null},{url:"assets/ModPanel-BJYQlKv9.css",revision:null},{url:"assets/Messages-DsC1lfVy.js",revision:null},{url:"assets/Messages-Brg0zcP_.css",revision:null},{url:"assets/MessageThread-CEmjTF9b.js",revision:null},{url:"assets/MessageThread-C4uusdyw.css",revision:null},{url:"assets/LoginTotp-dDYeu66c.js",revision:null},{url:"assets/Login-DdcwYbcd.js",revision:null},{url:"assets/Header-XdYRMuO-.js",revision:null},{url:"assets/Header-DL3CHSpN.css",revision:null},{url:"assets/Friends-BcsdO9An.css",revision:null},{url:"assets/Friends-B24riqSz.js",revision:null},{url:"assets/FriendGroupSettings-D499GNUy.js",revision:null},{url:"assets/ForgotPassword-MVdrQyGi.js",revision:null},{url:"assets/Feed-mHrrR4cP.css",revision:null},{url:"assets/Feed-BTCH1413.js",revision:null},{url:"assets/ExternalLinkIcon-rXoNYG9N.js",revision:null},{url:"assets/ExternalLinkIcon-BldNBFm7.css",revision:null},{url:"assets/Discover-b50zzE5i.js",revision:null},{url:"assets/Discover-Ju7y9RPZ.css",revision:null},{url:"assets/DataSettings-BsOUWhzP.js",revision:null},{url:"assets/ComposePost-ONH8TFb4.js",revision:null},{url:"assets/ComposePost-C2hrmfTC.css",revision:null},{url:"assets/CommunityPage-tKTwG0oe.js",revision:null},{url:"assets/CommunityPage-CL_GXEH-.css",revision:null},{url:"assets/CommunityCard-D_NoRQqR.js",revision:null},{url:"assets/CommunityCard-CTVHwSyZ.css",revision:null},{url:"assets/Communities-ClnKdOeR.js",revision:null},{url:"assets/Communities-BXklJog_.css",revision:null},{url:"assets/CloseIcon-TLfDiRjv.js",revision:null},{url:"assets/Avatar-BtAsWYgD.js",revision:null},{url:"assets/Avatar-BhicZK1G.css",revision:null},{url:"assets/Auth.module-D9qQTAjc.js",revision:null},{url:"assets/Auth-DE2S0hON.css",revision:null},{url:"assets/AccountSettings-CCsTpcZK.js",revision:null},{url:"manifest.webmanifest",revision:"1bcbbd607f10af37f236bf11284c4abe"}],{}),s.cleanupOutdatedCaches(),s.registerRoute(new s.NavigationRoute(s.createHandlerBoundToURL("/index.html"),{denylist:[/^\/api\//,/^\/ws/]})),s.registerRoute(/^https?:\/\/.*\/api\//,new s.NetworkFirst({cacheName:"api-cache",networkTimeoutSeconds:5,plugins:[new s.ExpirationPlugin({maxEntries:100,maxAgeSeconds:300})]}),"GET"),s.registerRoute(/\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,new s.CacheFirst({cacheName:"image-cache",plugins:[new s.ExpirationPlugin({maxEntries:200,maxAgeSeconds:2592e3})]}),"GET"),s.registerRoute(/\.(?:js|css|woff2?)$/,new s.StaleWhileRevalidate({cacheName:"static-cache",plugins:[new s.ExpirationPlugin({maxEntries:100,maxAgeSeconds:2592e3})]}),"GET")});<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-03-25T13:32:00.109Z
+            </div>
+        <script src="../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../sorter.js"></script>
+        <script src="../../../../block-navigation.js"></script>
+    </body>
+</html>
+    

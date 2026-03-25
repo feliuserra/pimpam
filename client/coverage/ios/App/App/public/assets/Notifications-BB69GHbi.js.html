@@ -1,0 +1,88 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for ios/App/App/public/assets/Notifications-BB69GHbi.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../../index.html">All files</a> / <a href="index.html">ios/App/App/public/assets</a> Notifications-BB69GHbi.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import{j as e,L as N,m as g,r as x,p as b,S as f,q as v,t as $}from"./index-1wLJYpWP.js";import{H as w}from"./Header-XdYRMuO-.js";import{A}from"./Avatar-BtAsWYgD.js";import{R as C}from"./RelativeTime-7xofYZQY.js";import{u as I}from"./useInfiniteList-_a5owtVi.js";const L="_link_8u4lf_1",R="_item_8u4lf_8",E="_unread_8u4lf_16",z="_body_8u4lf_23",M="_text_8u4lf_28",P="_dot_8u4lf_43",i={link:L,item:R,unread:E,body:z,text:M,dot:P},S={follow:{text:"followed you",link:t=&gt;`/u/${t.actor_username}`},new_comment:{text:"commented on your post",link:t=&gt;`/posts/${t.post_id}`},reply:{text:"replied to your comment",link:t=&gt;`/posts/${t.post_id}`},vote:{text:"voted on your post",link:t=&gt;`/posts/${t.post_id}`},share:{text:"shared your post",link:t=&gt;`/posts/${t.post_id}`},mention:{text:"mentioned you",link:t=&gt;`/posts/${t.post_id}`},community_join:{text:"joined your community",link:t=&gt;t.community_id?"/communities":null},mod_promote:{text:"promoted you to moderator",link:t=&gt;null},mod_demote:{text:"changed your moderator role",link:t=&gt;null},ban_proposal:{text:"proposed a ban",link:t=&gt;null},ban_appeal:{text:"appealed a ban",link:t=&gt;null},ban_resolved:{text:"ban resolved",link:t=&gt;null},story_report:{text:"reported a story",link:t=&gt;null},welcome:{text:"Welcome to PimPam!",link:()=&gt;"/"}};function T({notification:t,onRead:a}){const n=t,c=S[n.type]||{text:n.type,link:()=&gt;null},s=c.link(n),d=n.group_count&gt;1?` and ${n.group_count-1} other${n.group_count&gt;2?"s":""}`:"",r=()=&gt;{n.is_read||a==null||a(n.id)},m=e.jsxs("div",{className:`${i.item} ${n.is_read?"":i.unread}`,children:[e.jsx(A,{src:n.actor_avatar_url,alt:n.actor_username?`@${n.actor_username}`:"System",size:36}),e.jsxs("div",{className:i.body,children:[e.jsxs("p",{className:i.text,children:[n.actor_username&amp;&amp;e.jsxs("strong",{children:["@",n.actor_username]}),d," ",c.text]}),e.jsx(C,{date:n.created_at})]}),!n.is_read&amp;&amp;e.jsx("span",{className:i.dot})]});return s?e.jsx(N,{to:s,className:i.link,onClick:r,children:m}):e.jsx("div",{className:i.link,onClick:r,role:"button",tabIndex:0,children:m})}function F({size:t=24}){return e.jsx("svg",{width:t,height:t,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",children:e.jsx("polyline",{points:"20 6 9 17 4 12"})})}const H="_container_102g5_1",W="_markAll_102g5_7",q="_loader_102g5_19",B="_empty_102g5_25",G="_sentinel_102g5_32",l={container:H,markAll:W,loader:q,empty:B,sentinel:G};function K(){const{clearNotifications:t,decrementNotifications:a,refetch:n}=g(),c=x.useCallback(o=&gt;b({limit:20,before_id:o}),[]),{items:s,setItems:d,loading:r,hasMore:m,sentinelRef:k,refresh:p}=I(c);x.useEffect(()=&gt;{p(),n()},[p,n]);const h=async()=&gt;{try{await v(),d(o=&gt;o.map(u=&gt;({...u,is_read:!0}))),t()}catch{}},y=async </span></span>o=&gt;{try{await $(o),d(u=&gt;u.map(_=&gt;_.id===o?{..._,is_read:!0}:_)),a()}catch{}},j=s.some(o=&gt;!o.is_read);return e.jsxs(e.Fragment,{children:[e.jsx(w,{left:e.jsx("span",{children:"Notifications"}),right:j?e.jsx("button",{className:l.markAll,onClick:h,"aria-label":"Mark all as read",children:e.jsx(F,{size:18})}):null}),e.jsxs("div",{className:l.container,children:[r&amp;&amp;s.length===0?e.jsx("div",{className:l.loader,children:e.jsx(f,{size:24})}):s.length===0?e.jsx("p",{className:l.empty,children:"No notifications yet."}):e.jsx("div",{children:s.map(o=&gt;e.jsx(T,{notification:o,onRead:y},o.id))}),m&amp;&amp;e.jsx("div",{ref:k,className:l.sentinel,children:r&amp;&amp;e.jsx(f,{size:20})})]})]})}export{K as default};</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-03-25T13:32:00.109Z
+            </div>
+        <script src="../../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../../sorter.js"></script>
+        <script src="../../../../../block-navigation.js"></script>
+    </body>
+</html>
+    
