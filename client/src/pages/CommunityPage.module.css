@@ -53,10 +53,16 @@
   margin-top: 6px;
 }
 
+.actionRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
 /* Join button */
 .joinBtn {
-  display: block;
-  width: 100%;
+  flex: 1;
   padding: 10px;
   border: 1px solid var(--color-accent);
   border-radius: var(--radius);
@@ -65,7 +71,22 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 16px;
+}
+
+.modLink {
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.modLink:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .joinBtn:disabled {

@@ -3,11 +3,13 @@ import { getInbox } from "../api/messages";
 import { getUnreadCount } from "../api/notifications";
 import { useAuth } from "./AuthContext";
 import { useWS } from "./WSContext";
+import { useToast } from "./ToastContext";
 
 const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const { addToast } = useToast();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
@@ -35,16 +37,36 @@ export function NotificationProvider({ children }) {
 
   useWS(
     "notification",
-    useCallback(() => {
-      setUnreadNotifications((n) => n + 1);
-    }, []),
+    useCallback(
+      (data) => {
+        // Re-fetch server count instead of blindly incrementing
+        fetchCounts();
+        if (data?.message) {
+          addToast(data.message, "info");
+        }
+      },
+      [addToast, fetchCounts],
+    ),
   );
 
   useWS(
     "new_message",
     useCallback(() => {
-      setUnreadMessages((n) => n + 1);
-    }, []),
+      // Re-fetch server count instead of blindly incrementing
+      fetchCounts();
+    }, [fetchCounts]),
+  );
+
+  useWS(
+    "karma_update",
+    useCallback(
+      (data) => {
+        if (data?.karma != null) {
+          updateUser({ karma: data.karma });
+        }
+      },
+      [updateUser],
+    ),
   );
 
   const decrementNotifications = useCallback((count = 1) => {

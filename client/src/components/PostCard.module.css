@@ -61,6 +61,14 @@
 
 .authorName {
   font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.closeStar {
+  color: var(--color-accent);
+  font-size: 0.72rem;
 }
 
 .separator {

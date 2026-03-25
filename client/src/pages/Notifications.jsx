@@ -9,7 +9,7 @@ import * as notificationsApi from "../api/notifications";
 import styles from "./Notifications.module.css";
 
 export default function Notifications() {
-  const { clearNotifications, decrementNotifications } = useNotifications();
+  const { clearNotifications, decrementNotifications, refetch } = useNotifications();
 
   const fetchNotifications = useCallback(
     (cursor) => notificationsApi.list({ limit: 20, before_id: cursor }),
@@ -19,7 +19,11 @@ export default function Notifications() {
   const { items, setItems, loading, hasMore, sentinelRef, refresh } =
     useInfiniteList(fetchNotifications);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  // Sync badge count with server and load notifications
+  useEffect(() => {
+    refresh();
+    refetch();
+  }, [refresh, refetch]);
 
   const handleMarkAllRead = async () => {
     try {

@@ -23,7 +23,11 @@ export default function Login() {
         navigate("/login/totp", { state: { username: form.username, password: form.password } });
         return;
       }
-      setError(typeof detail === "string" ? detail : "Login failed");
+      const msg = typeof detail === "string"
+        ? detail
+        : err.message || "Login failed";
+      console.error("Login error:", err.message, err.response?.status, detail);
+      setError(`${msg} (${err.response?.status || "network error"})`);
     } finally {
       setLoading(false);
     }
@@ -40,6 +44,9 @@ export default function Login() {
           id="username"
           type="text"
           autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck="false"
           required
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
@@ -50,6 +57,7 @@ export default function Login() {
           id="password"
           type="password"
           autoComplete="current-password"
+          autoCapitalize="none"
           required
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}

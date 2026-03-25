@@ -7,10 +7,12 @@ import Spinner from "../components/ui/Spinner";
 import VoteButtons from "../components/VoteButtons";
 import ImageGallery from "../components/ImageGallery";
 import CommentThread from "../components/CommentThread";
+import ShareModal from "../components/ShareModal";
 import ShareIcon from "../components/ui/icons/ShareIcon";
 import BoostIcon from "../components/ui/icons/BoostIcon";
 import ExternalLinkIcon from "../components/ui/icons/ExternalLinkIcon";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import * as postsApi from "../api/posts";
 import styles from "./PostDetail.module.css";
 
@@ -27,6 +29,8 @@ export default function PostDetail() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const { addToast } = useToast();
 
   const loadPost = useCallback(async () => {
     setLoading(true);
@@ -99,6 +103,22 @@ export default function PostDetail() {
       // silent
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleBoost = async () => {
+    try {
+      await postsApi.boost(post.id);
+      addToast("Post boosted!", "success");
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 400) {
+        addToast("Only federated posts can be boosted", "error");
+      } else if (status === 503) {
+        addToast("Federation is not enabled", "error");
+      } else {
+        addToast("Failed to boost", "error");
+      }
     }
   };
 
@@ -211,11 +231,11 @@ export default function PostDetail() {
             karma={post.karma}
             userVote={post.user_vote}
           />
-          <button className={styles.actionBtn} aria-label="Share">
+          <button className={styles.actionBtn} aria-label="Share" onClick={() => setShareOpen(true)}>
             <ShareIcon size={18} />
             <span>Share</span>
           </button>
-          <button className={styles.actionBtn} aria-label="Boost">
+          <button className={styles.actionBtn} aria-label="Boost" onClick={handleBoost}>
             <BoostIcon size={18} />
             <span>Boost</span>
           </button>
@@ -243,6 +263,12 @@ export default function PostDetail() {
         {/* Comments */}
         <CommentThread postId={post.id} />
       </article>
+
+      <ShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        postId={post.shared_from_id || post.id}
+      />
     </>
   );
 }

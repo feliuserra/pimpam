@@ -3,20 +3,25 @@ import { Link } from "react-router-dom";
 import Avatar from "./ui/Avatar";
 import RelativeTime from "./ui/RelativeTime";
 import VoteButtons from "./VoteButtons";
+import ShareModal from "./ShareModal";
 import CommentIcon from "./ui/icons/CommentIcon";
 import ShareIcon from "./ui/icons/ShareIcon";
 import BoostIcon from "./ui/icons/BoostIcon";
 import MoreIcon from "./ui/icons/MoreIcon";
 import ExternalLinkIcon from "./ui/icons/ExternalLinkIcon";
+import LinkPreview from "./LinkPreview";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import * as postsApi from "../api/posts";
 import styles from "./PostCard.module.css";
 
 const EDIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-export default function PostCard({ post, onDelete, onUpdate }) {
+export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = false }) {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const menuRef = useRef(null);
 
   const isAuthor = user && post.author_id === user.id;
@@ -43,6 +48,22 @@ export default function PostCard({ post, onDelete, onUpdate }) {
       onDelete?.(post.id);
     } catch {
       // silent — toast could be added later
+    }
+  };
+
+  const handleBoost = async () => {
+    try {
+      await postsApi.boost(post.id);
+      addToast("Post boosted!", "success");
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 400) {
+        addToast("Only federated posts can be boosted", "error");
+      } else if (status === 503) {
+        addToast("Federation is not enabled", "error");
+      } else {
+        addToast("Failed to boost", "error");
+      }
     }
   };
 
@@ -77,7 +98,10 @@ export default function PostCard({ post, onDelete, onUpdate }) {
             alt={`@${post.author_username}`}
             size={32}
           />
-          <span className={styles.authorName}>@{post.author_username}</span>
+          <span className={styles.authorName}>
+            {isCloseFriend && <span className={styles.closeStar} aria-label="Close friend">★</span>}
+            @{post.author_username}
+          </span>
         </Link>
 
         {post.community_name && (
@@ -118,6 +142,9 @@ export default function PostCard({ post, onDelete, onUpdate }) {
       {post.content && (
         <p className={styles.content}>{post.content}</p>
       )}
+
+      {/* Link preview */}
+      {post.url && <LinkPreview url={post.url} />}
 
       {/* Images */}
       {post.images && post.images.length > 0 && (
@@ -164,11 +191,20 @@ export default function PostCard({ post, onDelete, onUpdate }) {
           )}
         </Link>
 
-        <button className={styles.actionBtn} aria-label="Share">
+        <button className={styles.actionBtn} aria-label="Share" onClick={() => {
+          if (navigator.share) {
+            navigator.share({
+              title: post.title,
+              url: `${window.location.origin}/posts/${post.id}`,
+            }).catch(() => {});
+          } else {
+            setShareOpen(true);
+          }
+        }}>
           <ShareIcon size={18} />
         </button>
 
-        <button className={styles.actionBtn} aria-label="Boost">
+        <button className={styles.actionBtn} aria-label="Boost" onClick={handleBoost}>
           <BoostIcon size={18} />
         </button>
 
@@ -212,6 +248,11 @@ export default function PostCard({ post, onDelete, onUpdate }) {
       {post.visibility === "group" && (
         <div className={styles.visibilityTag}>Friends only</div>
       )}
+      <ShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        postId={post.shared_from_id || post.id}
+      />
     </article>
   );
 }

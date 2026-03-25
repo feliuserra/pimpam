@@ -8,38 +8,95 @@ import { useAuth } from "../contexts/AuthContext";
 import { useWS } from "../contexts/WSContext";
 import { useWSSend } from "../contexts/WSContext";
 import * as messagesApi from "../api/messages";
+import * as usersApi from "../api/users";
+import { encryptMessage } from "../crypto/encrypt";
+import { decryptMessage } from "../crypto/decrypt";
+import { exportPublicKey } from "../crypto/keys";
 import styles from "./MessageThread.module.css";
+
+/**
+ * Try to decrypt a message. For own sent messages, use sender_encrypted_key.
+ * For received messages, use encrypted_key. Falls back to plaintext or placeholder.
+ */
+async function tryDecrypt(msg, myUserId) {
+  // If encrypted_key is empty, the message was sent as plaintext (pre-E2EE)
+  if (!msg.encrypted_key) {
+    return { ...msg, decryptedText: msg.ciphertext };
+  }
+
+  // Pick the right wrapped key: sender's copy for own messages, recipient's for theirs
+  const isMine = msg.sender_id === myUserId;
+  const keyToUse = isMine ? msg.sender_encrypted_key : msg.encrypted_key;
+
+  if (!keyToUse) {
+    // Own message sent before sender-copy existed
+    return { ...msg, decryptedText: isMine ? "[Sent from another device]" : "[Cannot decrypt]" };
+  }
+
+  try {
+    const text = await decryptMessage(msg.ciphertext, keyToUse);
+    return { ...msg, decryptedText: text };
+  } catch {
+    return { ...msg, decryptedText: isMine ? "[Sent from another device]" : "[Cannot decrypt — sent from another device]" };
+  }
+}
 
 export default function MessageThread() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user: me } = useAuth();
+  const { user: me, isNewDevice, dismissNewDevice } = useAuth();
   const wsSend = useWSSend();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState(false);
+  const [recipientKey, setRecipientKey] = useState(null);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
 
   const otherUserId = parseInt(userId, 10);
 
-  // Load messages
+  // Fetch recipient's public key
+  useEffect(() => {
+    // We need the username to fetch the user profile; try from URL or messages
+    // For now, fetch conversation first to get username, then fetch profile
+    // This is handled below after messages load
+  }, []);
+
+  // Load messages and decrypt them
+  const loadAndDecrypt = useCallback(async () => {
+    try {
+      const res = await messagesApi.getConversation(otherUserId);
+      const reversed = [...res.data].reverse();
+      const decrypted = await Promise.all(reversed.map((m) => tryDecrypt(m, me?.id)));
+      setMessages(decrypted);
+    } catch {
+      // silent
+    }
+  }, [otherUserId, me?.id]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    messagesApi
-      .getConversation(otherUserId)
-      .then((res) => {
-        if (cancelled) return;
-        // API returns newest-first, reverse for display
-        setMessages([...res.data].reverse());
-      })
-      .catch(() => {})
+    loadAndDecrypt()
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [otherUserId]);
+  }, [loadAndDecrypt]);
+
+  // Fetch recipient's E2EE public key from their profile
+  useEffect(() => {
+    // We need the username; derive it from messages once loaded
+    const otherMsg = messages.find((m) => m.sender_id === otherUserId);
+    const username = otherMsg?.sender_username;
+    if (!username) return;
+
+    usersApi.getUser(username).then((res) => {
+      if (res.data.e2ee_public_key) {
+        setRecipientKey(res.data.e2ee_public_key);
+      }
+    }).catch(() => {});
+  }, [messages, otherUserId]);
 
   // Mark as read on mount
   useEffect(() => {
@@ -56,13 +113,10 @@ export default function MessageThread() {
     "new_message",
     useCallback((data) => {
       if (data.sender_id === otherUserId) {
-        // Reload to get the full message object
-        messagesApi.getConversation(otherUserId).then((res) => {
-          setMessages([...res.data].reverse());
-        }).catch(() => {});
+        loadAndDecrypt();
         messagesApi.markRead(otherUserId).catch(() => {});
       }
-    }, [otherUserId]),
+    }, [otherUserId, loadAndDecrypt]),
   );
 
   // Typing indicator from WS
@@ -83,16 +137,29 @@ export default function MessageThread() {
     if (!content || sending) return;
     setSending(true);
     try {
-      // For now, send plaintext as ciphertext (E2EE comes in Phase 15)
-      await messagesApi.send({
-        recipient_id: otherUserId,
-        ciphertext: content,
-        encrypted_key: "",
-      });
+      let payload;
+      if (recipientKey) {
+        // Encrypt with recipient's public key + sender's own for re-reading
+        const senderPubKey = me?.e2ee_public_key || null;
+        const { ciphertext, encryptedKey, senderEncryptedKey } =
+          await encryptMessage(content, recipientKey, senderPubKey);
+        payload = {
+          recipient_id: otherUserId,
+          ciphertext,
+          encrypted_key: encryptedKey,
+          sender_encrypted_key: senderEncryptedKey,
+        };
+      } else {
+        // No public key available — send plaintext (pre-E2EE fallback)
+        payload = {
+          recipient_id: otherUserId,
+          ciphertext: content,
+          encrypted_key: "",
+        };
+      }
+      await messagesApi.send(payload);
       setText("");
-      // Reload to show sent message
-      const res = await messagesApi.getConversation(otherUserId);
-      setMessages([...res.data].reverse());
+      await loadAndDecrypt();
     } catch {
       // silent
     } finally {
@@ -102,14 +169,11 @@ export default function MessageThread() {
 
   const handleInputChange = (e) => {
     setText(e.target.value);
-    // Send typing indicator
     wsSend?.({ type: "typing", data: { recipient_id: otherUserId } });
   };
 
   // Find other username from messages
-  const otherUsername = messages.find((m) => m.sender_id === otherUserId)
-    ? messages.find((m) => m.sender_id === otherUserId).sender_username
-    : null;
+  const otherUsername = messages.find((m) => m.sender_id === otherUserId)?.sender_username || null;
 
   return (
     <>
@@ -117,7 +181,7 @@ export default function MessageThread() {
         left={
           <div className={styles.headerLeft}>
             <button onClick={() => navigate("/messages")} className={styles.back}>
-              ← Back
+              &larr; Back
             </button>
             {otherUsername && <span className={styles.headerName}>@{otherUsername}</span>}
           </div>
@@ -125,6 +189,15 @@ export default function MessageThread() {
       />
 
       <div className={styles.container}>
+        {isNewDevice && (
+          <div className={styles.newDeviceBanner} role="alert">
+            <span>New device detected. Messages from before this device cannot be decrypted.</span>
+            <button onClick={dismissNewDevice} className={styles.dismissBanner} aria-label="Dismiss">
+              &times;
+            </button>
+          </div>
+        )}
+
         <div className={styles.messageList}>
           {loading ? (
             <div className={styles.loader}><Spinner size={24} /></div>
@@ -134,7 +207,7 @@ export default function MessageThread() {
             messages.map((msg) => (
               <MessageBubble
                 key={msg.id}
-                message={msg}
+                message={{ ...msg, ciphertext: msg.decryptedText ?? msg.ciphertext }}
                 isOwn={msg.sender_id === me?.id}
               />
             ))
@@ -149,7 +222,7 @@ export default function MessageThread() {
             className={styles.input}
             value={text}
             onChange={handleInputChange}
-            placeholder="Write a message..."
+            placeholder={recipientKey ? "Encrypted message..." : "Write a message..."}
             maxLength={5000}
             disabled={sending}
           />

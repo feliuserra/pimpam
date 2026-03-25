@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../hooks/useTheme";
 import * as authApi from "../../api/auth";
 import styles from "./SettingsForm.module.css";
 
@@ -8,10 +9,31 @@ export default function AccountSettings() {
 
   return (
     <div>
+      <ThemeToggle />
+      <hr className={styles.divider} />
       <ChangePasswordForm />
       <hr className={styles.divider} />
       <TwoFactorSection enabled={user?.totp_enabled} />
     </div>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+
+  return (
+    <section className={styles.section}>
+      <h3 className={styles.heading}>Appearance</h3>
+      <label className={styles.toggleRow}>
+        <span>Dark mode</span>
+        <input
+          type="checkbox"
+          className={styles.toggle}
+          checked={theme === "dark"}
+          onChange={toggle}
+        />
+      </label>
+    </section>
   );
 }
 

@@ -19,16 +19,12 @@
 }
 
 .img {
-  width: 100%;
-  height: 100%;
   border-radius: 50%;
   object-fit: cover;
   display: block;
 }
 
 .fallback {
-  width: 100%;
-  height: 100%;
   border-radius: 50%;
   background: var(--gray-200);
   color: var(--gray-600);

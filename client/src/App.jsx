@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import Spinner from "./components/ui/Spinner";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
+import UpdatePrompt from "./components/UpdatePrompt";
 import { AuthProvider } from "./contexts/AuthContext";
 import { WSProvider } from "./contexts/WSContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
@@ -30,6 +31,10 @@ const ProfileSettings = lazy(() => import("./pages/settings/ProfileSettings"));
 const NotificationSettings = lazy(() => import("./pages/settings/NotificationSettings"));
 const FriendGroupSettings = lazy(() => import("./pages/settings/FriendGroupSettings"));
 const DataSettings = lazy(() => import("./pages/settings/DataSettings"));
+const Discover = lazy(() => import("./pages/Discover"));
+const Friends = lazy(() => import("./pages/Friends"));
+const ModPanel = lazy(() => import("./pages/ModPanel"));
+const Offline = lazy(() => import("./pages/Offline"));
 
 function PageLoader() {
   return (
@@ -44,8 +49,9 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <WSProvider>
-          <NotificationProvider>
-            <ToastProvider>
+          <ToastProvider>
+            <NotificationProvider>
+              <UpdatePrompt />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route path="/login" element={<Login />} />
@@ -55,14 +61,18 @@ export default function App() {
                   <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/offline" element={<Offline />} />
                   <Route element={<AppShell />}>
                     <Route index element={<Feed />} />
+                    <Route path="/discover" element={<Discover />} />
+                    <Route path="/friends" element={<Friends />} />
                     <Route path="/communities" element={<Communities />} />
                     <Route path="/messages" element={<Messages />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/u/:username" element={<UserProfile />} />
                     <Route path="/posts/:id" element={<PostDetail />} />
                     <Route path="/c/:name" element={<CommunityPage />} />
+                    <Route path="/c/:name/mod" element={<ModPanel />} />
                     <Route path="/search" element={<Search />} />
                     <Route path="/messages/:userId" element={<MessageThread />} />
                     <Route path="/settings" element={<Settings />}>
@@ -75,8 +85,8 @@ export default function App() {
                   </Route>
                 </Routes>
               </Suspense>
-            </ToastProvider>
-          </NotificationProvider>
+            </NotificationProvider>
+          </ToastProvider>
         </WSProvider>
       </AuthProvider>
     </ErrorBoundary>

@@ -20,10 +20,11 @@
 
 .logo {
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-primary);
   padding: 0 0.75rem;
   margin-bottom: 2rem;
+  text-decoration: none;
 }
 
 .nav {
@@ -51,7 +52,7 @@
 
 .link.active {
   color: var(--accent);
-  background: var(--blue-100);
+  background: var(--accent-subtle);
   font-weight: 600;
 }
 

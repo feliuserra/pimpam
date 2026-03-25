@@ -19,9 +19,11 @@ export function WSProvider({ children }) {
     const token = localStorage.getItem("access_token");
     if (!token) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host;
-    const ws = new WebSocket(`${protocol}//${host}/ws?token=${token}`);
+    const isNative = window.Capacitor?.isNativePlatform?.();
+    const wsUrl = isNative
+      ? `ws://192.168.1.34:8000/ws?token=${token}`
+      : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws?token=${token}`;
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       attemptRef.current = 0;

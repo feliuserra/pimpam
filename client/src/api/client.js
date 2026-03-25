@@ -1,7 +1,12 @@
 import axios from "axios";
 
+const isNative = window.Capacitor?.isNativePlatform?.();
+const API_BASE = isNative
+  ? "http://192.168.1.34:8000/api/v1"
+  : "/api/v1";
+
 const api = axios.create({
-  baseURL: "/api/v1",
+  baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -24,7 +29,7 @@ api.interceptors.response.use(
       original._retry = true;
       try {
         const refresh_token = localStorage.getItem("refresh_token");
-        const { data } = await axios.post("/api/v1/auth/refresh", { refresh_token });
+        const { data } = await axios.post(`${API_BASE}/auth/refresh`, { refresh_token });
         localStorage.setItem("access_token", data.access_token);
         localStorage.setItem("refresh_token", data.refresh_token);
         original.headers.Authorization = `Bearer ${data.access_token}`;

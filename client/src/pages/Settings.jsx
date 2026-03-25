@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import Header from "../components/Header";
+import { useAuth } from "../contexts/AuthContext";
 import styles from "./Settings.module.css";
 
 const NAV = [
@@ -11,6 +12,8 @@ const NAV = [
 ];
 
 export default function Settings() {
+  const { logout } = useAuth();
+
   return (
     <>
       <Header left={<span>Settings</span>} />
@@ -32,6 +35,9 @@ export default function Settings() {
         <div className={styles.content}>
           <Outlet />
         </div>
+        <button className={styles.logoutBtn} onClick={logout}>
+          Log out
+        </button>
       </div>
     </>
   );

@@ -52,6 +52,9 @@ export default function Register() {
           id="username"
           type="text"
           autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck="false"
           required
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
@@ -62,6 +65,8 @@ export default function Register() {
           id="email"
           type="email"
           autoComplete="email"
+          autoCapitalize="none"
+          autoCorrect="off"
           required
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -72,6 +77,7 @@ export default function Register() {
           id="password"
           type="password"
           autoComplete="new-password"
+          autoCapitalize="none"
           required
           minLength={8}
           value={form.password}

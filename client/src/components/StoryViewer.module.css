@@ -5,37 +5,87 @@
   background: #000;
   display: flex;
   flex-direction: column;
+}
+
+/* ---- Progress bar row ---- */
+.progressRow {
+  display: flex;
+  gap: 3px;
+  padding: 0.75rem 0.75rem 0;
+  z-index: 3;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressFill {
+    /* Jump instead of smooth fill */
+    transition: width 0.3s ease;
+  }
+}
+
+/* ---- Top bar (author + close) ---- */
+.topBar {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  z-index: 3;
+}
+
+.authorBtn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+.authorBtn:hover {
+  text-decoration: underline;
 }
 
 .close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 2;
   background: none;
   border: none;
   color: #fff;
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0.25rem;
 }
 
+/* ---- Story content ---- */
 .content {
+  flex: 1;
   position: relative;
-  width: 100%;
-  max-width: 480px;
-  max-height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .image {
   max-width: 100%;
-  max-height: 80vh;
+  max-height: 100%;
   object-fit: contain;
-  border-radius: var(--radius);
 }
 
 .nav {
@@ -70,31 +120,4 @@
   font-size: 0.9375rem;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   text-align: center;
-}
-
-.author {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  color: #fff;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-}
-
-.dots {
-  display: flex;
-  gap: 4px;
-  margin-top: 1rem;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
-}
-
-.dotActive {
-  background: #fff;
 }

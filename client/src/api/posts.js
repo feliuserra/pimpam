@@ -16,3 +16,6 @@ export const retractVote = (id) => api.delete(`/posts/${id}/vote`);
 export const boost = (id) => api.post(`/posts/${id}/boost`);
 
 export const share = (id, data) => api.post(`/posts/${id}/share`, data);
+
+export const getLinkPreview = (url) =>
+  api.get("/posts/link-preview", { params: { url } });

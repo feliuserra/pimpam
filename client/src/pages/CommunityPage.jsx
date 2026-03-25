@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import Header from "../components/Header";
 import Spinner from "../components/ui/Spinner";
 import PostCard from "../components/PostCard";
@@ -128,15 +128,22 @@ export default function CommunityPage() {
           </span>
         </div>
 
-        {/* Join/Leave */}
+        {/* Join/Leave + Mod link */}
         {user && (
-          <button
-            className={`${styles.joinBtn} ${joined ? styles.joined : ""}`}
-            onClick={toggleJoin}
-            disabled={joinBusy}
-          >
-            {joined ? "Joined" : "Join"}
-          </button>
+          <div className={styles.actionRow}>
+            <button
+              className={`${styles.joinBtn} ${joined ? styles.joined : ""}`}
+              onClick={toggleJoin}
+              disabled={joinBusy}
+            >
+              {joined ? "Joined" : "Join"}
+            </button>
+            {joined && (
+              <Link to={`/c/${name}/mod`} className={styles.modLink}>
+                Mod Panel
+              </Link>
+            )}
+          </div>
         )}
 
         {/* Posts */}

@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import * as usersApi from "../api/users";
 import styles from "./UserCard.module.css";
 
-export default function UserCard({ user }) {
+export default function UserCard({ user, hideFollow = false, isCloseFriend = false }) {
   const { user: me } = useAuth();
   const [following, setFollowing] = useState(user.is_following);
   const [busy, setBusy] = useState(false);
@@ -36,12 +36,13 @@ export default function UserCard({ user }) {
         <Avatar src={user.avatar_url} alt={`@${user.username}`} size={40} />
         <div>
           <span className={styles.name}>
+            {isCloseFriend && <span className={styles.star} aria-label="Close friend">★</span>}
             {user.display_name || `@${user.username}`}
           </span>
           <span className={styles.username}>@{user.username}</span>
         </div>
       </Link>
-      {me && !isSelf && (
+      {me && !isSelf && !hideFollow && (
         <button
           className={`${styles.followBtn} ${following ? styles.following : ""}`}
           onClick={toggleFollow}

@@ -25,3 +25,5 @@ export const deleteAccount = (password) =>
 export const cancelDeletion = () => api.post("/users/me/delete/cancel");
 
 export const exportData = () => api.get("/users/me/data-export");
+
+export const getSuggestions = () => api.get("/users/me/suggestions");
