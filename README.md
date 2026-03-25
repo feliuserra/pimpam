@@ -1,5 +1,10 @@
 # PimPam
 
+[![CI](https://github.com/feliuserra/pimpam/actions/workflows/ci.yml/badge.svg)](https://github.com/feliuserra/pimpam/actions/workflows/ci.yml)
+[![Backend Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/feliuserra/11acd090998f214a96fadc472f921d7f/raw/backend-coverage.json)](https://github.com/feliuserra/pimpam/actions/workflows/ci.yml)
+[![Frontend Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/feliuserra/11acd090998f214a96fadc472f921d7f/raw/frontend-coverage.json)](https://github.com/feliuserra/pimpam/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+
 **A social platform made by the people, for the people.**
 
 PimPam is an open-source, ad-free social network that puts humans first. No toxic algorithms deciding what you see. No corporations mining your data. No ads fighting for your attention. Just you, your friends, and the communities you care about.
