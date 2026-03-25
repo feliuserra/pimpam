@@ -10,11 +10,11 @@ beforeEach(() => {
 });
 
 describe("useInfiniteList", () => {
-  it("starts with empty items and loading false", () => {
+  it("starts with empty items and loading true", () => {
     const fetchFn = vi.fn().mockResolvedValue({ data: [] });
     const { result } = renderHook(() => useInfiniteList(fetchFn));
     expect(result.current.items).toEqual([]);
-    expect(result.current.loading).toBe(false);
+    expect(result.current.loading).toBe(true);
     expect(result.current.hasMore).toBe(true);
   });
 
@@ -80,14 +80,19 @@ describe("useInfiniteList", () => {
   });
 
   it("refresh replaces all items", async () => {
+    const initial = [{ id: 9 }, { id: 8 }];
     const page1 = [{ id: 3 }, { id: 2 }, { id: 1 }];
     const page2 = [{ id: 5 }, { id: 4 }];
     const fetchFn = vi
       .fn()
+      .mockResolvedValueOnce({ data: initial }) // consumed by initial load
       .mockResolvedValueOnce({ data: page1 })
       .mockResolvedValueOnce({ data: page2 });
 
     const { result } = renderHook(() => useInfiniteList(fetchFn));
+
+    // Wait for initial load to complete
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => {
       await result.current.refresh();

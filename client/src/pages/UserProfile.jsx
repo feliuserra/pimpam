@@ -63,8 +63,11 @@ export default function UserProfile() {
         setFollowing(true);
         setProfile((p) => ({ ...p, follower_count: p.follower_count + 1 }));
       }
-    } catch {
-      // silent
+    } catch (err) {
+      // 409 = already following/not following — sync UI to server truth
+      if (err?.response?.status === 409) {
+        setFollowing(!following);
+      }
     } finally {
       setFollowBusy(false);
     }

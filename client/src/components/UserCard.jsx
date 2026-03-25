@@ -23,8 +23,11 @@ export default function UserCard({ user, hideFollow = false, isCloseFriend = fal
         await usersApi.follow(user.username);
         setFollowing(true);
       }
-    } catch {
-      // silent
+    } catch (err) {
+      // 409 = already following/not following — sync UI to server truth
+      if (err?.response?.status === 409) {
+        setFollowing(!following);
+      }
     } finally {
       setBusy(false);
     }

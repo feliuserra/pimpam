@@ -59,6 +59,16 @@
   color: #fff;
 }
 
+.joinBtn.joined {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+.joinBtn.joined:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
 .joinBtn:disabled {
   opacity: 0.5;
   cursor: default;

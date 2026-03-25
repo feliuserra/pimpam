@@ -39,6 +39,19 @@ export default function Communities() {
     return () => { cancelled = true; };
   }, [sort, user]);
 
+  const joinedIds = new Set(joined.map((c) => c.id));
+
+  const handleJoinChange = (communityId, didJoin) => {
+    if (didJoin) {
+      const community = discover.find((c) => c.id === communityId);
+      if (community && !joinedIds.has(communityId)) {
+        setJoined((prev) => [...prev, community]);
+      }
+    } else {
+      setJoined((prev) => prev.filter((c) => c.id !== communityId));
+    }
+  };
+
   const filtered = search
     ? discover.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     : discover;
@@ -118,7 +131,12 @@ export default function Communities() {
             </p>
           ) : (
             filtered.map((c) => (
-              <CommunityCard key={c.id} community={c} />
+              <CommunityCard
+                key={c.id}
+                community={c}
+                isJoined={joinedIds.has(c.id)}
+                onJoinChange={handleJoinChange}
+              />
             ))
           )}
         </section>

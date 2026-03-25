@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useInfiniteList(fetchFn) {
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const sentinelRef = useRef(null);
   const cursorRef = useRef(null);
   const fetchingRef = useRef(false);
+  const initialLoadDone = useRef(false);
 
   const loadMore = useCallback(async () => {
     if (fetchingRef.current || !hasMore) return;
@@ -28,6 +29,13 @@ export function useInfiniteList(fetchFn) {
       fetchingRef.current = false;
     }
   }, [fetchFn, hasMore]);
+
+  // Explicit initial load — don't rely solely on IntersectionObserver
+  useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+    loadMore();
+  }, [loadMore]);
 
   useEffect(() => {
     const el = sentinelRef.current;

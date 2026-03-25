@@ -9,6 +9,11 @@ vi.mock("../contexts/AuthContext", () => ({
 
 vi.mock("../api/communities", () => ({
   join: vi.fn(),
+  leave: vi.fn(),
+}));
+
+vi.mock("./ui/icons/CheckIcon", () => ({
+  default: () => <span data-testid="check-icon">✓</span>,
 }));
 
 import { useAuth } from "../contexts/AuthContext";
@@ -49,17 +54,25 @@ describe("CommunityCard", () => {
     expect(screen.getByText(/1,?234 members/)).toBeInTheDocument();
   });
 
-  it("shows join button when user is logged in", () => {
+  it("shows + button when not joined", () => {
     wrap(<CommunityCard community={baseCommunity} />);
 
+    expect(screen.getByLabelText("Join community")).toBeInTheDocument();
     expect(screen.getByText("+")).toBeInTheDocument();
   });
 
-  it("does not show join button when not logged in", () => {
+  it("shows check icon when joined", () => {
+    wrap(<CommunityCard community={baseCommunity} isJoined />);
+
+    expect(screen.getByLabelText("Leave community")).toBeInTheDocument();
+    expect(screen.getByTestId("check-icon")).toBeInTheDocument();
+  });
+
+  it("does not show button when not logged in", () => {
     useAuth.mockReturnValue({ user: null });
     wrap(<CommunityCard community={baseCommunity} />);
 
-    expect(screen.queryByText("+")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Join community")).not.toBeInTheDocument();
   });
 
   it("calls join API on button click", async () => {
@@ -70,11 +83,27 @@ describe("CommunityCard", () => {
       <CommunityCard community={baseCommunity} onJoinChange={onJoinChange} />,
     );
 
-    fireEvent.click(screen.getByText("+"));
+    fireEvent.click(screen.getByLabelText("Join community"));
 
     await waitFor(() => {
       expect(communitiesApi.join).toHaveBeenCalledWith("tech");
       expect(onJoinChange).toHaveBeenCalledWith(5, true);
+    });
+  });
+
+  it("calls leave API when already joined", async () => {
+    communitiesApi.leave.mockResolvedValue({});
+    const onJoinChange = vi.fn();
+
+    wrap(
+      <CommunityCard community={baseCommunity} isJoined onJoinChange={onJoinChange} />,
+    );
+
+    fireEvent.click(screen.getByLabelText("Leave community"));
+
+    await waitFor(() => {
+      expect(communitiesApi.leave).toHaveBeenCalledWith("tech");
+      expect(onJoinChange).toHaveBeenCalledWith(5, false);
     });
   });
 

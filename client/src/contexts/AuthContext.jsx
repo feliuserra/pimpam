@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import * as authApi from "../api/auth";
 import { getMe } from "../api/users";
 import { ensureKeysExist } from "../crypto/setup";
+import { useIdleTimer } from "../hooks/useIdleTimer";
 
 const AuthContext = createContext(null);
 
@@ -63,6 +64,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   const dismissNewDevice = useCallback(() => setIsNewDevice(false), []);
+
+  // Auto-logout after 30 minutes of inactivity
+  useIdleTimer({
+    timeoutMs: 30 * 60 * 1000,
+    onIdle: logout,
+    enabled: !!user,
+  });
 
   const value = useMemo(
     () => ({ user, loading, login, logout, updateUser, isNewDevice, dismissNewDevice }),
