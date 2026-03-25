@@ -1,6 +1,11 @@
 # This file is imported by Alembic's env.py so it can discover all models.
 # Add every new model module here.
 from app.db.base_class import Base  # noqa: F401
+from app.models.admin import (  # noqa: F401
+    AdminContentRemoval,
+    GlobalBan,
+    UserSuspension,
+)
 from app.models.block import Block  # noqa: F401
 from app.models.comment import Comment, CommentReaction  # noqa: F401
 from app.models.community import Community, CommunityMember  # noqa: F401

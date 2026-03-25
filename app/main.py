@@ -152,9 +152,10 @@ app.include_router(stories.router, prefix=_prefix)
 app.include_router(post_comments_router, prefix=_prefix)
 app.include_router(comments_router, prefix=_prefix)
 
-from app.api.v1 import reports  # noqa: E402
+from app.api.v1 import admin, reports  # noqa: E402
 
 app.include_router(reports.router, prefix=_prefix)
+app.include_router(admin.router, prefix=_prefix)
 
 # WebSocket — no version prefix, mounted at root
 app.include_router(ws_router.router)

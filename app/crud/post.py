@@ -110,6 +110,7 @@ async def get_chronological_feed(
         select(Post)
         .where(
             or_(
+                Post.author_id == user_id,
                 Post.author_id.in_(followed_ids),
                 Post.community_id.in_(joined_community_ids),
             ),

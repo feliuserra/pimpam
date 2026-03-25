@@ -167,26 +167,70 @@ async def get_user(username: str, db: DBSession, current_user: OptionalUser = No
 async def list_followers(
     username: str,
     db: DBSession,
+    current_user: OptionalUser = None,
     limit: int = Query(default=50, le=200),
 ):
-    """Return the list of confirmed followers for a user, newest first."""
+    """Return the list of confirmed followers for a user, newest first.
+
+    When authenticated, each user includes an ``is_following`` flag indicating
+    whether the current user follows them.
+    """
+    from app.crud.user import check_is_following_batch
+
     user = await get_user_by_username(db, username)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-    return await get_followers(db, user.id, limit=limit)
+    followers = await get_followers(db, user.id, limit=limit)
+    if current_user is None:
+        return followers
+    following_set = await check_is_following_batch(
+        db, current_user.id, [f.id for f in followers]
+    )
+    return [
+        UserPublic.model_validate(f, from_attributes=True).model_copy(
+            update={
+                "is_following": None
+                if f.id == current_user.id
+                else f.id in following_set
+            }
+        )
+        for f in followers
+    ]
 
 
 @router.get("/{username}/following", response_model=list[UserPublic])
 async def list_following(
     username: str,
     db: DBSession,
+    current_user: OptionalUser = None,
     limit: int = Query(default=50, le=200),
 ):
-    """Return the list of users that this user is confirmed following, newest first."""
+    """Return the list of users that this user is confirmed following, newest first.
+
+    When authenticated, each user includes an ``is_following`` flag indicating
+    whether the current user follows them.
+    """
+    from app.crud.user import check_is_following_batch
+
     user = await get_user_by_username(db, username)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-    return await get_following(db, user.id, limit=limit)
+    following = await get_following(db, user.id, limit=limit)
+    if current_user is None:
+        return following
+    following_set = await check_is_following_batch(
+        db, current_user.id, [f.id for f in following]
+    )
+    return [
+        UserPublic.model_validate(f, from_attributes=True).model_copy(
+            update={
+                "is_following": None
+                if f.id == current_user.id
+                else f.id in following_set
+            }
+        )
+        for f in following
+    ]
 
 
 @router.get("/{username}/posts", response_model=list[PostPublic])
@@ -236,9 +280,7 @@ async def follow(
         )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, detail="Already following this user"
-        )
+        return  # Already following — idempotent, just return 204
 
     # Remote follows are pending until the remote server sends Accept
     is_pending = user.is_remote and settings.federation_enabled
@@ -281,11 +323,11 @@ async def unfollow(username: str, current_user: CurrentUser, db: DBSession):
             Follow.follower_id == current_user.id, Follow.followed_id == user.id
         )
     )
-    follow = result.scalar_one_or_none()
-    if follow is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not following this user")
+    follow_obj = result.scalar_one_or_none()
+    if follow_obj is None:
+        return  # Not following — idempotent, just return 204
 
-    await db.delete(follow)
+    await db.delete(follow_obj)
     await db.commit()
 
     if user.is_remote and settings.federation_enabled and user.ap_inbox:

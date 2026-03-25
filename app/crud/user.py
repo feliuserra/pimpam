@@ -117,6 +117,22 @@ async def check_is_following(
     return result.scalar_one_or_none() is not None
 
 
+async def check_is_following_batch(
+    db: AsyncSession, follower_id: int, followed_ids: list[int]
+) -> set[int]:
+    """Return the subset of followed_ids that follower_id is following (confirmed)."""
+    if not followed_ids:
+        return set()
+    result = await db.execute(
+        select(Follow.followed_id).where(
+            Follow.follower_id == follower_id,
+            Follow.followed_id.in_(followed_ids),
+            Follow.is_pending == False,  # noqa: E712
+        )
+    )
+    return set(result.scalars().all())
+
+
 async def get_followers(db: AsyncSession, user_id: int, limit: int = 50) -> list[User]:
     """Return confirmed followers of user_id, newest first."""
     result = await db.execute(

@@ -28,9 +28,24 @@ async def create_community(
     return community
 
 
+async def get_membership(
+    db: AsyncSession, community_id: int, user_id: int
+) -> CommunityMember | None:
+    result = await db.execute(
+        select(CommunityMember).where(
+            CommunityMember.community_id == community_id,
+            CommunityMember.user_id == user_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def join_community(
     db: AsyncSession, community: Community, user_id: int
 ) -> CommunityMember:
+    existing = await get_membership(db, community.id, user_id)
+    if existing:
+        return existing
     membership = CommunityMember(community_id=community.id, user_id=user_id)
     db.add(membership)
     community.member_count += 1
@@ -38,9 +53,7 @@ async def join_community(
     return membership
 
 
-async def leave_community(
-    db: AsyncSession, community: Community, user_id: int
-) -> None:
+async def leave_community(db: AsyncSession, community: Community, user_id: int) -> None:
     result = await db.execute(
         select(CommunityMember).where(
             CommunityMember.community_id == community.id,
