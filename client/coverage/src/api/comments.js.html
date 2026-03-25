@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>12/12</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>12/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -81,42 +81,42 @@
 <a name='L16'></a><a href='#L16'>16</a>
 <a name='L17'></a><a href='#L17'>17</a>
 <a name='L18'></a><a href='#L18'>18</a>
-<a name='L19'></a><a href='#L19'>19</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L19'></a><a href='#L19'>19</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import api from "./client";</span></span></span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import api from "./client";
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export const list = (postId, params) =&gt;</span>
-<span class="cstat-no" title="statement not covered" >  api.get(`/posts/${postId}/comments`, { params });</span>
+export const list = (postId, params) =&gt;
+  api.get(`/posts/${postId}/comments`, { params });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export const create = (postId, data) =&gt;</span>
-<span class="cstat-no" title="statement not covered" >  api.post(`/posts/${postId}/comments`, data);</span>
+export const create = (postId, data) =&gt;
+  api.post(`/posts/${postId}/comments`, data);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export const listReplies = (commentId) =&gt;</span>
-<span class="cstat-no" title="statement not covered" >  api.get(`/comments/${commentId}/replies`);</span>
+export const listReplies = (commentId) =&gt;
+  api.get(`/comments/${commentId}/replies`);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export const remove = (commentId) =&gt; api.delete(`/comments/${commentId}`);</span>
+export const remove = (commentId) =&gt; api.delete(`/comments/${commentId}`);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export const react = (commentId, reaction_type) =&gt;</span>
-<span class="cstat-no" title="statement not covered" >  api.post(`/comments/${commentId}/reactions`, { reaction_type });</span>
+export const react = (commentId, reaction_type) =&gt;
+  api.post(`/comments/${commentId}/reactions`, { reaction_type });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export const removeReaction = (commentId, reactionType) =&gt;</span>
-<span class="cstat-no" title="statement not covered" >  api.delete(`/comments/${commentId}/reactions/${reactionType}`);</span>
+export const removeReaction = (commentId, reactionType) =&gt;
+  api.delete(`/comments/${commentId}/reactions/${reactionType}`);
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -124,7 +124,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-25T13:32:00.109Z
+                at 2026-03-25T14:18:23.775Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

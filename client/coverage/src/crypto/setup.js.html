@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">69.23% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>18/26</span>
+                <span class='fraction'>26/26</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>1/2</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">69.23% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>18/26</span>
+                <span class='fraction'>26/26</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -111,24 +111,24 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * E2EE key setup — ensures the current device has a keypair.
  *
@@ -145,18 +145,18 @@ import { updateMe } from "../api/users";
  */
 export async function ensureKeysExist() {
   try {
-    const existing = await loadPrivateKey()<span class="branch-0 cbranch-no" title="branch not covered" >;</span>
-<span class="cstat-no" title="statement not covered" >    if (existing) return false;</span>
+    const existing = await loadPrivateKey();
+    if (existing) return false;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    // New device or first login — generate keypair</span>
-<span class="cstat-no" title="statement not covered" >    const keyPair = await generateKeyPair();</span>
-<span class="cstat-no" title="statement not covered" >    await storePrivateKey(keyPair.privateKey);</span>
+    // New device or first login — generate keypair
+    const keyPair = await generateKeyPair();
+    await storePrivateKey(keyPair.privateKey);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    // Publish public key to server</span>
-<span class="cstat-no" title="statement not covered" >    const publicKeyBase64 = await exportPublicKey(keyPair.publicKey);</span>
-<span class="cstat-no" title="statement not covered" >    await updateMe({ e2ee_public_key: publicKeyBase64 });</span>
+    // Publish public key to server
+    const publicKeyBase64 = await exportPublicKey(keyPair.publicKey);
+    await updateMe({ e2ee_public_key: publicKeyBase64 });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    return true; // new keypair was generated</span>
+    return true; // new keypair was generated
   } catch (err) {
     console.error("E2EE key setup failed:", err);
     return false;
@@ -169,7 +169,7 @@ export async function ensureKeysExist() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-25T13:32:00.109Z
+                at 2026-03-25T14:18:23.775Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
