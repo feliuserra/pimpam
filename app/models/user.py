@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -67,9 +67,24 @@ class User(Base):
     # E2EE — client-published RSA-OAEP public key for DM encryption (base64-encoded SPKI)
     e2ee_public_key: Mapped[str | None] = mapped_column(Text)
 
+    # Profile customization
+    cover_image_url: Mapped[str | None] = mapped_column(String(2048))
+    accent_color: Mapped[str | None] = mapped_column(String(7))  # hex #rrggbb
+    location: Mapped[str | None] = mapped_column(String(100))
+    website: Mapped[str | None] = mapped_column(String(500))
+    pronouns: Mapped[str | None] = mapped_column(String(50))
+    pinned_post_id: Mapped[int | None] = mapped_column(
+        ForeignKey("posts.id", ondelete="SET NULL")
+    )
+    profile_layout: Mapped[str | None] = mapped_column(Text)  # JSON list
+    show_community_stats: Mapped[bool] = mapped_column(Boolean, default=True)
+
     # Relationships
     posts: Mapped[list["Post"]] = relationship(
         foreign_keys="Post.author_id", back_populates="author", lazy="raise"
+    )
+    pinned_post: Mapped["Post | None"] = relationship(
+        foreign_keys=[pinned_post_id], lazy="raise"
     )
     following: Mapped[list["Follow"]] = relationship(
         foreign_keys="Follow.follower_id", back_populates="follower", lazy="raise"

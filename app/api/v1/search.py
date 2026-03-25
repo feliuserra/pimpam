@@ -10,6 +10,7 @@ GET /api/v1/search
 
 Returns 503 if search is disabled or Meilisearch is unreachable.
 """
+
 import asyncio
 from datetime import datetime
 from typing import Literal
@@ -57,8 +58,15 @@ class CommunityHit(BaseModel):
     created_at: datetime | None
 
 
+class HashtagHit(BaseModel):
+    type: Literal["hashtag"] = "hashtag"
+    id: int
+    name: str
+    post_count: int
+
+
 class SearchResponse(BaseModel):
-    hits: list[PostHit | UserHit | CommunityHit]
+    hits: list[PostHit | UserHit | CommunityHit | HashtagHit]
     total: int
     query: str
 
@@ -67,19 +75,32 @@ class SearchResponse(BaseModel):
 async def search(
     db: DBSession,
     q: str = Query(..., min_length=1, description="Search query"),
-    type: Literal["post", "user", "community"] | None = Query(
+    type: Literal["post", "user", "community", "hashtag"] | None = Query(
         None, description="Restrict to one result type. Omit to search all."
     ),
-    community: str | None = Query(None, description="Restrict post results to this community name"),
+    community: str | None = Query(
+        None, description="Restrict post results to this community name"
+    ),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
     """
-    Full-text search over posts, users, and communities.
+    Full-text search over posts, users, communities, and hashtags.
 
     Pass ``type`` to narrow results to a single kind. Results are ranked by
     relevance (Meilisearch default). Removed posts are never returned.
+    Hashtag search uses prefix matching against the database (no Meilisearch needed).
     """
+    # Hashtag search works without Meilisearch
+    if type == "hashtag":
+        from app.crud.hashtag import search_hashtags
+
+        tags = await search_hashtags(db, q, limit)
+        tag_hits: list[PostHit | UserHit | CommunityHit | HashtagHit] = [
+            HashtagHit(id=t.id, name=t.name, post_count=t.post_count) for t in tags
+        ]
+        return SearchResponse(hits=tag_hits, total=len(tag_hits), query=q)
+
     if not settings.search_enabled:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -93,12 +114,14 @@ async def search(
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Community not found")
         community_id = community_obj.id
 
-    hits: list[PostHit | UserHit | CommunityHit] = []
+    hits: list[PostHit | UserHit | CommunityHit | HashtagHit] = []
     total = 0
 
     try:
         if type in (None, "post"):
-            result = await asyncio.to_thread(search_posts, q, community_id, limit, offset)
+            result = await asyncio.to_thread(
+                search_posts, q, community_id, limit, offset
+            )
             for h in result.get("hits", []):
                 hits.append(PostHit(**h))
             total += result.get("estimatedTotalHits", len(hits))
@@ -114,6 +137,15 @@ async def search(
             for h in result.get("hits", []):
                 hits.append(CommunityHit(**h))
             total += result.get("estimatedTotalHits", 0)
+
+        # Include hashtags in "all" search
+        if type is None:
+            from app.crud.hashtag import search_hashtags
+
+            tags = await search_hashtags(db, q, limit=5)
+            for t in tags:
+                hits.append(HashtagHit(id=t.id, name=t.name, post_count=t.post_count))
+                total += 1
 
     except Exception:
         raise HTTPException(

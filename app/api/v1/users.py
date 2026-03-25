@@ -51,8 +51,16 @@ async def update_me(
     data: UserUpdate, current_user: UnverifiedCurrentUser, db: DBSession
 ):
     """Update the authenticated user's profile fields."""
-    for field, value in data.model_dump(exclude_none=True).items():
-        setattr(current_user, field, value)
+    import json
+
+    for field, value in data.model_dump(exclude_unset=True).items():
+        if field == "profile_layout":
+            # Store as JSON string in the database
+            setattr(
+                current_user, field, json.dumps(value) if value is not None else None
+            )
+        else:
+            setattr(current_user, field, value)
     await db.commit()
     await db.refresh(current_user)
     await index_user(current_user)
@@ -60,6 +68,72 @@ async def update_me(
     fing = await get_following_count(db, current_user.id)
     return UserPublic.model_validate(current_user, from_attributes=True).model_copy(
         update={"follower_count": fc, "following_count": fing}
+    )
+
+
+@router.post("/me/pin/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def pin_post(post_id: int, current_user: CurrentUser, db: DBSession):
+    """Pin one of your own posts to your profile."""
+    from app.models.post import Post
+
+    result = await db.execute(select(Post).where(Post.id == post_id))
+    post = result.scalar_one_or_none()
+    if post is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if post.author_id != current_user.id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="You can only pin your own posts"
+        )
+    current_user.pinned_post_id = post_id
+    await db.commit()
+
+
+@router.delete("/me/pin", status_code=status.HTTP_204_NO_CONTENT)
+async def unpin_post(current_user: CurrentUser, db: DBSession):
+    """Remove the pinned post from your profile."""
+    current_user.pinned_post_id = None
+    await db.commit()
+
+
+@router.get("/{username}/community-stats")
+async def get_community_stats(
+    username: str, db: DBSession, current_user: OptionalUser = None
+):
+    """Return community membership stats for a user."""
+    from sqlalchemy import case, func
+
+    from app.models.community import CommunityMember
+    from app.schemas.user import CommunityStatsPublic
+
+    user = await get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # If the user hid their stats and this isn't their own profile, return 404
+    is_own = current_user is not None and current_user.id == user.id
+    if not user.show_community_stats and not is_own:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="Community stats are hidden"
+        )
+
+    result = await db.execute(
+        select(
+            func.count().label("joined"),
+            func.count(
+                case(
+                    (CommunityMember.role.in_(["moderator", "senior_mod"]), 1),
+                )
+            ).label("moderating"),
+            func.count(
+                case(
+                    (CommunityMember.role == "owner", 1),
+                )
+            ).label("owned"),
+        ).where(CommunityMember.user_id == user.id)
+    )
+    row = result.one()
+    return CommunityStatsPublic(
+        joined=row.joined, moderating=row.moderating, owned=row.owned
     )
 
 

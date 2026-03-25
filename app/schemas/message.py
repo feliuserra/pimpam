@@ -28,5 +28,6 @@ class ConversationSummary(BaseModel):
 
     other_user_id: int
     other_username: str
+    other_avatar_url: str | None = None
     last_message_at: datetime
     unread_count: int

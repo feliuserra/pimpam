@@ -14,7 +14,7 @@ from enum import Enum
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 
-from app.core.dependencies import CurrentUser, DBSession
+from app.core.dependencies import CurrentUser, DBSession, OptionalUser
 from app.core.limiter import limiter
 from app.core.redis import publish_to_user
 from app.crud.comment import (
@@ -24,6 +24,7 @@ from app.crud.comment import (
     get_post_comments,
     get_reaction_counts_batch,
     get_reply_counts_batch,
+    get_user_reactions_batch,
     get_watchers,
     soft_delete_comment,
 )
@@ -52,6 +53,7 @@ def _comment_to_public(
     reaction_counts: dict,
     reply_count: int,
     author_info: tuple[str | None, str | None] = (None, None),
+    user_reaction: str | None = None,
 ) -> CommentPublic:
     return CommentPublic(
         id=comment.id,
@@ -66,6 +68,7 @@ def _comment_to_public(
         created_at=comment.created_at,
         reaction_counts=reaction_counts,
         reply_count=reply_count,
+        user_reaction=user_reaction,
     )
 
 
@@ -179,6 +182,7 @@ async def create(
 async def list_comments(
     post_id: int,
     db: DBSession,
+    current_user: OptionalUser = None,
     sort: CommentSort = Query(default=CommentSort.latest),
     limit: int = Query(default=50, le=100),
     before_id: int | None = Query(default=None),
@@ -202,6 +206,9 @@ async def list_comments(
     reaction_counts = await get_reaction_counts_batch(db, ids)
     reply_counts = await get_reply_counts_batch(db, ids)
     authors = await _batch_author_info(db, comments)
+    user_reactions = (
+        await get_user_reactions_batch(db, current_user.id, ids) if current_user else {}
+    )
 
     return [
         _comment_to_public(
@@ -209,13 +216,16 @@ async def list_comments(
             reaction_counts.get(c.id, {}),
             reply_counts.get(c.id, 0),
             authors.get(c.author_id, (None, None)),
+            user_reactions.get(c.id),
         )
         for c in comments
     ]
 
 
 @comments_router.get("/{comment_id}/replies", response_model=list[CommentPublic])
-async def list_replies(comment_id: int, db: DBSession):
+async def list_replies(
+    comment_id: int, db: DBSession, current_user: OptionalUser = None
+):
     """List direct replies to a comment, oldest first."""
     comment = await get_comment(db, comment_id)
     if comment is None:
@@ -230,6 +240,9 @@ async def list_replies(comment_id: int, db: DBSession):
     reaction_counts = await get_reaction_counts_batch(db, ids)
     reply_counts = await get_reply_counts_batch(db, ids)
     authors = await _batch_author_info(db, replies)
+    user_reactions = (
+        await get_user_reactions_batch(db, current_user.id, ids) if current_user else {}
+    )
 
     return [
         _comment_to_public(
@@ -237,6 +250,7 @@ async def list_replies(comment_id: int, db: DBSession):
             reaction_counts.get(r.id, {}),
             reply_counts.get(r.id, 0),
             authors.get(r.author_id, (None, None)),
+            user_reactions.get(r.id),
         )
         for r in replies
     ]

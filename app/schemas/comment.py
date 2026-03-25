@@ -26,6 +26,7 @@ class CommentPublic(BaseModel):
     created_at: datetime
     reaction_counts: dict[str, int] = {}
     reply_count: int = 0
+    user_reaction: str | None = None
 
     model_config = {"from_attributes": True}
 

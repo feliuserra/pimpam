@@ -65,6 +65,7 @@ class PostPublic(BaseModel):
     visibility: str = "public"
     friend_group_id: int | None = None
     user_vote: int | None = None
+    hashtags: list[str] = []
 
     model_config = {"from_attributes": True}
 

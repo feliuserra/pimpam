@@ -110,6 +110,12 @@ async def create(
 
     post = await create_post(db, data, author_id=current_user.id)
 
+    # Sync hashtags from title + content
+    from app.crud.hashtag import sync_post_hashtags
+
+    await sync_post_hashtags(db, post.id, post.content or "", post.title)
+    await db.commit()
+
     if post.visibility == "public":
         await index_post(post)
 
@@ -228,6 +234,13 @@ async def edit(
         post = await edit_post(db, post, data)
     except ValueError as e:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(e))
+
+    # Re-sync hashtags after edit
+    from app.crud.hashtag import sync_post_hashtags
+
+    await sync_post_hashtags(db, post.id, post.content or "", post.title)
+    await db.commit()
+
     await index_post(post)
     return await annotate_post_with_user_vote(db, post, current_user.id)
 

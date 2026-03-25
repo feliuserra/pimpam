@@ -287,6 +287,18 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
     )
     comment_counts: dict[int, int] = dict(count_rows.all())
 
+    # -- hashtags --
+    from app.models.hashtag import Hashtag, PostHashtag
+
+    hashtag_rows = await db.execute(
+        select(PostHashtag.post_id, Hashtag.name)
+        .join(Hashtag, PostHashtag.hashtag_id == Hashtag.id)
+        .where(PostHashtag.post_id.in_(post_ids))
+    )
+    post_hashtags: dict[int, list[str]] = {pid: [] for pid in post_ids}
+    for pid, name in hashtag_rows.all():
+        post_hashtags[pid].append(name)
+
     extras: dict[int, dict] = {}
     for p in posts:
         author_data = (
@@ -299,6 +311,7 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
             if p.community_id
             else None,
             "comment_count": comment_counts.get(p.id, 0),
+            "hashtags": post_hashtags.get(p.id, []),
         }
     return extras
 

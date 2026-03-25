@@ -9,6 +9,7 @@ Bucket setup:
   MinIO:         create via console at http://localhost:9001 or `mc mb minio/pimpam`
   Cloudflare R2: create in the Cloudflare dashboard, enable public access.
 """
+
 import io
 import logging
 import uuid
@@ -43,8 +44,10 @@ def _process_image(data: bytes, max_px: int) -> bytes:
     """
     try:
         img = Image.open(io.BytesIO(data))
-        img.verify()                        # catches truncated / corrupt files
-        img = Image.open(io.BytesIO(data))  # re-open after verify (verify closes the file)
+        img.verify()  # catches truncated / corrupt files
+        img = Image.open(
+            io.BytesIO(data)
+        )  # re-open after verify (verify closes the file)
     except Exception:
         raise ValueError("File is not a valid image")
 
@@ -77,14 +80,19 @@ def upload_image(data: bytes, media_type: str) -> str:
             f"File too large — maximum is {settings.media_max_upload_bytes // (1024 * 1024)} MB"
         )
 
-    max_px = (
-        settings.media_avatar_max_px
-        if media_type == "avatar"
-        else settings.media_post_image_max_px
-    )
+    if media_type == "avatar":
+        max_px = settings.media_avatar_max_px
+    else:
+        max_px = settings.media_post_image_max_px
+
     webp_data = _process_image(data, max_px)
 
-    folder = "avatars" if media_type == "avatar" else "post-images"
+    folders = {
+        "avatar": "avatars",
+        "post_image": "post-images",
+        "cover_image": "covers",
+    }
+    folder = folders.get(media_type, "uploads")
     key = f"{folder}/{uuid.uuid4()}.webp"
 
     _s3().put_object(
@@ -109,4 +117,6 @@ def ensure_bucket_exists() -> None:
         try:
             client.create_bucket(Bucket=settings.storage_bucket)
         except Exception:
-            logger.exception("Failed to create storage bucket '%s'", settings.storage_bucket)
+            logger.exception(
+                "Failed to create storage bucket '%s'", settings.storage_bucket
+            )

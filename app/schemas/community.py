@@ -26,9 +26,16 @@ class CommunityPublic(BaseModel):
     owner_id: int
     member_count: int
     is_news: bool = False
+    avatar_url: str | None = None
+    user_role: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class CommunityUpdate(BaseModel):
+    description: str | None = None
+    avatar_url: str | None = None
 
 
 class CommunityKarmaPublic(BaseModel):
@@ -38,5 +45,17 @@ class CommunityKarmaPublic(BaseModel):
     user_id: int
     karma: int
     role: str
+
+    model_config = {"from_attributes": True}
+
+
+class CommunityAuditPublic(BaseModel):
+    id: int
+    community_id: int
+    actor_id: int
+    actor_username: str = ""
+    action: str
+    detail: str | None = None
+    created_at: datetime
 
     model_config = {"from_attributes": True}

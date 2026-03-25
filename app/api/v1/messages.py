@@ -97,6 +97,7 @@ async def get_inbox(current_user: CurrentUser, db: DBSession):
         select(
             subq.c.other_user_id,
             User.username.label("other_username"),
+            User.avatar_url.label("other_avatar_url"),
             subq.c.last_message_at,
             subq.c.unread_count,
         )
@@ -108,6 +109,7 @@ async def get_inbox(current_user: CurrentUser, db: DBSession):
         ConversationSummary(
             other_user_id=row.other_user_id,
             other_username=row.other_username,
+            other_avatar_url=row.other_avatar_url,
             last_message_at=row.last_message_at,
             unread_count=row.unread_count,
         )

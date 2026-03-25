@@ -31,6 +31,7 @@ class Community(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     member_count: Mapped[int] = mapped_column(Integer, default=0)
     is_news: Mapped[bool] = mapped_column(default=False)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
