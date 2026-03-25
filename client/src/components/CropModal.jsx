@@ -191,7 +191,7 @@ export default function CropModal({ src, aspect = 1, shape = "rect", onConfirm, 
             onLoad={handleImgLoad}
             draggable={false}
             style={{
-              transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
+              transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${scale})`,
               opacity: imgLoaded ? 1 : 0,
             }}
           />
