@@ -71,3 +71,46 @@
   padding: 0 6px;
   line-height: 1;
 }
+
+.footer {
+  margin-top: auto;
+  padding: 1rem 0.75rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.ethos {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-secondary, var(--color-text-muted));
+  margin: 0 0 10px;
+  font-style: italic;
+}
+
+.legal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.legalLink {
+  font-size: 0.6875rem;
+  color: var(--text-secondary, var(--color-text-muted));
+  text-decoration: none;
+}
+
+.legalLink:hover {
+  text-decoration: underline;
+  color: var(--color-accent);
+}
+
+.dot {
+  font-size: 0.6875rem;
+  color: var(--text-secondary, var(--color-text-muted));
+}
+
+.copyright {
+  font-size: 0.6875rem;
+  color: var(--text-secondary, var(--color-text-muted));
+  margin: 6px 0 0;
+}

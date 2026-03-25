@@ -17,3 +17,8 @@ export const leave = (name) => api.post(`/communities/${name}/leave`);
 
 export const getMemberKarma = (name, username) =>
   api.get(`/communities/${name}/members/${username}/karma`);
+
+export const update = (name, data) => api.patch(`/communities/${name}`, data);
+
+export const getAuditLog = (name, params) =>
+  api.get(`/communities/${name}/audit-log`, { params });

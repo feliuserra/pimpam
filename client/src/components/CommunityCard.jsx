@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import Avatar from "./ui/Avatar";
 import CheckIcon from "./ui/icons/CheckIcon";
 import { useAuth } from "../contexts/AuthContext";
 import * as communitiesApi from "../api/communities";
@@ -35,6 +36,12 @@ export default function CommunityCard({ community, isJoined, onJoinChange }) {
 
   return (
     <Link to={`/c/${community.name}`} className={styles.card}>
+      <Avatar
+        src={community.avatar_url}
+        alt={community.name}
+        size={40}
+        className={styles.avatar}
+      />
       <div className={styles.info}>
         <span className={styles.name}>c/{community.name}</span>
         {community.description && (

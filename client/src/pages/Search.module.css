@@ -83,3 +83,74 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Hashtag results */
+.hashtagResult {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.hashtagResult:hover {
+  background: var(--gray-100);
+}
+
+.hashtagName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.hashtagCount {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Trending section */
+.trendingSection {
+  padding: 0 0 1rem;
+}
+
+.trendingTitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 10px;
+}
+
+.trendingList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trendingTag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.trendingTag:hover {
+  background: var(--gray-100);
+}
+
+.trendingName {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-accent);
+}
+
+.trendingCount {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}

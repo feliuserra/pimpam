@@ -27,3 +27,10 @@ export const cancelDeletion = () => api.post("/users/me/delete/cancel");
 export const exportData = () => api.get("/users/me/data-export");
 
 export const getSuggestions = () => api.get("/users/me/suggestions");
+
+export const pinPost = (postId) => api.post(`/users/me/pin/${postId}`);
+
+export const unpinPost = () => api.delete("/users/me/pin");
+
+export const getCommunityStats = (username) =>
+  api.get(`/users/${username}/community-stats`);

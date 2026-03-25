@@ -33,6 +33,39 @@
   margin-bottom: 12px;
 }
 
+.headerTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatarOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.avatarWrap:hover .avatarOverlay {
+  opacity: 1;
+}
+
+.headerInfo {
+  min-width: 0;
+}
+
 .name {
   font-size: 1.3rem;
   font-weight: 700;
@@ -42,7 +75,7 @@
 .desc {
   font-size: 0.9rem;
   color: var(--color-text-muted);
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   line-height: 1.5;
 }
 
@@ -50,7 +83,7 @@
   display: block;
   font-size: 0.82rem;
   color: var(--color-text-muted);
-  margin-top: 6px;
+  margin-top: 2px;
 }
 
 .actionRow {
@@ -105,8 +138,116 @@
   color: var(--color-danger, #e53e3e);
 }
 
+/* Role badge */
+.userRole {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.role_owner {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role_senior_mod,
+.role_moderator {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.role_trusted_member {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* Audit log */
+.auditToggle {
+  background: none;
+  border: none;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+.auditToggle:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.auditLog {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.auditEmpty {
+  padding: 16px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.auditEntry {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.auditEntry:last-child {
+  border-bottom: none;
+}
+
+.auditUser {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.auditAction {
+  color: var(--color-text-muted);
+  flex: 1;
+  min-width: 0;
+}
+
+.auditTime {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
 .sentinel {
   display: flex;
   justify-content: center;
   padding: 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .role_owner {
+    background: #451a03;
+    color: #fcd34d;
+  }
+  .role_senior_mod,
+  .role_moderator {
+    background: #172554;
+    color: #93c5fd;
+  }
+  .role_trusted_member {
+    background: #052e16;
+    color: #86efac;
+  }
 }

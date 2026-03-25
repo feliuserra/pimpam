@@ -1,7 +1,7 @@
 .card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--color-border);
   text-decoration: none;
@@ -12,11 +12,16 @@
   text-decoration: underline;
 }
 
+.avatar {
+  flex-shrink: 0;
+}
+
 .info {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .name {

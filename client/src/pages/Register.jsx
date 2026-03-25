@@ -92,7 +92,7 @@ export default function Register() {
               checked={consent.tos}
               onChange={(e) => setConsent({ ...consent, tos: e.target.checked })}
             />
-            <span>I accept the Terms of Service</span>
+            <span>I accept the <Link to="/terms" target="_blank">Terms of Service</Link></span>
           </label>
           <label className={regStyles.check}>
             <input
@@ -100,7 +100,7 @@ export default function Register() {
               checked={consent.privacy}
               onChange={(e) => setConsent({ ...consent, privacy: e.target.checked })}
             />
-            <span>I accept the Privacy Policy</span>
+            <span>I accept the <Link to="/privacy" target="_blank">Privacy Policy</Link></span>
           </label>
           <label className={regStyles.check}>
             <input

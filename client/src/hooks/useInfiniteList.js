@@ -53,7 +53,8 @@ export function useInfiniteList(fetchFn) {
   const refresh = useCallback(async () => {
     cursorRef.current = null;
     setHasMore(true);
-    fetchingRef.current = false;
+    fetchingRef.current = true; // block loadMore from running concurrently
+    initialLoadDone.current = true; // prevent initial load from re-firing
     setItems([]);
     setLoading(true);
     try {
@@ -68,6 +69,7 @@ export function useInfiniteList(fetchFn) {
       setHasMore(false);
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   }, [fetchFn]);
 

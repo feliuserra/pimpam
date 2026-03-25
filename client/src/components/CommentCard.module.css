@@ -82,9 +82,26 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.reactionBtn:hover {
+.reactionBtn:hover:not(:disabled) {
   background: var(--gray-100);
   color: var(--color-text);
+}
+
+.reactionBtn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.reactionActive {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+.reactionActive:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: #fff;
+  opacity: 0.85;
 }
 
 .reactionCount {

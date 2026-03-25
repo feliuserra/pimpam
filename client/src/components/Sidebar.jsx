@@ -5,6 +5,7 @@ import BellIcon from "./ui/icons/BellIcon";
 import CommunityIcon from "./ui/icons/CommunityIcon";
 import FriendsIcon from "./ui/icons/FriendsIcon";
 import HomeIcon from "./ui/icons/HomeIcon";
+import IssuesIcon from "./ui/icons/IssuesIcon";
 import TrendingIcon from "./ui/icons/TrendingIcon";
 import MessageIcon from "./ui/icons/MessageIcon";
 import UserIcon from "./ui/icons/UserIcon";
@@ -21,6 +22,7 @@ export default function Sidebar() {
     { to: "/discover", icon: <TrendingIcon size={20} />, label: "Discover" },
     { to: "/messages", icon: <MessageIcon size={20} />, label: "Messages", badge: unreadMessages },
     { to: "/notifications", icon: <BellIcon size={20} />, label: "Notifications", badge: unreadNotifications },
+    { to: "/issues", icon: <IssuesIcon size={20} />, label: "Issues" },
     { to: `/u/${user?.username || ""}`, icon: <UserIcon size={20} />, label: "Profile" },
   ];
 
@@ -47,6 +49,20 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      <footer className={styles.footer}>
+        <p className={styles.ethos}>
+          A place to share, laugh, and grow together — built by people, not algorithms.
+        </p>
+        <div className={styles.legal}>
+          <Link to="/terms" className={styles.legalLink}>Terms</Link>
+          <span className={styles.dot}>&middot;</span>
+          <Link to="/privacy" className={styles.legalLink}>Privacy</Link>
+          <span className={styles.dot}>&middot;</span>
+          <Link to="/privacy#gdpr" className={styles.legalLink}>GDPR</Link>
+        </div>
+        <p className={styles.copyright}>&copy; {new Date().getFullYear()} PimPam</p>
+      </footer>
     </aside>
   );
 }

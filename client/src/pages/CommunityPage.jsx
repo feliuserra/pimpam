@@ -1,26 +1,44 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import Header from "../components/Header";
+import Avatar from "../components/ui/Avatar";
 import Spinner from "../components/ui/Spinner";
+import RelativeTime from "../components/ui/RelativeTime";
 import PostCard from "../components/PostCard";
 import ComposePost from "../components/ComposePost";
 import PlusIcon from "../components/ui/icons/PlusIcon";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { useInfiniteList } from "../hooks/useInfiniteList";
 import * as communitiesApi from "../api/communities";
+import * as mediaApi from "../api/media";
 import styles from "./CommunityPage.module.css";
+
+const ROLE_LABELS = {
+  owner: "Owner",
+  senior_mod: "Sr. Moderator",
+  moderator: "Moderator",
+  trusted_member: "Trusted Member",
+  member: "Member",
+};
+
+const MOD_ROLES = new Set(["moderator", "senior_mod", "owner"]);
 
 export default function CommunityPage() {
   const { name } = useParams();
   const { user } = useAuth();
+  const { addToast } = useToast();
+  const avatarInputRef = useRef(null);
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [joined, setJoined] = useState(false);
   const [joinBusy, setJoinBusy] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [auditLog, setAuditLog] = useState([]);
+  const [showAudit, setShowAudit] = useState(false);
 
-  // Load community info
+  // Load community info (includes user_role when authenticated)
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -38,18 +56,7 @@ export default function CommunityPage() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [name]);
-
-  // Check membership
-  useEffect(() => {
-    if (!user || !community) return;
-    communitiesApi
-      .listJoined()
-      .then((res) => {
-        setJoined(res.data.some((c) => c.id === community.id));
-      })
-      .catch(() => {});
-  }, [user, community]);
+  }, [name, user]);
 
   // Posts
   const fetchPosts = useCallback(
@@ -61,23 +68,53 @@ export default function CommunityPage() {
 
   useEffect(() => { if (community) refresh(); }, [community, refresh]);
 
+  // Load audit log when toggled open
+  useEffect(() => {
+    if (!showAudit || !community) return;
+    communitiesApi
+      .getAuditLog(name, { limit: 50 })
+      .then((res) => setAuditLog(res.data))
+      .catch(() => {});
+  }, [showAudit, community, name]);
+
+  const userRole = community?.user_role;
+  const joined = !!userRole;
+  const isMod = MOD_ROLES.has(userRole);
+  const canEditAvatar = isMod || getattr(user, "is_admin");
+
   const toggleJoin = async () => {
     if (joinBusy || !user) return;
     setJoinBusy(true);
     try {
       if (joined) {
         await communitiesApi.leave(name);
-        setJoined(false);
-        setCommunity((c) => c && { ...c, member_count: c.member_count - 1 });
+        setCommunity((c) => c && { ...c, user_role: null, member_count: c.member_count - 1 });
       } else {
         await communitiesApi.join(name);
-        setJoined(true);
-        setCommunity((c) => c && { ...c, member_count: c.member_count + 1 });
+        setCommunity((c) => c && { ...c, user_role: "member", member_count: c.member_count + 1 });
       }
     } catch {
       // silent
     } finally {
       setJoinBusy(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const uploadRes = await mediaApi.upload(file, "avatar");
+      const url = uploadRes.data.url;
+      await communitiesApi.update(name, { avatar_url: url });
+      setCommunity((c) => c && { ...c, avatar_url: url });
+      addToast("Community avatar updated", "success");
+    } catch {
+      addToast("Failed to upload avatar", "error");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
     }
   };
 
@@ -119,13 +156,52 @@ export default function CommunityPage() {
       <div className={styles.container}>
         {/* Community header */}
         <div className={styles.header}>
-          <h1 className={styles.name}>c/{community.name}</h1>
+          <div className={styles.headerTop}>
+            <div className={styles.avatarWrap}>
+              <Avatar
+                src={community.avatar_url}
+                alt={community.name}
+                size={64}
+              />
+              {canEditAvatar && (
+                <label
+                  className={styles.avatarOverlay}
+                  aria-label="Change community avatar"
+                >
+                  {uploadingAvatar ? (
+                    <Spinner size={16} />
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                  )}
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleAvatarUpload}
+                    hidden
+                    disabled={uploadingAvatar}
+                  />
+                </label>
+              )}
+            </div>
+            <div className={styles.headerInfo}>
+              <h1 className={styles.name}>c/{community.name}</h1>
+              <span className={styles.members}>
+                {community.member_count.toLocaleString()} members
+              </span>
+              {userRole && (
+                <span className={`${styles.userRole} ${styles[`role_${userRole}`] || ""}`}>
+                  {ROLE_LABELS[userRole] || userRole}
+                </span>
+              )}
+            </div>
+          </div>
           {community.description && (
             <p className={styles.desc}>{community.description}</p>
           )}
-          <span className={styles.members}>
-            {community.member_count.toLocaleString()} members
-          </span>
         </div>
 
         {/* Join/Leave + Mod link */}
@@ -138,10 +214,33 @@ export default function CommunityPage() {
             >
               {joined ? "Joined" : "Join"}
             </button>
-            {joined && (
+            {isMod && (
               <Link to={`/c/${name}/mod`} className={styles.modLink}>
                 Mod Panel
               </Link>
+            )}
+          </div>
+        )}
+
+        {/* Audit log toggle */}
+        <button
+          className={styles.auditToggle}
+          onClick={() => setShowAudit((v) => !v)}
+        >
+          {showAudit ? "Hide activity log" : "Activity log"}
+        </button>
+        {showAudit && (
+          <div className={styles.auditLog}>
+            {auditLog.length === 0 ? (
+              <p className={styles.auditEmpty}>No activity recorded yet.</p>
+            ) : (
+              auditLog.map((entry) => (
+                <div key={entry.id} className={styles.auditEntry}>
+                  <span className={styles.auditUser}>@{entry.actor_username}</span>
+                  <span className={styles.auditAction}>{entry.detail || entry.action}</span>
+                  <RelativeTime date={entry.created_at} className={styles.auditTime} />
+                </div>
+              ))
             )}
           </div>
         )}
@@ -174,4 +273,8 @@ export default function CommunityPage() {
       />
     </>
   );
+}
+
+function getattr(obj, key) {
+  return obj ? obj[key] : false;
 }

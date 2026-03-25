@@ -17,7 +17,7 @@ import styles from "./PostCard.module.css";
 
 const EDIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = false }) {
+export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = false, showPinAction = false, isPinned = false, onPin, onUnpin }) {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -143,6 +143,17 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
         <p className={styles.content}>{post.content}</p>
       )}
 
+      {/* Hashtags */}
+      {post.hashtags && post.hashtags.length > 0 && (
+        <div className={styles.hashtags}>
+          {post.hashtags.map((tag) => (
+            <Link key={tag} to={`/tag/${tag}`} className={styles.hashtagPill}>
+              #{tag}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Link preview */}
       {post.url && <LinkPreview url={post.url} />}
 
@@ -221,6 +232,24 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
             </button>
             {menuOpen && (
               <div className={styles.menu} role="menu">
+                {showPinAction && !isPinned && (
+                  <button
+                    className={styles.menuItem}
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); onPin?.(); }}
+                  >
+                    Pin to profile
+                  </button>
+                )}
+                {showPinAction && isPinned && (
+                  <button
+                    className={styles.menuItem}
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); onUnpin?.(); }}
+                  >
+                    Unpin from profile
+                  </button>
+                )}
                 {canEdit && (
                   <Link
                     to={`/posts/${post.id}`}

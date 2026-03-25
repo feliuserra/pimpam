@@ -52,6 +52,8 @@
   --z-tab-bar: 100;
   --z-header: 100;
   --z-sidebar: 100;
+  --z-fab: 200;
+  --z-modal-backdrop: 9998;
   --z-modal: 10000;
   --z-toast: 9999;
 }

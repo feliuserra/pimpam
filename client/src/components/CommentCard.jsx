@@ -22,6 +22,8 @@ export default function CommentCard({ comment, onReply, onDeleted }) {
   const [replyText, setReplyText] = useState("");
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [reactionCounts, setReactionCounts] = useState(comment.reaction_counts || {});
+  const [myReaction, setMyReaction] = useState(comment.user_reaction || null);
 
   const isAuthor = user && comment.author_id === user.id;
   const isDeleted = comment.is_removed;
@@ -71,10 +73,38 @@ export default function CommentCard({ comment, onReply, onDeleted }) {
   };
 
   const handleReact = async (type) => {
+    if (!user) return;
+    const wasActive = myReaction === type;
+    const prevCounts = { ...reactionCounts };
+    const prevReaction = myReaction;
+
+    // Optimistic update
+    if (wasActive) {
+      setMyReaction(null);
+      setReactionCounts((c) => ({ ...c, [type]: Math.max(0, (c[type] || 0) - 1) }));
+    } else {
+      // Remove old reaction count if switching
+      if (myReaction) {
+        setReactionCounts((c) => ({ ...c, [myReaction]: Math.max(0, (c[myReaction] || 0) - 1) }));
+      }
+      setMyReaction(type);
+      setReactionCounts((c) => ({ ...c, [type]: (c[type] || 0) + 1 }));
+    }
+
     try {
-      await commentsApi.react(comment.id, type);
+      if (wasActive) {
+        await commentsApi.removeReaction(comment.id, type);
+      } else {
+        // Remove old reaction on backend before adding new one
+        if (prevReaction) {
+          await commentsApi.removeReaction(comment.id, prevReaction);
+        }
+        await commentsApi.react(comment.id, type);
+      }
     } catch {
-      // 409 = already reacted, ignore
+      // Revert on error
+      setReactionCounts(prevCounts);
+      setMyReaction(prevReaction);
     }
   };
 
@@ -114,13 +144,15 @@ export default function CommentCard({ comment, onReply, onDeleted }) {
           <div className={styles.actions}>
             {/* Reactions */}
             {Object.entries(REACTION_LABELS).map(([type, label]) => {
-              const count = comment.reaction_counts?.[type] || 0;
+              const count = reactionCounts[type] || 0;
+              const isActive = myReaction === type;
               return (
                 <button
                   key={type}
-                  className={styles.reactionBtn}
+                  className={`${styles.reactionBtn} ${isActive ? styles.reactionActive : ""}`}
                   onClick={() => handleReact(type)}
                   title={label}
+                  disabled={!user}
                 >
                   {label}
                   {count > 0 && <span className={styles.reactionCount}>{count}</span>}

@@ -76,6 +76,9 @@ export default function Login() {
       <p className={styles.footer}>
         No account? <Link to="/register">Create one</Link>
       </p>
+      <p className={styles.footer}>
+        <Link to="/terms">Terms</Link> &middot; <Link to="/privacy">Privacy</Link>
+      </p>
     </main>
   );
 }

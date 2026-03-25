@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Header from "../components/Header";
 import PostCard from "../components/PostCard";
 import UserCard from "../components/UserCard";
@@ -7,24 +7,32 @@ import CommunityCard from "../components/CommunityCard";
 import Spinner from "../components/ui/Spinner";
 import SearchIcon from "../components/ui/icons/SearchIcon";
 import * as searchApi from "../api/search";
+import * as hashtagsApi from "../api/hashtags";
 import styles from "./Search.module.css";
 
-const TABS = ["All", "Posts", "Users", "Communities"];
-const TAB_TO_TYPE = { All: undefined, Posts: "post", Users: "user", Communities: "community" };
+const TABS = ["All", "Posts", "Users", "Communities", "Hashtags"];
+const TAB_TO_TYPE = { All: undefined, Posts: "post", Users: "user", Communities: "community", Hashtags: "hashtag" };
 
 export default function Search() {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(params.get("q") || "");
-  const [tab, setTab] = useState("All");
+  const [tab, setTab] = useState(params.get("type") === "hashtag" ? "Hashtags" : "All");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
+  const [trending, setTrending] = useState([]);
   const inputRef = useRef(null);
 
   const activeQuery = params.get("q") || "";
 
   // Focus input on mount
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // Load trending hashtags when there's no query
+  useEffect(() => {
+    if (activeQuery) return;
+    hashtagsApi.trending(10).then((res) => setTrending(res.data || [])).catch(() => {});
+  }, [activeQuery]);
 
   // Fetch results when query or tab changes
   useEffect(() => {
@@ -91,7 +99,26 @@ export default function Search() {
         {loading ? (
           <div className={styles.loader}><Spinner size={24} /></div>
         ) : !activeQuery ? (
-          <p className={styles.hint}>Search for posts, users, or communities.</p>
+          <div>
+            <p className={styles.hint}>Search for posts, users, communities, or hashtags.</p>
+            {trending.length > 0 && (
+              <div className={styles.trendingSection}>
+                <h3 className={styles.trendingTitle}>Trending hashtags</h3>
+                <div className={styles.trendingList}>
+                  {trending.map((tag) => (
+                    <Link
+                      key={tag.id}
+                      to={`/tag/${tag.name}`}
+                      className={styles.trendingTag}
+                    >
+                      <span className={styles.trendingName}>#{tag.name}</span>
+                      <span className={styles.trendingCount}>{tag.post_count} {tag.post_count === 1 ? "post" : "posts"}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ) : results.length === 0 ? (
           <p className={styles.empty}>No results for &ldquo;{activeQuery}&rdquo;</p>
         ) : (
@@ -99,6 +126,18 @@ export default function Search() {
             <p className={styles.count}>{total} result{total !== 1 ? "s" : ""}</p>
             <div className={styles.results}>
               {results.map((hit) => {
+                if (hit.type === "hashtag") {
+                  return (
+                    <Link
+                      key={`h-${hit.id}`}
+                      to={`/tag/${hit.name}`}
+                      className={styles.hashtagResult}
+                    >
+                      <span className={styles.hashtagName}>#{hit.name}</span>
+                      <span className={styles.hashtagCount}>{hit.post_count} {hit.post_count === 1 ? "post" : "posts"}</span>
+                    </Link>
+                  );
+                }
                 if (hit.username !== undefined) {
                   return <UserCard key={`u-${hit.id}`} user={hit} />;
                 }

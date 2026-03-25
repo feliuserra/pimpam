@@ -9,6 +9,18 @@ vi.mock("../api/users", () => ({
   getFollowing: vi.fn(),
   follow: vi.fn(),
   unfollow: vi.fn(),
+  getCommunityStats: vi.fn(),
+  pinPost: vi.fn(),
+  unpinPost: vi.fn(),
+  updateMe: vi.fn(),
+}));
+
+vi.mock("../api/posts", () => ({
+  get: vi.fn(),
+}));
+
+vi.mock("../api/media", () => ({
+  upload: vi.fn(),
 }));
 
 // Mock routing
@@ -24,7 +36,7 @@ vi.mock("react-router-dom", async () => {
 
 // Mock contexts
 vi.mock("../contexts/AuthContext", () => ({
-  useAuth: vi.fn(() => ({ user: { id: 1, username: "testuser" } })),
+  useAuth: vi.fn(() => ({ user: { id: 1, username: "testuser" }, updateUser: vi.fn() })),
 }));
 vi.mock("../contexts/WSContext", () => ({
   useWS: vi.fn(),
@@ -39,7 +51,7 @@ vi.mock("../contexts/NotificationContext", () => ({
   })),
 }));
 vi.mock("../contexts/ToastContext", () => ({
-  useToast: vi.fn(() => vi.fn()),
+  useToast: vi.fn(() => ({ addToast: vi.fn() })),
 }));
 
 // Mock complex child components
@@ -57,10 +69,6 @@ vi.mock("../components/PostCard", () => ({
 vi.mock("../components/UserCard", () => ({
   default: ({ user }) => <div data-testid="user-card">{user.username}</div>,
 }));
-vi.mock("../components/EditProfileModal", () => ({
-  default: ({ open }) =>
-    open ? <div data-testid="edit-profile-modal">Edit Modal</div> : null,
-}));
 vi.mock("../components/ui/Avatar", () => ({
   default: ({ alt }) => <img data-testid="avatar" alt={alt} />,
 }));
@@ -74,7 +82,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Default: viewing own profile
   useParams.mockReturnValue({ username: "testuser" });
-  useAuth.mockReturnValue({ user: { id: 1, username: "testuser" } });
+  useAuth.mockReturnValue({ user: { id: 1, username: "testuser" }, updateUser: vi.fn() });
+  usersApi.getCommunityStats.mockResolvedValue({ data: { joined: 0, moderating: 0, owned: 0 } });
 });
 
 describe("UserProfile", () => {
@@ -88,6 +97,7 @@ describe("UserProfile", () => {
     following_count: 18,
     karma: 100,
     is_following: false,
+    show_community_stats: true,
   };
 
   const otherProfile = {
@@ -100,6 +110,7 @@ describe("UserProfile", () => {
     following_count: 5,
     karma: 50,
     is_following: false,
+    show_community_stats: true,
   };
 
   it("shows spinner while loading", () => {
@@ -153,7 +164,6 @@ describe("UserProfile", () => {
       expect(screen.getByText("Other User")).toBeInTheDocument();
     });
 
-    // Use exact text "Follow" to distinguish from "Following" tab and "Followers" tab
     expect(screen.getByRole("button", { name: "Follow" })).toBeInTheDocument();
   });
 

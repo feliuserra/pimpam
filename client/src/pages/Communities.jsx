@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
+import Avatar from "../components/ui/Avatar";
 import Spinner from "../components/ui/Spinner";
 import CommunityCard from "../components/CommunityCard";
 import CreateCommunityModal from "../components/CreateCommunityModal";
 import SearchIcon from "../components/ui/icons/SearchIcon";
+import PlusIcon from "../components/ui/icons/PlusIcon";
 import { useAuth } from "../contexts/AuthContext";
 import * as communitiesApi from "../api/communities";
 import styles from "./Communities.module.css";
@@ -78,17 +80,30 @@ export default function Communities() {
         {user && joined.length > 0 && (
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Your communities</h2>
-            <div className={styles.scroll}>
+            <div className={styles.grid}>
               {joined.map((c) => (
-                <Link key={c.id} to={`/c/${c.name}`} className={styles.chip}>
-                  c/{c.name}
+                <Link key={c.id} to={`/c/${c.name}`} className={styles.gridItem}>
+                  <Avatar
+                    src={c.avatar_url}
+                    alt={c.name}
+                    size={52}
+                  />
+                  <span className={styles.gridName}>c/{c.name}</span>
+                  {c.user_role && c.user_role !== "member" && (
+                    <span className={`${styles.roleBadge} ${styles[`role_${c.user_role}`] || ""}`}>
+                      {c.user_role === "owner" ? "Owner" : c.user_role === "senior_mod" ? "Sr. Mod" : c.user_role === "moderator" ? "Mod" : c.user_role === "trusted_member" ? "Trusted" : c.user_role}
+                    </span>
+                  )}
                 </Link>
               ))}
               <button
-                className={styles.createChip}
+                className={styles.gridCreate}
                 onClick={() => setCreateOpen(true)}
               >
-                + Create
+                <span className={styles.createCircle}>
+                  <PlusIcon size={20} />
+                </span>
+                <span className={styles.gridName}>Create</span>
               </button>
             </div>
           </section>
@@ -97,12 +112,14 @@ export default function Communities() {
         {user && joined.length === 0 && (
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Your communities</h2>
-            <p className={styles.empty}>
-              You haven't joined any communities yet.{" "}
-              <button className={styles.link} onClick={() => setCreateOpen(true)}>
-                Create one
+            <div className={styles.emptyCard}>
+              <p className={styles.emptyText}>
+                You haven't joined any communities yet.
+              </p>
+              <button className={styles.createBtn} onClick={() => setCreateOpen(true)}>
+                + Create community
               </button>
-            </p>
+            </div>
           </section>
         )}
 

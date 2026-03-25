@@ -1,0 +1,41 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+}
+
+.header {
+  padding: 16px 1rem;
+}
+
+.name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin: 0;
+}
+
+.count {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.error,
+.empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+}
+
+.sentinel {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}

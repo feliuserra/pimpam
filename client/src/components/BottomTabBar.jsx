@@ -4,6 +4,7 @@ import { useNotifications } from "../contexts/NotificationContext";
 import BellIcon from "./ui/icons/BellIcon";
 import CommunityIcon from "./ui/icons/CommunityIcon";
 import HomeIcon from "./ui/icons/HomeIcon";
+import IssuesIcon from "./ui/icons/IssuesIcon";
 import MessageIcon from "./ui/icons/MessageIcon";
 import UserIcon from "./ui/icons/UserIcon";
 import styles from "./BottomTabBar.module.css";
@@ -17,6 +18,7 @@ export default function BottomTabBar() {
     { to: "/communities", icon: <CommunityIcon size={22} />, label: "Communities" },
     { to: "/messages", icon: <MessageIcon size={22} />, label: "Messages", badge: unreadMessages },
     { to: "/notifications", icon: <BellIcon size={22} />, label: "Notifications", badge: unreadNotifications },
+    { to: "/issues", icon: <IssuesIcon size={22} />, label: "Issues" },
     { to: `/u/${user?.username || ""}`, icon: <UserIcon size={22} />, label: "Profile" },
   ];
 

@@ -40,52 +40,146 @@
   margin: 0 0 10px;
 }
 
-/* Horizontal scroll chips */
-.scroll {
+/* Your communities grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 12px;
+}
+
+.gridItem {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.chip {
-  padding: 6px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--color-text);
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px;
+  border-radius: var(--radius, 8px);
   text-decoration: none;
+  color: var(--color-text);
+  transition: background 0.15s;
+}
+
+.gridItem:hover {
+  background: var(--color-surface);
+}
+
+.gridName {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  flex-shrink: 0;
+  max-width: 100%;
 }
 
-.chip:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+.gridMembers {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
 }
 
-.createChip {
-  padding: 6px 14px;
-  border: 1px dashed var(--color-accent);
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--color-accent);
+.gridCreate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px;
+  border-radius: var(--radius, 8px);
+  border: none;
   background: none;
   cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
+  color: var(--color-accent);
+  transition: background 0.15s;
 }
 
-.createChip:hover {
-  background: rgba(var(--accent-rgb, 59, 130, 246), 0.08);
+.gridCreate:hover {
+  background: var(--color-surface);
+}
+
+.createCircle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px dashed var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Empty card */
+.emptyCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius, 8px);
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.createBtn {
+  padding: 8px 20px;
+  border-radius: var(--radius, 8px);
+  border: none;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.createBtn:hover {
+  opacity: 0.9;
+}
+
+/* Role badges */
+.roleBadge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.role_owner {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role_senior_mod,
+.role_moderator {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.role_trusted_member {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+@media (prefers-color-scheme: dark) {
+  .role_owner {
+    background: #451a03;
+    color: #fcd34d;
+  }
+  .role_senior_mod,
+  .role_moderator {
+    background: #172554;
+    color: #93c5fd;
+  }
+  .role_trusted_member {
+    background: #052e16;
+    color: #86efac;
+  }
 }
 
 /* Discover header */
@@ -132,16 +226,3 @@
   padding: 1.5rem 0;
 }
 
-.link {
-  background: none;
-  border: none;
-  color: var(--color-accent);
-  font-size: inherit;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0;
-}
-
-.link:hover {
-  text-decoration: underline;
-}

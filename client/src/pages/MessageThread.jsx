@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import MessageBubble from "../components/MessageBubble";
+import Avatar from "../components/ui/Avatar";
 import Spinner from "../components/ui/Spinner";
 import SendIcon from "../components/ui/icons/SendIcon";
 import { useAuth } from "../contexts/AuthContext";
@@ -11,7 +12,6 @@ import * as messagesApi from "../api/messages";
 import * as usersApi from "../api/users";
 import { encryptMessage } from "../crypto/encrypt";
 import { decryptMessage } from "../crypto/decrypt";
-import { exportPublicKey } from "../crypto/keys";
 import styles from "./MessageThread.module.css";
 
 /**
@@ -52,17 +52,26 @@ export default function MessageThread() {
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState(false);
   const [recipientKey, setRecipientKey] = useState(null);
+  const [otherUser, setOtherUser] = useState(null);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
 
   const otherUserId = parseInt(userId, 10);
 
-  // Fetch recipient's public key
+  // Fetch other user info (username, avatar, E2EE key) via inbox
   useEffect(() => {
-    // We need the username to fetch the user profile; try from URL or messages
-    // For now, fetch conversation first to get username, then fetch profile
-    // This is handled below after messages load
-  }, []);
+    messagesApi.getInbox().then((res) => {
+      const conv = res.data.find((c) => c.other_user_id === otherUserId);
+      if (conv) {
+        setOtherUser({ username: conv.other_username, avatar_url: conv.other_avatar_url });
+        // Fetch their profile for E2EE public key
+        usersApi.getUser(conv.other_username).then((r) => {
+          if (r.data.e2ee_public_key) setRecipientKey(r.data.e2ee_public_key);
+          setOtherUser({ username: r.data.username, avatar_url: r.data.avatar_url });
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, [otherUserId]);
 
   // Load messages and decrypt them
   const loadAndDecrypt = useCallback(async () => {
@@ -84,19 +93,7 @@ export default function MessageThread() {
     return () => { cancelled = true; };
   }, [loadAndDecrypt]);
 
-  // Fetch recipient's E2EE public key from their profile
-  useEffect(() => {
-    // We need the username; derive it from messages once loaded
-    const otherMsg = messages.find((m) => m.sender_id === otherUserId);
-    const username = otherMsg?.sender_username;
-    if (!username) return;
-
-    usersApi.getUser(username).then((res) => {
-      if (res.data.e2ee_public_key) {
-        setRecipientKey(res.data.e2ee_public_key);
-      }
-    }).catch(() => {});
-  }, [messages, otherUserId]);
+  // Recipient key fetched in the user info effect above
 
   // Mark as read on mount
   useEffect(() => {
@@ -172,9 +169,6 @@ export default function MessageThread() {
     wsSend?.({ type: "typing", data: { recipient_id: otherUserId } });
   };
 
-  // Find other username from messages
-  const otherUsername = messages.find((m) => m.sender_id === otherUserId)?.sender_username || null;
-
   return (
     <>
       <Header
@@ -183,7 +177,12 @@ export default function MessageThread() {
             <button onClick={() => navigate("/messages")} className={styles.back}>
               &larr; Back
             </button>
-            {otherUsername && <span className={styles.headerName}>@{otherUsername}</span>}
+            {otherUser && (
+              <>
+                <Avatar src={otherUser.avatar_url} alt={`@${otherUser.username}`} size={28} />
+                <span className={styles.headerName}>@{otherUser.username}</span>
+              </>
+            )}
           </div>
         }
       />

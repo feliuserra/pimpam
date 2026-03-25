@@ -24,6 +24,7 @@ const UserProfile = lazy(() => import("./pages/UserProfile"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const Search = lazy(() => import("./pages/Search"));
+const HashtagPage = lazy(() => import("./pages/HashtagPage"));
 const MessageThread = lazy(() => import("./pages/MessageThread"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AccountSettings = lazy(() => import("./pages/settings/AccountSettings"));
@@ -33,7 +34,11 @@ const FriendGroupSettings = lazy(() => import("./pages/settings/FriendGroupSetti
 const DataSettings = lazy(() => import("./pages/settings/DataSettings"));
 const Discover = lazy(() => import("./pages/Discover"));
 const Friends = lazy(() => import("./pages/Friends"));
+const Issues = lazy(() => import("./pages/Issues"));
+const IssueDetail = lazy(() => import("./pages/IssueDetail"));
 const ModPanel = lazy(() => import("./pages/ModPanel"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 const Offline = lazy(() => import("./pages/Offline"));
 
 function PageLoader() {
@@ -61,6 +66,8 @@ export default function App() {
                   <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
                   <Route path="/offline" element={<Offline />} />
                   <Route element={<AppShell />}>
                     <Route index element={<Feed />} />
@@ -69,11 +76,14 @@ export default function App() {
                     <Route path="/communities" element={<Communities />} />
                     <Route path="/messages" element={<Messages />} />
                     <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/issues" element={<Issues />} />
+                    <Route path="/issues/:id" element={<IssueDetail />} />
                     <Route path="/u/:username" element={<UserProfile />} />
                     <Route path="/posts/:id" element={<PostDetail />} />
                     <Route path="/c/:name" element={<CommunityPage />} />
                     <Route path="/c/:name/mod" element={<ModPanel />} />
                     <Route path="/search" element={<Search />} />
+                    <Route path="/tag/:name" element={<HashtagPage />} />
                     <Route path="/messages/:userId" element={<MessageThread />} />
                     <Route path="/settings" element={<Settings />}>
                       <Route index element={<AccountSettings />} />
