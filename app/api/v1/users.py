@@ -27,6 +27,7 @@ from app.crud.user import (
 from app.federation.actor import actor_id, build_follow, build_undo_follow
 from app.federation.delivery import deliver_activity
 from app.models.follow import Follow
+from app.schemas.device_token import DeviceTokenCreate
 from app.schemas.post import PostPublic
 from app.schemas.user import DeleteAccountRequest, UserPublic, UserUpdate
 
@@ -60,6 +61,83 @@ async def update_me(
     return UserPublic.model_validate(current_user, from_attributes=True).model_copy(
         update={"follower_count": fc, "following_count": fing}
     )
+
+
+@router.get("/me/suggestions", response_model=list[UserPublic])
+@limiter.limit("10/minute")
+async def get_follow_suggestions(
+    request: Request, current_user: CurrentUser, db: DBSession
+):
+    """Return up to 20 suggested users based on friends-of-friends.
+
+    Finds users followed by people you follow, ranked by how many of your
+    followees also follow them (mutual_count). Excludes yourself and users
+    you already follow.
+    """
+    from sqlalchemy import func as sa_func
+    from sqlalchemy.orm import aliased
+
+    from app.crud.block import get_blocked_user_ids, get_blocker_ids
+    from app.models.user import User
+
+    # Alias Follow for the two hops
+    f1 = aliased(Follow)  # me -> my followees
+    f2 = aliased(Follow)  # my followees -> their followees (suggestions)
+
+    # Subquery: IDs I already follow (confirmed only)
+    my_following_ids = select(Follow.followed_id).where(
+        Follow.follower_id == current_user.id, Follow.is_pending.is_(False)
+    )
+
+    # Exclude blocked users from suggestions
+    blocked_ids = await get_blocked_user_ids(db, current_user.id)
+    blocker_ids = await get_blocker_ids(db, current_user.id)
+    hidden_ids = blocked_ids | blocker_ids
+
+    # Friends-of-friends query:
+    # f1: me -> followee (confirmed)
+    # f2: followee -> suggestion (confirmed)
+    # Exclude myself, users I already follow, and blocked users
+    stmt = (
+        select(
+            User,
+            sa_func.count(f2.follower_id.distinct()).label("mutual_count"),
+        )
+        .join(f2, User.id == f2.followed_id)
+        .join(f1, f2.follower_id == f1.followed_id)
+        .where(
+            f1.follower_id == current_user.id,
+            f1.is_pending.is_(False),
+            f2.is_pending.is_(False),
+            User.id != current_user.id,
+            User.id.not_in(my_following_ids),
+        )
+        .group_by(User.id)
+        .order_by(sa_func.count(f2.follower_id.distinct()).desc())
+        .limit(20)
+    )
+
+    if hidden_ids:
+        stmt = stmt.where(User.id.not_in(hidden_ids))
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    suggestions = []
+    for user, _mutual_count in rows:
+        fc = await get_follower_count(db, user.id)
+        fing = await get_following_count(db, user.id)
+        suggestions.append(
+            UserPublic.model_validate(user, from_attributes=True).model_copy(
+                update={
+                    "follower_count": fc,
+                    "following_count": fing,
+                    "is_following": False,
+                }
+            )
+        )
+
+    return suggestions
 
 
 @router.get("/{username}", response_model=UserPublic)
@@ -139,6 +217,8 @@ async def follow(
     Follow a user. For remote (federated) users, sends an AP Follow activity and
     marks the follow as pending until the remote server sends an Accept.
     """
+    from app.crud.block import is_blocked_either_direction
+
     user = await get_user_by_username(db, username)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -146,6 +226,9 @@ async def follow(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, detail="Cannot follow yourself"
         )
+
+    if await is_blocked_either_direction(db, current_user.id, user.id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Cannot follow this user")
 
     existing = await db.execute(
         select(Follow).where(
@@ -307,3 +390,117 @@ async def cancel_deletion_request(current_user: UnverifiedCurrentUser, db: DBSes
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No deletion scheduled")
     await cancel_deletion(db, current_user)
     return {"detail": "Deletion cancelled"}
+
+
+# ---------------------------------------------------------------------------
+# User blocking
+# ---------------------------------------------------------------------------
+
+
+@router.get("/me/blocked")
+async def list_blocked(current_user: CurrentUser, db: DBSession):
+    """Return all users the authenticated user has blocked."""
+    from app.crud.block import get_blocked_users
+    from app.models.user import User
+
+    blocks = await get_blocked_users(db, current_user.id)
+    result = []
+    for b in blocks:
+        blocked_user = await db.get(User, b.blocked_id)
+        result.append(
+            {
+                "id": b.id,
+                "blocker_id": b.blocker_id,
+                "blocked_id": b.blocked_id,
+                "blocked_username": blocked_user.username if blocked_user else None,
+                "blocked_avatar_url": blocked_user.avatar_url if blocked_user else None,
+                "created_at": b.created_at.isoformat(),
+            }
+        )
+    return result
+
+
+@router.post("/{username}/block", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("20/minute")
+async def block_user(
+    request: Request, username: str, current_user: CurrentUser, db: DBSession
+):
+    """Block a user. Also removes any existing follow relationship in both directions."""
+    from sqlalchemy import delete as sa_delete
+
+    from app.crud.block import create_block, get_block
+
+    user = await get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.id == current_user.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Cannot block yourself")
+
+    existing = await get_block(db, current_user.id, user.id)
+    if existing:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Already blocked")
+
+    # Remove follows in both directions
+    await db.execute(
+        sa_delete(Follow).where(
+            ((Follow.follower_id == current_user.id) & (Follow.followed_id == user.id))
+            | (
+                (Follow.follower_id == user.id)
+                & (Follow.followed_id == current_user.id)
+            )
+        )
+    )
+
+    await create_block(db, current_user.id, user.id)
+
+
+@router.delete("/{username}/block", status_code=status.HTTP_204_NO_CONTENT)
+async def unblock_user(username: str, current_user: CurrentUser, db: DBSession):
+    """Unblock a user."""
+    from app.crud.block import remove_block
+
+    user = await get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    removed = await remove_block(db, current_user.id, user.id)
+    if not removed:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User is not blocked")
+
+
+# ---------------------------------------------------------------------------
+# Device tokens (APNs / FCM / Web Push)
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/me/device-tokens",
+    status_code=status.HTTP_201_CREATED,
+)
+@limiter.limit("10/minute")
+async def register_token(
+    request: Request,
+    data: DeviceTokenCreate,
+    current_user: CurrentUser,
+    db: DBSession,
+):
+    """Register a device push token. Updates platform if the token already exists."""
+    from app.crud.device_token import register_device_token
+
+    dt = await register_device_token(db, current_user.id, data.token, data.platform)
+    return {
+        "id": dt.id,
+        "token": dt.token,
+        "platform": dt.platform,
+        "created_at": dt.created_at.isoformat(),
+    }
+
+
+@router.delete("/me/device-tokens/{token}", status_code=status.HTTP_204_NO_CONTENT)
+async def unregister_token(token: str, current_user: CurrentUser, db: DBSession):
+    """Remove a device push token (e.g. on logout)."""
+    from app.crud.device_token import remove_device_token
+
+    removed = await remove_device_token(db, current_user.id, token)
+    if not removed:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Token not found")

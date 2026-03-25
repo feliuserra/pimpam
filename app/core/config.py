@@ -18,7 +18,11 @@ class Settings(BaseSettings):
     encryption_key: str = "change-me-in-production"
 
     # CORS — in production, set to your actual frontend origin
-    cors_origins: list[str] = ["http://localhost:5173"]
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "capacitor://localhost",
+        "http://localhost",
+    ]
 
     # App
     environment: str = "development"
@@ -37,8 +41,10 @@ class Settings(BaseSettings):
     storage_access_key: str = "minioadmin"
     storage_secret_key: str = "minioadmin"
     storage_bucket: str = "pimpam"
-    storage_region: str = "auto"           # R2 uses "auto"; AWS uses e.g. "us-east-1"
-    storage_public_url: str = "http://localhost:9000/pimpam"  # base URL for serving files
+    storage_region: str = "auto"  # R2 uses "auto"; AWS uses e.g. "us-east-1"
+    storage_public_url: str = (
+        "http://localhost:9000/pimpam"  # base URL for serving files
+    )
     storage_enabled: bool = True
 
     # Real-time (Redis pub/sub for WebSocket fan-out)
@@ -46,13 +52,13 @@ class Settings(BaseSettings):
 
     # Search (Meilisearch)
     search_url: str = "http://localhost:7700"
-    search_api_key: str = ""   # leave blank for local dev; set a master key in prod
+    search_api_key: str = ""  # leave blank for local dev; set a master key in prod
     search_enabled: bool = True
 
     # Media limits
     media_max_upload_bytes: int = 10 * 1024 * 1024  # 10 MB
-    media_avatar_max_px: int = 512                   # avatars are capped at 512×512
-    media_post_image_max_px: int = 2000              # post images capped at 2000px on longest side
+    media_avatar_max_px: int = 512  # avatars are capped at 512×512
+    media_post_image_max_px: int = 2000  # post images capped at 2000px on longest side
 
     # Content limits — change here to affect comments and share annotations everywhere
     comment_max_length: int = 300
@@ -62,7 +68,7 @@ class Settings(BaseSettings):
     reaction_karma: dict[str, int] = {
         "agree": 1,
         "love": 2,
-        "disagree": 0,      # never affects karma directly; requires an accompanying reply
+        "disagree": 0,  # never affects karma directly; requires an accompanying reply
         "misleading": -2,
     }
 

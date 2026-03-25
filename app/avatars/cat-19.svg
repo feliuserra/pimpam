@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Smoke black (dark with lighter undercoat) -->
+  <circle cx="50" cy="50" r="50" fill="#282828"/>
+  <!-- Ears -->
+  <path d="M22,36 Q16,12 31,6 Q44,12 38,34" fill="#1E1E1E"/>
+  <path d="M62,34 Q56,12 69,6 Q84,12 78,36" fill="#1E1E1E"/>
+  <path d="M26,33 Q22,16 31,11 Q40,16 36,32" fill="#383838"/>
+  <path d="M64,32 Q60,16 69,11 Q78,16 74,33" fill="#383838"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="54" rx="28" ry="26" fill="#323232"/>
+  <!-- Lighter smoke undercoat on muzzle -->
+  <ellipse cx="50" cy="64" rx="16" ry="14" fill="#505050"/>
+  <ellipse cx="50" cy="62" rx="12" ry="10" fill="#606060"/>
+  <!-- Eyes - intense green -->
+  <ellipse cx="37" cy="47" rx="6" ry="6.5" fill="#40C040"/>
+  <ellipse cx="63" cy="47" rx="6" ry="6.5" fill="#40C040"/>
+  <ellipse cx="38" cy="46" rx="2.5" ry="4" fill="#0A0A0A"/>
+  <ellipse cx="64" cy="46" rx="2.5" ry="4" fill="#0A0A0A"/>
+  <circle cx="39.5" cy="44.5" r="1.5" fill="#80F080"/>
+  <circle cx="65.5" cy="44.5" r="1.5" fill="#80F080"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="56" rx="3" ry="2" fill="#3A2828"/>
+  <!-- Mouth -->
+  <path d="M47,58 Q50,62 53,58" fill="none" stroke="#2A1A1A" stroke-width="1" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="12" y1="53" x2="34" y2="56" stroke="#585858" stroke-width="0.7"/>
+  <line x1="12" y1="59" x2="34" y2="59" stroke="#585858" stroke-width="0.7"/>
+  <line x1="66" y1="56" x2="88" y2="53" stroke="#585858" stroke-width="0.7"/>
+  <line x1="66" y1="59" x2="88" y2="59" stroke="#585858" stroke-width="0.7"/>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Corgi (orange/white, big ears) -->
+  <circle cx="50" cy="50" r="50" fill="#E0983A"/>
+  <!-- Big perky ears -->
+  <path d="M18,40 Q10,8 30,6 Q42,14 36,38" fill="#D08828"/>
+  <path d="M64,38 Q58,14 70,6 Q90,8 82,40" fill="#D08828"/>
+  <path d="M22,37 Q16,14 30,12 Q39,18 35,36" fill="#E8B070"/>
+  <path d="M65,36 Q61,18 70,12 Q84,14 78,37" fill="#E8B070"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="54" rx="28" ry="26" fill="#F0A840"/>
+  <!-- White blaze + lower face -->
+  <path d="M42,34 Q50,28 58,34 L57,54 Q50,58 43,54 Z" fill="#FAF0E0"/>
+  <ellipse cx="50" cy="64" rx="18" ry="14" fill="#FAF0E0"/>
+  <!-- Eyes - bright and happy -->
+  <ellipse cx="38" cy="48" rx="4.5" ry="5" fill="#3A1A08"/>
+  <ellipse cx="62" cy="48" rx="4.5" ry="5" fill="#3A1A08"/>
+  <circle cx="39.5" cy="46.5" r="1.5" fill="#6A4020"/>
+  <circle cx="63.5" cy="46.5" r="1.5" fill="#6A4020"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="57" rx="4.5" ry="3" fill="#1A1A1A"/>
+  <!-- Mouth - big smile -->
+  <path d="M44,61 Q50,68 56,61" fill="none" stroke="#A07038" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Tongue -->
+  <ellipse cx="50" cy="67" rx="4" ry="4.5" fill="#F07888"/>
+  <ellipse cx="50" cy="66" rx="3" ry="2.5" fill="#F88898"/>
+</svg>

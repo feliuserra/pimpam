@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Orange & white bicolor -->
+  <circle cx="50" cy="50" r="50" fill="#E89050"/>
+  <!-- Ears -->
+  <path d="M23,36 Q18,14 32,8 Q43,14 38,34" fill="#D87A38"/>
+  <path d="M62,34 Q57,14 68,8 Q82,14 77,36" fill="#D87A38"/>
+  <path d="M26,33 Q22,18 32,13 Q40,18 37,32" fill="#E8A878"/>
+  <path d="M64,32 Q60,18 68,13 Q78,18 74,33" fill="#E8A878"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="54" rx="28" ry="26" fill="#F0A058"/>
+  <!-- White lower half -->
+  <ellipse cx="50" cy="65" rx="22" ry="18" fill="#FAF0E8"/>
+  <!-- White stripe up nose -->
+  <path d="M46,42 Q50,38 54,42 L53,57 Q50,59 47,57 Z" fill="#FAF0E8"/>
+  <!-- Eyes (one slightly bigger - quirky) -->
+  <ellipse cx="37" cy="48" rx="5.5" ry="6" fill="#5DA65D"/>
+  <ellipse cx="63" cy="48" rx="5" ry="5.5" fill="#5DA65D"/>
+  <ellipse cx="38" cy="47" rx="2" ry="3.5" fill="#1A1A2E"/>
+  <ellipse cx="64" cy="47" rx="2" ry="3" fill="#1A1A2E"/>
+  <circle cx="39.5" cy="45.5" r="1.2" fill="white"/>
+  <circle cx="65" cy="45.5" r="1" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="56" rx="3" ry="2" fill="#E88080"/>
+  <!-- Mouth - slight smirk -->
+  <path d="M47,58 Q50,62 54,59" fill="none" stroke="#C07070" stroke-width="1" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="12" y1="53" x2="34" y2="56" stroke="#D0A070" stroke-width="0.7"/>
+  <line x1="12" y1="58" x2="34" y2="59" stroke="#D0A070" stroke-width="0.7"/>
+  <line x1="14" y1="63" x2="35" y2="61" stroke="#D0A070" stroke-width="0.7"/>
+  <line x1="66" y1="56" x2="88" y2="53" stroke="#D0A070" stroke-width="0.7"/>
+  <line x1="66" y1="59" x2="88" y2="58" stroke="#D0A070" stroke-width="0.7"/>
+  <line x1="65" y1="61" x2="86" y2="63" stroke="#D0A070" stroke-width="0.7"/>
+</svg>

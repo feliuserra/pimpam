@@ -7,11 +7,12 @@ Design constraints (per CLAUDE.md):
   - Reported stories are soft-deleted and retained 48 h for mod review.
   - Hourly cleanup task (app/main.py) hard-deletes expired non-reported stories.
 """
+
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, or_, select
+from sqlalchemy import or_, select
 
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
@@ -28,6 +29,7 @@ ALLOWED_DURATIONS = {12, 24, 48, 168}  # hours
 # ---------------------------------------------------------------------------
 # Schemas (inline — simple enough not to need a separate file)
 # ---------------------------------------------------------------------------
+
 
 class StoryCreate(BaseModel):
     image_url: str = Field(..., max_length=500)
@@ -50,6 +52,7 @@ class StoryPublic(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.post("", response_model=StoryPublic, status_code=status.HTTP_201_CREATED)
 @limiter.limit("20/hour")
@@ -142,6 +145,39 @@ async def get_stories_feed(
             created_at=story.created_at,
         )
         for story, user in rows
+    ]
+
+
+@router.get("/me", response_model=list[StoryPublic])
+@limiter.limit("60/minute")
+async def get_my_stories(
+    request: Request,
+    current_user: CurrentUser,
+    db: DBSession,
+):
+    """Return the current user's own active (non-expired) stories."""
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(Story)
+        .where(
+            Story.author_id == current_user.id,
+            Story.expires_at > now,
+            Story.is_removed == False,  # noqa: E712
+        )
+        .order_by(Story.created_at.desc())
+    )
+    stories = result.scalars().all()
+    return [
+        StoryPublic(
+            id=s.id,
+            author_id=s.author_id,
+            author_username=current_user.username,
+            author_avatar_url=current_user.avatar_url,
+            image_url=s.image_url,
+            caption=s.caption,
+            created_at=s.created_at,
+        )
+        for s in stories
     ]
 
 

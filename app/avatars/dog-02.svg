@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Dalmatian -->
+  <circle cx="50" cy="50" r="50" fill="#E8E8E8"/>
+  <!-- Floppy ears -->
+  <ellipse cx="22" cy="46" rx="11" ry="17" fill="#1A1A1A" transform="rotate(-8 22 46)"/>
+  <ellipse cx="78" cy="46" rx="11" ry="17" fill="#1A1A1A" transform="rotate(8 78 46)"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="52" rx="28" ry="27" fill="#F5F5F5"/>
+  <!-- Spots -->
+  <circle cx="34" cy="38" r="5" fill="#1A1A1A"/>
+  <circle cx="62" cy="36" r="4" fill="#1A1A1A"/>
+  <circle cx="70" cy="50" r="3.5" fill="#1A1A1A"/>
+  <circle cx="28" cy="55" r="3" fill="#1A1A1A"/>
+  <circle cx="55" cy="42" r="2.5" fill="#1A1A1A"/>
+  <!-- Muzzle -->
+  <ellipse cx="50" cy="62" rx="15" ry="13" fill="#F0F0F0"/>
+  <ellipse cx="50" cy="66" rx="11" ry="9" fill="#FAFAFA"/>
+  <!-- Eyes -->
+  <ellipse cx="38" cy="46" rx="4.5" ry="5" fill="#5A3818"/>
+  <ellipse cx="62" cy="46" rx="4.5" ry="5" fill="#5A3818"/>
+  <circle cx="39.5" cy="44.5" r="1.5" fill="white"/>
+  <circle cx="63.5" cy="44.5" r="1.5" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="57" rx="5" ry="3.5" fill="#1A1A1A"/>
+  <!-- Mouth -->
+  <path d="M46,61 Q50,66 54,61" fill="none" stroke="#888" stroke-width="1" stroke-linecap="round"/>
+</svg>

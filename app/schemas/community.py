@@ -25,6 +25,7 @@ class CommunityPublic(BaseModel):
     description: str | None
     owner_id: int
     member_count: int
+    is_news: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}

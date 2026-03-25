@@ -85,6 +85,7 @@ async def get_chronological_feed(
     Removed posts are excluded. A post that matches both conditions (followed
     author AND joined community) appears only once via the OR condition.
     """
+    from app.crud.block import get_blocked_user_ids, get_blocker_ids
     from app.models.community import CommunityMember
 
     followed_ids = select(Follow.followed_id).where(
@@ -99,6 +100,11 @@ async def get_chronological_feed(
     viewer_group_ids = select(FriendGroupMember.group_id).where(
         FriendGroupMember.member_id == user_id
     )
+
+    # Exclude blocked users (both directions) from the feed
+    blocked_ids = await get_blocked_user_ids(db, user_id)
+    blocker_ids = await get_blocker_ids(db, user_id)
+    hidden_user_ids = blocked_ids | blocker_ids
 
     query = (
         select(Post)
@@ -119,6 +125,9 @@ async def get_chronological_feed(
         .order_by(Post.created_at.desc())
         .limit(limit)
     )
+
+    if hidden_user_ids:
+        query = query.where(Post.author_id.not_in(hidden_user_ids))
     if before_id is not None:
         subq = select(Post.created_at).where(Post.id == before_id).scalar_subquery()
         query = query.where(Post.created_at < subq)

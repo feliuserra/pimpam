@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
@@ -12,7 +13,9 @@ class UserCreate(BaseModel):
     @classmethod
     def username_alphanumeric(cls, v: str) -> str:
         if not v.replace("_", "").replace("-", "").isalnum():
-            raise ValueError("Username may only contain letters, numbers, hyphens, and underscores")
+            raise ValueError(
+                "Username may only contain letters, numbers, hyphens, and underscores"
+            )
         if len(v) < 3 or len(v) > 50:
             raise ValueError("Username must be between 3 and 50 characters")
         return v.lower()
@@ -29,6 +32,7 @@ class UserUpdate(BaseModel):
     display_name: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+    e2ee_public_key: str | None = None
 
 
 class UserPublic(BaseModel):
@@ -44,6 +48,7 @@ class UserPublic(BaseModel):
     follower_count: int = 0
     following_count: int = 0
     is_following: bool | None = None  # None on own profile or unauthenticated
+    e2ee_public_key: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -60,7 +65,8 @@ class UserLogin(BaseModel):
 
 class TotpSetupResponse(BaseModel):
     """Returned by POST /auth/totp/setup. Client renders `uri` as a QR code."""
-    uri: str     # otpauth:// provisioning URI
+
+    uri: str  # otpauth:// provisioning URI
     secret: str  # raw base32 secret for manual entry in authenticator apps
 
 
@@ -70,4 +76,4 @@ class TotpVerifyRequest(BaseModel):
 
 class TotpDisableRequest(BaseModel):
     password: str  # current account password
-    code: str      # current valid TOTP code
+    code: str  # current valid TOTP code

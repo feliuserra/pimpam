@@ -1,4 +1,10 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.user import User  # noqa: F401
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -26,6 +32,8 @@ class Message(Base):
     ciphertext: Mapped[str] = mapped_column(Text, nullable=False)
     # AES key encrypted with recipient's public key
     encrypted_key: Mapped[str] = mapped_column(Text, nullable=False)
+    # AES key encrypted with sender's own public key (so sender can re-read)
+    sender_encrypted_key: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(

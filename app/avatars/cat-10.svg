@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Cream/beige cat with amber eyes -->
+  <circle cx="50" cy="50" r="50" fill="#E8D8C0"/>
+  <!-- Ears -->
+  <path d="M24,36 Q20,16 33,10 Q42,16 38,34" fill="#D8C8A8"/>
+  <path d="M62,34 Q58,16 67,10 Q80,16 76,36" fill="#D8C8A8"/>
+  <path d="M27,33 Q24,19 33,14 Q39,19 36,32" fill="#E8C8B0"/>
+  <path d="M64,32 Q61,19 67,14 Q76,19 73,33" fill="#E8C8B0"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="54" rx="28" ry="26" fill="#F0E0C8"/>
+  <!-- Lighter muzzle -->
+  <ellipse cx="50" cy="62" rx="14" ry="12" fill="#F8F0E0"/>
+  <!-- Eyes - amber -->
+  <ellipse cx="38" cy="48" rx="5.5" ry="5.5" fill="#D4A020"/>
+  <ellipse cx="62" cy="48" rx="5.5" ry="5.5" fill="#D4A020"/>
+  <ellipse cx="39" cy="47" rx="2" ry="3" fill="#1A1A2E"/>
+  <ellipse cx="63" cy="47" rx="2" ry="3" fill="#1A1A2E"/>
+  <circle cx="40" cy="45.5" r="1.2" fill="#F0D870"/>
+  <circle cx="64" cy="45.5" r="1.2" fill="#F0D870"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="56" rx="3" ry="2" fill="#E8A0A0"/>
+  <!-- Mouth -->
+  <path d="M47,58 Q50,62 53,58" fill="none" stroke="#C08888" stroke-width="1" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="14" y1="54" x2="36" y2="56" stroke="#C0B0A0" stroke-width="0.7"/>
+  <line x1="14" y1="59" x2="36" y2="59" stroke="#C0B0A0" stroke-width="0.7"/>
+  <line x1="64" y1="56" x2="86" y2="54" stroke="#C0B0A0" stroke-width="0.7"/>
+  <line x1="64" y1="59" x2="86" y2="59" stroke="#C0B0A0" stroke-width="0.7"/>
+</svg>

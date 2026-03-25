@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Bernese Mountain Dog (tricolor) -->
+  <circle cx="50" cy="50" r="50" fill="#1A1A1A"/>
+  <!-- Floppy ears -->
+  <ellipse cx="22" cy="48" rx="12" ry="18" fill="#101010" transform="rotate(-10 22 48)"/>
+  <ellipse cx="78" cy="48" rx="12" ry="18" fill="#101010" transform="rotate(10 78 48)"/>
+  <ellipse cx="23" cy="48" rx="9" ry="14" fill="#1A1A1A" transform="rotate(-10 23 48)"/>
+  <ellipse cx="77" cy="48" rx="9" ry="14" fill="#1A1A1A" transform="rotate(10 77 48)"/>
+  <!-- Face - black -->
+  <ellipse cx="50" cy="52" rx="28" ry="27" fill="#222222"/>
+  <!-- Rust/tan markings over eyes -->
+  <ellipse cx="36" cy="42" rx="6" ry="4" fill="#B07030"/>
+  <ellipse cx="64" cy="42" rx="6" ry="4" fill="#B07030"/>
+  <!-- Rust on cheeks -->
+  <ellipse cx="32" cy="56" rx="5" ry="5" fill="#A06828"/>
+  <ellipse cx="68" cy="56" rx="5" ry="5" fill="#A06828"/>
+  <!-- White blaze -->
+  <path d="M44,30 Q50,26 56,30 L54,56 Q50,59 46,56 Z" fill="#F0F0F0"/>
+  <!-- White muzzle -->
+  <ellipse cx="50" cy="64" rx="16" ry="13" fill="#F0F0F0"/>
+  <!-- White chest -->
+  <ellipse cx="50" cy="76" rx="18" ry="10" fill="#F0F0F0"/>
+  <!-- Eyes -->
+  <ellipse cx="38" cy="47" rx="5" ry="5.5" fill="#5A3010"/>
+  <ellipse cx="62" cy="47" rx="5" ry="5.5" fill="#5A3010"/>
+  <ellipse cx="39" cy="46" rx="2" ry="3" fill="#1A1A1A"/>
+  <ellipse cx="63" cy="46" rx="2" ry="3" fill="#1A1A1A"/>
+  <circle cx="40" cy="44.5" r="1.2" fill="#8A5828"/>
+  <circle cx="64" cy="44.5" r="1.2" fill="#8A5828"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="57" rx="5" ry="3.5" fill="#0A0A0A"/>
+  <!-- Mouth -->
+  <path d="M45,62 Q50,67 55,62" fill="none" stroke="#AAA" stroke-width="1" stroke-linecap="round"/>
+  <!-- Tongue -->
+  <ellipse cx="50" cy="67" rx="3.5" ry="4" fill="#E87888"/>
+</svg>

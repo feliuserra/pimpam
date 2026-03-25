@@ -67,3 +67,11 @@ class PostPublic(BaseModel):
     user_vote: int | None = None
 
     model_config = {"from_attributes": True}
+
+
+class LinkPreview(BaseModel):
+    url: str
+    title: str | None = None
+    description: str | None = None
+    image: str | None = None
+    site_name: str | None = None

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- German Shepherd -->
+  <circle cx="50" cy="50" r="50" fill="#8A6A3A"/>
+  <!-- Perky ears -->
+  <path d="M22,38 Q16,10 34,10 Q40,18 36,36" fill="#2A1A0A"/>
+  <path d="M64,36 Q60,18 66,10 Q84,10 78,38" fill="#2A1A0A"/>
+  <path d="M25,35 Q20,14 34,14 Q38,20 35,34" fill="#4A3018"/>
+  <path d="M65,34 Q62,20 66,14 Q80,14 75,35" fill="#4A3018"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="52" rx="27" ry="26" fill="#A07838"/>
+  <!-- Black mask -->
+  <ellipse cx="50" cy="58" rx="20" ry="18" fill="#2A1A0A" opacity="0.5"/>
+  <!-- Tan muzzle -->
+  <ellipse cx="50" cy="63" rx="15" ry="13" fill="#C09050"/>
+  <ellipse cx="50" cy="66" rx="11" ry="9" fill="#D0A060"/>
+  <!-- Eyes -->
+  <ellipse cx="38" cy="46" rx="5" ry="5" fill="#4A2808"/>
+  <ellipse cx="62" cy="46" rx="5" ry="5" fill="#4A2808"/>
+  <circle cx="39.5" cy="44.5" r="1.3" fill="#7A5020"/>
+  <circle cx="63.5" cy="44.5" r="1.3" fill="#7A5020"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="57" rx="5" ry="3.5" fill="#1A1A1A"/>
+  <!-- Mouth -->
+  <path d="M46,61 Q50,66 54,61" fill="none" stroke="#5A3A18" stroke-width="1" stroke-linecap="round"/>
+  <!-- Eyebrows - tan marks -->
+  <ellipse cx="36" cy="40" rx="4" ry="2" fill="#C09050"/>
+  <ellipse cx="64" cy="40" rx="4" ry="2" fill="#C09050"/>
+</svg>

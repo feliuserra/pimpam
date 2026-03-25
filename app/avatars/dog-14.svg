@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Rottweiler (black/tan markings) -->
+  <circle cx="50" cy="50" r="50" fill="#1A1A1A"/>
+  <!-- Floppy ears -->
+  <ellipse cx="24" cy="42" rx="10" ry="14" fill="#101010" transform="rotate(-8 24 42)"/>
+  <ellipse cx="76" cy="42" rx="10" ry="14" fill="#101010" transform="rotate(8 76 42)"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="52" rx="28" ry="27" fill="#222222"/>
+  <!-- Tan markings - eyebrow dots -->
+  <circle cx="36" cy="40" r="4" fill="#B07830"/>
+  <circle cx="64" cy="40" r="4" fill="#B07830"/>
+  <!-- Tan cheeks -->
+  <ellipse cx="34" cy="56" rx="6" ry="5" fill="#A06828"/>
+  <ellipse cx="66" cy="56" rx="6" ry="5" fill="#A06828"/>
+  <!-- Tan muzzle -->
+  <ellipse cx="50" cy="63" rx="15" ry="13" fill="#B07830"/>
+  <ellipse cx="50" cy="66" rx="11" ry="9" fill="#C08840"/>
+  <!-- Eyes -->
+  <ellipse cx="38" cy="47" rx="5" ry="5.5" fill="#5A3010"/>
+  <ellipse cx="62" cy="47" rx="5" ry="5.5" fill="#5A3010"/>
+  <ellipse cx="39" cy="46" rx="2" ry="3" fill="#0A0A0A"/>
+  <ellipse cx="63" cy="46" rx="2" ry="3" fill="#0A0A0A"/>
+  <circle cx="40" cy="44.5" r="1.2" fill="#8A5828"/>
+  <circle cx="64" cy="44.5" r="1.2" fill="#8A5828"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="57" rx="5.5" ry="4" fill="#0A0A0A"/>
+  <!-- Mouth -->
+  <path d="M46,62 Q50,67 54,62" fill="none" stroke="#6A4020" stroke-width="1.2" stroke-linecap="round"/>
+</svg>
