@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <defs>
+    <style>
+    @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400&amp;display=swap");
+    text { font-family: "DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  </style>
+  </defs>
+  <rect width="80" height="80" rx="16" fill="#03045e"/>
+  <circle cx="40" cy="40" r="36.0" fill="#0077b6" opacity="0.30"/>
+  <circle cx="40" cy="40" r="24.8" fill="#0077b6" opacity="0.58"/>
+  <circle cx="40" cy="40" r="15.8" fill="#00b4d8"/>
+  <circle cx="40" cy="40" r="7.9" fill="#caf0f8"/>
+</svg>
