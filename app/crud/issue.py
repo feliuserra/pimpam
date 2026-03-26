@@ -35,6 +35,7 @@ async def list_issues(
     sort: str = "votes",
     category: str | None = None,
     status_filter: str | None = None,
+    closed: bool | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[Issue]:
@@ -43,6 +44,8 @@ async def list_issues(
         query = query.where(Issue.category == category)
     if status_filter:
         query = query.where(Issue.status == status_filter)
+    if closed is not None:
+        query = query.where(Issue.is_closed == closed)
     if sort == "votes":
         query = query.order_by(Issue.vote_count.desc(), Issue.created_at.desc())
     else:
@@ -135,3 +138,23 @@ async def list_issue_comments(
         .offset(offset)
     )
     return list(result.scalars().all())
+
+
+async def close_issue(db: AsyncSession, issue: Issue) -> Issue:
+    """Mark an issue as closed."""
+    from datetime import datetime, timezone
+
+    issue.is_closed = True
+    issue.closed_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(issue)
+    return issue
+
+
+async def reopen_issue(db: AsyncSession, issue: Issue) -> Issue:
+    """Reopen a closed issue."""
+    issue.is_closed = False
+    issue.closed_at = None
+    await db.commit()
+    await db.refresh(issue)
+    return issue

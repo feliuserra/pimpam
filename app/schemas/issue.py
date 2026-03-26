@@ -31,6 +31,8 @@ class IssuePublic(BaseModel):
     comment_count: int
     device_info: str | None = None
     is_security: bool
+    is_closed: bool = False
+    closed_at: datetime | None = None
     has_voted: bool = False  # whether the current user has voted
     created_at: datetime
     updated_at: datetime

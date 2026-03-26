@@ -116,3 +116,41 @@ async def get_news(
     posts = list(result.scalars().all())
     user_id = current_user.id if current_user else None
     return await annotate_posts_with_user_vote(db, posts, user_id)
+
+
+@router.get("/for-you", response_model=list[PostPublic])
+@limiter.limit("60/minute")
+async def get_for_you(
+    request: Request,
+    current_user: CurrentUser,
+    db: DBSession,
+    limit: int = Query(default=20, le=50),
+    before_id: int | None = Query(default=None),
+):
+    """
+    Personalised discover feed based on explicit interest signals.
+
+    Shows posts that match hashtags you subscribe to, or posts picked by
+    moderators in communities you've joined. Strictly chronological — no
+    scoring, no weighting. Every post includes attribution explaining why
+    it appeared.
+
+    Formula: posts matching subscribed hashtags OR picked in joined communities,
+    ordered by created_at DESC. Reproducible with a spreadsheet.
+    """
+    from app.crud.discover_feed import get_for_you_feed
+
+    items = await get_for_you_feed(
+        db, current_user.id, limit=limit, before_id=before_id
+    )
+    if not items:
+        return []
+
+    posts = [item["post"] for item in items]
+    annotated = await annotate_posts_with_user_vote(db, posts, current_user.id)
+
+    # Attach attribution to each annotated post
+    for post_public, item in zip(annotated, items):
+        post_public.attribution = item["attribution"]
+
+    return annotated

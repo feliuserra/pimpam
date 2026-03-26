@@ -46,6 +46,14 @@ class PostImagePublic(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PostAttribution(BaseModel):
+    type: str  # "hashtag" or "pick"
+    hashtag: str | None = None
+    curator_username: str | None = None
+    community_name: str | None = None
+    note: str | None = None
+
+
 class PostPublic(BaseModel):
     id: int
     title: str
@@ -72,6 +80,7 @@ class PostPublic(BaseModel):
     friend_group_id: int | None = None
     user_vote: int | None = None
     hashtags: list[str] = []
+    attribution: list[PostAttribution] | None = None
 
     model_config = {"from_attributes": True}
 

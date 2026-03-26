@@ -28,3 +28,7 @@ class PreferenceUpdate(BaseModel):
 
 class UnreadCount(BaseModel):
     count: int
+
+
+class NotificationIds(BaseModel):
+    ids: list[int]

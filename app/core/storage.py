@@ -69,11 +69,68 @@ def _process_image(data: bytes, max_px: int) -> bytes:
     return out.getvalue()
 
 
+def _is_gif(data: bytes) -> bool:
+    """Check if image data is an animated GIF (or any GIF)."""
+    try:
+        img = Image.open(io.BytesIO(data))
+        return img.format == "GIF"
+    except Exception:
+        return False
+
+
+def _process_gif(data: bytes, max_px: int) -> bytes:
+    """
+    Resize an animated GIF while preserving all frames.
+    Returns GIF bytes (not WebP).
+    """
+    try:
+        img = Image.open(io.BytesIO(data))
+        img.verify()
+        img = Image.open(io.BytesIO(data))
+    except Exception:
+        raise ValueError("File is not a valid image")
+
+    # Calculate new size preserving aspect ratio
+    w, h = img.size
+    if max(w, h) <= max_px:
+        # No resize needed — validate and return as-is
+        return data
+
+    scale = max_px / max(w, h)
+    new_size = (int(w * scale), int(h * scale))
+
+    frames = []
+    durations = []
+    try:
+        while True:
+            frame = img.copy().resize(new_size, Image.Resampling.LANCZOS)
+            frames.append(frame)
+            durations.append(img.info.get("duration", 100))
+            img.seek(img.tell() + 1)
+    except EOFError:
+        pass
+
+    if not frames:
+        raise ValueError("File is not a valid image")
+
+    out = io.BytesIO()
+    frames[0].save(
+        out,
+        format="GIF",
+        save_all=True,
+        append_images=frames[1:],
+        duration=durations,
+        loop=img.info.get("loop", 0),
+        optimize=False,
+    )
+    return out.getvalue()
+
+
 def upload_image(data: bytes, media_type: str) -> str:
     """
     Validate, process, and upload an image. Returns its public URL.
 
-    media_type: "avatar" | "post_image"
+    media_type: "avatar" | "post_image" | "cover_image"
     """
     if len(data) > settings.media_max_upload_bytes:
         raise ValueError(
@@ -85,7 +142,17 @@ def upload_image(data: bytes, media_type: str) -> str:
     else:
         max_px = settings.media_post_image_max_px
 
-    webp_data = _process_image(data, max_px)
+    # Preserve GIF animation for cover images
+    is_animated_gif = media_type == "cover_image" and _is_gif(data)
+
+    if is_animated_gif:
+        processed = _process_gif(data, max_px)
+        ext = "gif"
+        content_type = "image/gif"
+    else:
+        processed = _process_image(data, max_px)
+        ext = "webp"
+        content_type = "image/webp"
 
     folders = {
         "avatar": "avatars",
@@ -93,13 +160,13 @@ def upload_image(data: bytes, media_type: str) -> str:
         "cover_image": "covers",
     }
     folder = folders.get(media_type, "uploads")
-    key = f"{folder}/{uuid.uuid4()}.webp"
+    key = f"{folder}/{uuid.uuid4()}.{ext}"
 
     _s3().put_object(
         Bucket=settings.storage_bucket,
         Key=key,
-        Body=webp_data,
-        ContentType="image/webp",
+        Body=processed,
+        ContentType=content_type,
     )
 
     return f"{settings.storage_public_url.rstrip('/')}/{key}"

@@ -196,9 +196,17 @@ app.include_router(stories.router, prefix=_prefix)
 app.include_router(post_comments_router, prefix=_prefix)
 app.include_router(comments_router, prefix=_prefix)
 
-from app.api.v1 import admin, community_labels, hashtags, issues, reports  # noqa: E402
+from app.api.v1 import (  # noqa: E402
+    admin,
+    community_labels,
+    curated_picks,
+    hashtags,
+    issues,
+    reports,
+)
 
 app.include_router(community_labels.router, prefix=_prefix)
+app.include_router(curated_picks.router, prefix=_prefix)
 app.include_router(hashtags.router, prefix=_prefix)
 
 app.include_router(reports.router, prefix=_prefix)

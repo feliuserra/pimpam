@@ -50,6 +50,8 @@ async def _enrich_issue(db, issue, user_id: int | None = None) -> IssuePublic:
         comment_count=issue.comment_count,
         device_info=issue.device_info,
         is_security=issue.is_security,
+        is_closed=issue.is_closed,
+        closed_at=issue.closed_at,
         has_voted=voted,
         created_at=issue.created_at,
         updated_at=issue.updated_at,
@@ -87,6 +89,7 @@ async def list_all(
     status_filter: str | None = Query(
         None, alias="status", pattern="^(open|in_progress|completed|rejected)$"
     ),
+    closed: bool | None = Query(None),
     limit: int = Query(default=50, le=200),
     offset: int = Query(default=0, ge=0),
 ):
@@ -96,6 +99,7 @@ async def list_all(
         sort=sort,
         category=category,
         status_filter=status_filter,
+        closed=closed,
         limit=limit,
         offset=offset,
     )
@@ -122,6 +126,8 @@ async def list_all(
                 comment_count=issue.comment_count,
                 device_info=issue.device_info,
                 is_security=issue.is_security,
+                is_closed=issue.is_closed,
+                closed_at=issue.closed_at,
                 has_voted=issue.id in voted_set,
                 created_at=issue.created_at,
                 updated_at=issue.updated_at,
@@ -255,3 +261,48 @@ async def update_issue(
     await db.commit()
     await db.refresh(issue)
     return await _enrich_issue(db, issue, admin.id)
+
+
+# --- Close / Reopen ---
+
+
+@router.post("/{issue_id}/close", response_model=IssuePublic)
+async def close(
+    issue_id: int,
+    db: DBSession,
+    current_user: CurrentUser,
+):
+    """Close an issue. Author or admin only."""
+    from app.crud.issue import close_issue
+
+    issue = await get_issue(db, issue_id)
+    if issue is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Issue not found")
+    is_admin = getattr(current_user, "is_admin", False)
+    if issue.author_id != current_user.id and not is_admin:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not allowed")
+    if issue.is_closed:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Issue is already closed")
+    issue = await close_issue(db, issue)
+    return await _enrich_issue(db, issue, current_user.id)
+
+
+@router.post("/{issue_id}/reopen", response_model=IssuePublic)
+async def reopen(
+    issue_id: int,
+    db: DBSession,
+    current_user: CurrentUser,
+):
+    """Reopen a closed issue. Author or admin only."""
+    from app.crud.issue import reopen_issue
+
+    issue = await get_issue(db, issue_id)
+    if issue is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Issue not found")
+    is_admin = getattr(current_user, "is_admin", False)
+    if issue.author_id != current_user.id and not is_admin:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not allowed")
+    if not issue.is_closed:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Issue is not closed")
+    issue = await reopen_issue(db, issue)
+    return await _enrich_issue(db, issue, current_user.id)
