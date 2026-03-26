@@ -113,3 +113,51 @@
   flex: 1;
   min-width: 0;
 }
+
+/* For You empty state */
+.emptyState {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.emptyTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.emptyText {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1rem;
+}
+
+.emptyLinks {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.emptyLink {
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.emptyLink:hover {
+  background: var(--gray-100);
+}
+
+.emptyFormula {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: 0;
+}

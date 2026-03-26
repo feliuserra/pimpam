@@ -275,6 +275,92 @@
   padding: 1rem;
 }
 
+/* Curated picks */
+.picksSection {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.picksTitle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px;
+}
+
+.pickWrap {
+  position: relative;
+}
+
+.pickHeader {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pickHeader strong {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.pickNote {
+  font-style: italic;
+}
+
+.pickRemove {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.pickRemove:hover {
+  color: var(--color-danger, #e53e3e);
+  background: var(--gray-100);
+}
+
+/* Pick action on posts */
+.postWithAction {
+  position: relative;
+}
+
+.pickAction {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  z-index: 1;
+}
+
+.pickAction:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.pickAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 @media (prefers-color-scheme: dark) {
   .role_owner {
     background: #451a03;

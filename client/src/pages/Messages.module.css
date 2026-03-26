@@ -82,11 +82,28 @@
 
 .convName {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+}
+
+.convTime {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.convPreview {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+  line-height: 1.3;
 }
 
 .unread {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--color-accent);
 }

@@ -72,6 +72,22 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
 
   return (
     <article className={styles.card}>
+      {/* Attribution — explains why this post appeared in For You */}
+      {post.attribution && post.attribution.length > 0 && (
+        <div className={styles.attributionHeader}>
+          {post.attribution.map((attr, i) => (
+            <span key={i} className={styles.attributionItem}>
+              {attr.type === "hashtag" && (
+                <>because you follow <Link to={`/tag/${attr.hashtag}`}>#{attr.hashtag}</Link></>
+              )}
+              {attr.type === "pick" && (
+                <>Picked by <Link to={`/u/${attr.curator_username}`}>@{attr.curator_username}</Link>{attr.community_name && <> in <Link to={`/c/${attr.community_name}`}>c/{attr.community_name}</Link></>}</>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Share header */}
       {isShare && (
         <div className={styles.shareHeader}>

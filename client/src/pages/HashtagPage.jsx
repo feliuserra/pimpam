@@ -3,12 +3,16 @@ import { useParams } from "react-router-dom";
 import Header from "../components/Header";
 import PostCard from "../components/PostCard";
 import Spinner from "../components/ui/Spinner";
+import { useAuth } from "../contexts/AuthContext";
 import { useCloseFriends } from "../contexts/CloseFriendsContext";
+import { useToast } from "../contexts/ToastContext";
 import * as hashtagsApi from "../api/hashtags";
 import styles from "./HashtagPage.module.css";
 
 export default function HashtagPage() {
+  const { user } = useAuth();
   const { isCloseFriend } = useCloseFriends();
+  const { addToast } = useToast();
   const { name } = useParams();
   const [hashtag, setHashtag] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -16,6 +20,8 @@ export default function HashtagPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subBusy, setSubBusy] = useState(false);
   const sentinel = useRef(null);
 
   useEffect(() => {
@@ -29,6 +35,7 @@ export default function HashtagPage() {
     ])
       .then(([tagRes, postsRes]) => {
         setHashtag(tagRes.data);
+        setIsSubscribed(tagRes.data.is_subscribed || false);
         setPosts(postsRes.data || []);
         setHasMore((postsRes.data || []).length >= 20);
       })
@@ -65,6 +72,25 @@ export default function HashtagPage() {
   const handlePostDelete = (id) =>
     setPosts((prev) => prev.filter((p) => p.id !== id));
 
+  const toggleSubscription = async () => {
+    if (subBusy) return;
+    setSubBusy(true);
+    const wasSub = isSubscribed;
+    setIsSubscribed(!wasSub);
+    try {
+      if (wasSub) {
+        await hashtagsApi.unsubscribe(name);
+      } else {
+        await hashtagsApi.subscribe(name);
+      }
+    } catch {
+      setIsSubscribed(wasSub);
+      addToast(wasSub ? "Failed to unsubscribe" : "Failed to subscribe", "error");
+    } finally {
+      setSubBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -88,9 +114,23 @@ export default function HashtagPage() {
       <Header left={<span>#{name}</span>} />
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.name}>#{hashtag?.name}</h1>
+          <div className={styles.headerTop}>
+            <h1 className={styles.name}>#{hashtag?.name}</h1>
+            {user && (
+              <button
+                className={`${styles.followBtn} ${isSubscribed ? styles.following : ""}`}
+                onClick={toggleSubscription}
+                disabled={subBusy}
+              >
+                {isSubscribed ? "Following" : "Follow"}
+              </button>
+            )}
+          </div>
           <span className={styles.count}>
             {hashtag?.post_count} {hashtag?.post_count === 1 ? "post" : "posts"}
+            {hashtag?.subscriber_count > 0 && (
+              <> &middot; {hashtag.subscriber_count} {hashtag.subscriber_count === 1 ? "follower" : "followers"}</>
+            )}
           </span>
         </div>
 

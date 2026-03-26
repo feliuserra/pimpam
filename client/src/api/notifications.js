@@ -12,3 +12,11 @@ export const getPreferences = () => api.get("/notifications/preferences");
 
 export const updatePreference = (notification_type, enabled) =>
   api.patch("/notifications/preferences", { notification_type, enabled });
+
+export const dismiss = (id) => api.delete(`/notifications/${id}`);
+
+export const dismissBatch = (ids) =>
+  api.post("/notifications/dismiss", { ids });
+
+export const markReadBatch = (ids) =>
+  api.post("/notifications/mark-read", { ids });

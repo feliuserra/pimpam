@@ -145,6 +145,58 @@
   color: #92400e;
 }
 
+.closedBadge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: #6b7280;
+  color: #fff;
+}
+
+.closeBtn {
+  margin-top: 12px;
+  padding: 6px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 6px);
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.closeBtn:hover:not(:disabled) {
+  border-color: var(--color-danger, #e53e3e);
+  color: var(--color-danger, #e53e3e);
+}
+
+.closeBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.reopenBtn {
+  margin-top: 12px;
+  padding: 6px 16px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius, 6px);
+  background: none;
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.reopenBtn:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.reopenBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .description {
   font-size: 0.9375rem;
   line-height: 1.7;
@@ -308,4 +360,5 @@
   .statusInProgress { background: #172554; color: #93c5fd; }
   .statusCompleted { background: #052e16; color: #86efac; }
   .statusRejected { background: #450a0a; color: #fca5a5; }
+  .closedBadge { background: #4b5563; }
 }

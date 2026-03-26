@@ -121,7 +121,9 @@ export default function Messages() {
                     <div className={styles.convBody}>
                       <div className={styles.convHeader}>
                         <span className={styles.convName}>@{c.other_username}</span>
-                        <RelativeTime date={c.last_message_at} />
+                        <span className={styles.convTime}>
+                          <RelativeTime date={c.last_message_at} />
+                        </span>
                       </div>
                       {c.unread_count > 0 && (
                         <span className={styles.unread}>{c.unread_count} unread</span>

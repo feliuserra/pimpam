@@ -6,6 +6,26 @@
   margin-bottom: 0.5rem;
 }
 
+/* Attribution — For You feed reason */
+.attributionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.attributionItem a {
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.attributionItem a:hover {
+  text-decoration: underline;
+}
+
 /* Share header */
 .shareHeader {
   display: flex;

@@ -8,11 +8,50 @@
   padding: 16px 1rem;
 }
 
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .name {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--color-accent);
   margin: 0;
+}
+
+.followBtn {
+  padding: 6px 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 20px;
+  background: var(--color-accent);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.followBtn:hover {
+  opacity: 0.9;
+}
+
+.followBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.following {
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.following:hover {
+  background: rgba(var(--accent-rgb, 59, 130, 246), 0.08);
+  opacity: 1;
 }
 
 .count {

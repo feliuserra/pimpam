@@ -22,3 +22,11 @@ export const update = (name, data) => api.patch(`/communities/${name}`, data);
 
 export const getAuditLog = (name, params) =>
   api.get(`/communities/${name}/audit-log`, { params });
+
+export const getPicks = (name) => api.get(`/communities/${name}/picks`);
+
+export const createPick = (name, data) =>
+  api.post(`/communities/${name}/picks`, data);
+
+export const removePick = (name, pickId) =>
+  api.delete(`/communities/${name}/picks/${pickId}`);

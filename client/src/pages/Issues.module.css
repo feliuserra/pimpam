@@ -218,6 +218,50 @@
   color: #92400e;
 }
 
+.closedBadge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: #6b7280;
+  color: #fff;
+}
+
+.closedToggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.toggleBtn {
+  padding: 4px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggleBtn:hover {
+  background: var(--color-surface);
+}
+
+.toggleBtnActive {
+  composes: toggleBtn;
+  background: var(--accent);
+  color: #fff;
+}
+
+.filterSep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
 .statusBadge {
   padding: 1px 6px;
   border-radius: 4px;
@@ -374,5 +418,8 @@
   .statusRejected {
     background: #450a0a;
     color: #fca5a5;
+  }
+  .closedBadge {
+    background: #4b5563;
   }
 }

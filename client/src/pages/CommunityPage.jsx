@@ -42,6 +42,8 @@ export default function CommunityPage() {
   const [showAudit, setShowAudit] = useState(false);
   const [labels, setLabels] = useState([]);
   const [activeLabel, setActiveLabel] = useState(null);
+  const [picks, setPicks] = useState([]);
+  const [pickBusy, setPickBusy] = useState(null);
 
   // Load community info (includes user_role when authenticated)
   useEffect(() => {
@@ -61,6 +63,7 @@ export default function CommunityPage() {
         if (!cancelled) setLoading(false);
       });
     labelsApi.list(name).then((r) => { if (!cancelled) setLabels(r.data); }).catch(() => {});
+    communitiesApi.getPicks(name).then((r) => { if (!cancelled) setPicks(r.data || []); }).catch(() => {});
     return () => { cancelled = true; };
   }, [name, user]);
 
@@ -87,6 +90,37 @@ export default function CommunityPage() {
   const joined = !!userRole;
   const isMod = MOD_ROLES.has(userRole);
   const canEditAvatar = isMod || getattr(user, "is_admin");
+
+  const handlePick = async (postId) => {
+    if (pickBusy) return;
+    setPickBusy(postId);
+    try {
+      await communitiesApi.createPick(name, { post_id: postId });
+      const res = await communitiesApi.getPicks(name);
+      setPicks(res.data || []);
+      addToast("Post picked", "success");
+    } catch (err) {
+      addToast(err.response?.data?.detail || "Failed to pick post", "error");
+    } finally {
+      setPickBusy(null);
+    }
+  };
+
+  const handleUnpick = async (pickId) => {
+    if (pickBusy) return;
+    setPickBusy(pickId);
+    try {
+      await communitiesApi.removePick(name, pickId);
+      setPicks((prev) => prev.filter((p) => p.id !== pickId));
+      addToast("Pick removed", "success");
+    } catch {
+      addToast("Failed to remove pick", "error");
+    } finally {
+      setPickBusy(null);
+    }
+  };
+
+  const pickedPostIds = new Set(picks.map((p) => p.post_id));
 
   const toggleJoin = async () => {
     if (joinBusy || !user) return;
@@ -274,18 +308,61 @@ export default function CommunityPage() {
           </div>
         )}
 
+        {/* Curated picks */}
+        {picks.length > 0 && (
+          <section className={styles.picksSection}>
+            <h3 className={styles.picksTitle}>Community Picks</h3>
+            {picks.map((pick) => (
+              <div key={pick.id} className={styles.pickWrap}>
+                <div className={styles.pickHeader}>
+                  Picked by <strong>@{pick.curator_username}</strong>
+                  {pick.note && <span className={styles.pickNote}> &mdash; {pick.note}</span>}
+                  {isMod && (
+                    <button
+                      className={styles.pickRemove}
+                      onClick={() => handleUnpick(pick.id)}
+                      disabled={pickBusy === pick.id}
+                      aria-label="Remove pick"
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
+                {pick.post && (
+                  <PostCard
+                    post={pick.post}
+                    isCloseFriend={isCloseFriend(pick.post.author_id)}
+                    onDelete={(id) => setPicks((prev) => prev.filter((p) => p.post_id !== id))}
+                  />
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
         {/* Posts */}
         <section aria-label="Community posts">
           {posts.length === 0 && !postsLoading && (
             <p className={styles.empty}>No posts in this community yet.</p>
           )}
           {(activeLabel ? posts.filter((p) => p.label_id === activeLabel) : posts).map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              isCloseFriend={isCloseFriend(post.author_id)}
-              onDelete={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
-            />
+            <div key={post.id} className={styles.postWithAction}>
+              <PostCard
+                post={post}
+                isCloseFriend={isCloseFriend(post.author_id)}
+                onDelete={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+              />
+              {isMod && !pickedPostIds.has(post.id) && picks.length < 3 && (
+                <button
+                  className={styles.pickAction}
+                  onClick={() => handlePick(post.id)}
+                  disabled={pickBusy === post.id}
+                  aria-label="Pick this post"
+                >
+                  Pick
+                </button>
+              )}
+            </div>
           ))}
           {hasMore && (
             <div ref={sentinelRef} className={styles.sentinel}>

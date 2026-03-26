@@ -41,6 +41,7 @@ export default function IssueDetail() {
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -102,6 +103,24 @@ export default function IssueDetail() {
     }
   };
 
+  const canClose = user && issue && (issue.author_id === user.id || user.is_admin);
+
+  const handleToggleClose = async () => {
+    if (!issue || closing) return;
+    setClosing(true);
+    try {
+      const res = issue.is_closed
+        ? await issuesApi.reopen(id)
+        : await issuesApi.close(id);
+      setIssue(res.data);
+      addToast(issue.is_closed ? "Issue reopened" : "Issue closed", "success");
+    } catch {
+      addToast("Action failed", "error");
+    } finally {
+      setClosing(false);
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -144,6 +163,9 @@ export default function IssueDetail() {
             <div className={styles.meta}>
               <CategoryBadge category={issue.category} />
               <StatusBadge status={issue.status} />
+              {issue.is_closed && (
+                <span className={styles.closedBadge}>Closed</span>
+              )}
               {issue.is_security && (
                 <span className={styles.securityBadge}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -165,6 +187,15 @@ export default function IssueDetail() {
                 <summary>Device info</summary>
                 <p>{issue.device_info}</p>
               </details>
+            )}
+            {canClose && (
+              <button
+                className={issue.is_closed ? styles.reopenBtn : styles.closeBtn}
+                onClick={handleToggleClose}
+                disabled={closing}
+              >
+                {closing ? "..." : issue.is_closed ? "Reopen issue" : "Close issue"}
+              </button>
             )}
           </div>
         </article>

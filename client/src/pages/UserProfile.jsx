@@ -148,11 +148,26 @@ export default function UserProfile() {
     setDraft({});
   };
 
-  // File selection — opens crop modal
-  const handleFileSelect = (e, type) => {
+  // File selection — opens crop modal (or uploads GIF directly)
+  const handleFileSelect = async (e, type) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = ""; // reset so same file can be re-selected
+
+    // GIF covers bypass crop modal to preserve animation
+    if (type === "cover" && file.type === "image/gif") {
+      setCoverUploading(true);
+      try {
+        const res = await mediaApi.upload(file, "cover_image");
+        setDraft((d) => ({ ...d, cover_image_url: res.data.url }));
+      } catch {
+        addToast("Failed to upload cover image", "error");
+      } finally {
+        setCoverUploading(false);
+      }
+      return;
+    }
+
     const url = URL.createObjectURL(file);
     setCropSrc(url);
     setCropType(type);
@@ -364,7 +379,7 @@ export default function UserProfile() {
               {coverUploading ? "Uploading..." : "Change cover"}
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 onChange={(e) => handleFileSelect(e, "cover")}
                 className={styles.fileInput}
                 disabled={coverUploading}

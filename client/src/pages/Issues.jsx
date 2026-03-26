@@ -103,6 +103,9 @@ function IssueItem({ issue, onVote, user, onClick }) {
         <div className={styles.issueMeta}>
           <CategoryBadge category={issue.category} />
           <StatusBadge status={issue.status} />
+          {issue.is_closed && (
+            <span className={styles.closedBadge}>Closed</span>
+          )}
           {issue.is_security && (
             <span className={styles.securityBadge}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -129,6 +132,7 @@ export default function Issues() {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState(null);
+  const [closedFilter, setClosedFilter] = useState(false);
   const [search, setSearch] = useState("");
   const [composing, setComposing] = useState(false);
   const [title, setTitle] = useState("");
@@ -143,7 +147,7 @@ export default function Issues() {
   const fetchIssues = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { sort: "votes" };
+      const params = { sort: "votes", closed: closedFilter };
       if (filter) params.category = filter;
       const { data } = await issuesApi.list(params);
       setIssues(data);
@@ -152,7 +156,7 @@ export default function Issues() {
     } finally {
       setLoading(false);
     }
-  }, [filter, addToast]);
+  }, [filter, closedFilter, addToast]);
 
   useEffect(() => {
     fetchIssues();
@@ -253,6 +257,21 @@ export default function Issues() {
 
       <div className={styles.container}>
         <div className={styles.filters}>
+          <div className={styles.closedToggle}>
+            <button
+              className={!closedFilter ? styles.toggleBtnActive : styles.toggleBtn}
+              onClick={() => setClosedFilter(false)}
+            >
+              Open
+            </button>
+            <button
+              className={closedFilter ? styles.toggleBtnActive : styles.toggleBtn}
+              onClick={() => setClosedFilter(true)}
+            >
+              Closed
+            </button>
+          </div>
+          <span className={styles.filterSep} />
           <button
             className={filter === null ? styles.filterBtnActive : styles.filterBtn}
             onClick={() => setFilter(null)}

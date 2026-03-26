@@ -17,3 +17,7 @@ export const listComments = (id, params) =>
   api.get(`/issues/${id}/comments`, { params });
 
 export const update = (id, data) => api.patch(`/issues/${id}`, data);
+
+export const close = (id) => api.post(`/issues/${id}/close`);
+
+export const reopen = (id) => api.post(`/issues/${id}/reopen`);
