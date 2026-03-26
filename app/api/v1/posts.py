@@ -108,6 +108,22 @@ async def create(
         if group is None or group.owner_id != current_user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your group")
 
+    # Validate label belongs to target community
+    if data.label_id is not None:
+        if data.community_id is None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Labels can only be set on community posts",
+            )
+        from app.crud.community_label import get_label
+
+        label = await get_label(db, data.label_id)
+        if label is None or label.community_id != data.community_id:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Label does not belong to this community",
+            )
+
     post = await create_post(db, data, author_id=current_user.id)
 
     # Sync hashtags from title + content
@@ -230,6 +246,23 @@ async def edit(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
     if post.author_id != current_user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your post")
+
+    # Validate label_id if being changed
+    if data.label_id is not None:
+        if post.community_id is None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Labels can only be set on community posts",
+            )
+        from app.crud.community_label import get_label
+
+        label = await get_label(db, data.label_id)
+        if label is None or label.community_id != post.community_id:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Label does not belong to this community",
+            )
+
     try:
         post = await edit_post(db, post, data)
     except ValueError as e:

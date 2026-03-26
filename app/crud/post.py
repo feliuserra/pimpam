@@ -259,25 +259,51 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
 
     post_ids = [p.id for p in posts]
 
-    # -- authors --
+    # -- authors (cached per user, 5 min TTL) --
+    from app.core.cache import cache_get, cache_set
+
     author_ids = {p.author_id for p in posts if p.author_id is not None}
     authors: dict[int, tuple[str | None, str | None]] = {}
-    if author_ids:
+    uncached_author_ids: set[int] = set()
+    for aid in author_ids:
+        cached = await cache_get(f"user:{aid}")
+        if cached is not None:
+            authors[aid] = (cached.get("username"), cached.get("avatar_url"))
+        else:
+            uncached_author_ids.add(aid)
+    if uncached_author_ids:
         rows = await db.execute(
             select(User.id, User.username, User.avatar_url).where(
-                User.id.in_(author_ids)
+                User.id.in_(uncached_author_ids)
             )
         )
-        authors = {r.id: (r.username, r.avatar_url) for r in rows}
+        for r in rows:
+            authors[r.id] = (r.username, r.avatar_url)
+            await cache_set(
+                f"user:{r.id}",
+                {"username": r.username, "avatar_url": r.avatar_url},
+                ttl=300,
+            )
 
-    # -- communities --
+    # -- communities (cached per community, 10 min TTL) --
     community_ids = {p.community_id for p in posts if p.community_id is not None}
     communities: dict[int, str] = {}
-    if community_ids:
+    uncached_comm_ids: set[int] = set()
+    for cid in community_ids:
+        cached = await cache_get(f"community:{cid}")
+        if cached is not None:
+            communities[cid] = cached.get("name", "")
+        else:
+            uncached_comm_ids.add(cid)
+    if uncached_comm_ids:
         rows = await db.execute(
-            select(Community.id, Community.name).where(Community.id.in_(community_ids))
+            select(Community.id, Community.name).where(
+                Community.id.in_(uncached_comm_ids)
+            )
         )
-        communities = {r.id: r.name for r in rows}
+        for r in rows:
+            communities[r.id] = r.name
+            await cache_set(f"community:{r.id}", {"name": r.name}, ttl=600)
 
     # -- comment counts --
     count_rows = await db.execute(
@@ -299,6 +325,19 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
     for pid, name in hashtag_rows.all():
         post_hashtags[pid].append(name)
 
+    # -- labels --
+    from app.models.community_label import CommunityLabel
+    from app.schemas.community_label import LabelPublic
+
+    label_ids = {p.label_id for p in posts if p.label_id is not None}
+    labels: dict[int, LabelPublic] = {}
+    if label_ids:
+        rows = await db.execute(
+            select(CommunityLabel).where(CommunityLabel.id.in_(label_ids))
+        )
+        for lbl in rows.scalars().all():
+            labels[lbl.id] = LabelPublic.model_validate(lbl, from_attributes=True)
+
     extras: dict[int, dict] = {}
     for p in posts:
         author_data = (
@@ -312,6 +351,8 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
             else None,
             "comment_count": comment_counts.get(p.id, 0),
             "hashtags": post_hashtags.get(p.id, []),
+            "label_id": p.label_id,
+            "label": labels.get(p.label_id) if p.label_id else None,
         }
     return extras
 

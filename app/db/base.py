@@ -11,6 +11,7 @@ from app.models.comment import Comment, CommentReaction  # noqa: F401
 from app.models.community import Community, CommunityMember  # noqa: F401
 from app.models.community_audit import CommunityAuditLog  # noqa: F401
 from app.models.community_karma import CommunityKarma  # noqa: F401
+from app.models.community_label import CommunityLabel  # noqa: F401
 from app.models.consent import ConsentLog  # noqa: F401
 from app.models.device_token import DeviceToken  # noqa: F401
 from app.models.follow import Follow  # noqa: F401

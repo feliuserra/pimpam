@@ -11,6 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { useInfiniteList } from "../hooks/useInfiniteList";
 import * as communitiesApi from "../api/communities";
+import * as labelsApi from "../api/communityLabels";
 import * as mediaApi from "../api/media";
 import styles from "./CommunityPage.module.css";
 
@@ -37,6 +38,8 @@ export default function CommunityPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [auditLog, setAuditLog] = useState([]);
   const [showAudit, setShowAudit] = useState(false);
+  const [labels, setLabels] = useState([]);
+  const [activeLabel, setActiveLabel] = useState(null);
 
   // Load community info (includes user_role when authenticated)
   useEffect(() => {
@@ -55,6 +58,7 @@ export default function CommunityPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    labelsApi.list(name).then((r) => { if (!cancelled) setLabels(r.data); }).catch(() => {});
     return () => { cancelled = true; };
   }, [name, user]);
 
@@ -245,12 +249,35 @@ export default function CommunityPage() {
           </div>
         )}
 
+        {/* Label filters */}
+        {labels.length > 0 && (
+          <div className={styles.labelFilters}>
+            <button
+              className={`${styles.labelPill} ${activeLabel === null ? styles.labelActive : ""}`}
+              onClick={() => setActiveLabel(null)}
+            >
+              All
+            </button>
+            {labels.map((l) => (
+              <button
+                key={l.id}
+                className={`${styles.labelPill} ${activeLabel === l.id ? styles.labelActive : ""}`}
+                onClick={() => setActiveLabel(activeLabel === l.id ? null : l.id)}
+                style={l.color ? { "--lbl-color": l.color } : undefined}
+              >
+                {l.color && <span className={styles.labelDot} style={{ background: l.color }} />}
+                {l.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Posts */}
         <section aria-label="Community posts">
           {posts.length === 0 && !postsLoading && (
             <p className={styles.empty}>No posts in this community yet.</p>
           )}
-          {posts.map((post) => (
+          {(activeLabel ? posts.filter((p) => p.label_id === activeLabel) : posts).map((post) => (
             <PostCard
               key={post.id}
               post={post}

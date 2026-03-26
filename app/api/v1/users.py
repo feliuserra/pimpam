@@ -64,6 +64,10 @@ async def update_me(
     await db.commit()
     await db.refresh(current_user)
     await index_user(current_user)
+    # Invalidate cached user data used by post enrichment
+    from app.core.cache import cache_delete
+
+    await cache_delete(f"user:{current_user.id}")
     fc = await get_follower_count(db, current_user.id)
     fing = await get_following_count(db, current_user.id)
     return UserPublic.model_validate(current_user, from_attributes=True).model_copy(
@@ -321,6 +325,10 @@ async def list_user_posts(
     user = await get_user_by_username(db, username)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+    # If user has hidden posts on profile and requester is not the owner, return empty
+    is_owner = current_user and current_user.id == user.id
+    if not user.show_posts_on_profile and not is_owner:
+        return []
     posts = await get_user_posts(db, user.id, limit=limit, before_id=before_id)
     user_id = current_user.id if current_user else None
     return await annotate_posts_with_user_vote(db, posts, user_id)
@@ -362,6 +370,11 @@ async def follow(
         Follow(follower_id=current_user.id, followed_id=user.id, is_pending=is_pending)
     )
     await db.commit()
+    # Invalidate follower/following count caches
+    from app.core.cache import cache_delete
+
+    await cache_delete(f"following:{current_user.id}")
+    await cache_delete(f"followers:{user.id}")
 
     # Notify the followed user (local only — remote users have their own notification system)
     if not user.is_remote:
@@ -403,6 +416,11 @@ async def unfollow(username: str, current_user: CurrentUser, db: DBSession):
 
     await db.delete(follow_obj)
     await db.commit()
+    # Invalidate follower/following count caches
+    from app.core.cache import cache_delete as _cache_del
+
+    await _cache_del(f"following:{current_user.id}")
+    await _cache_del(f"followers:{user.id}")
 
     if user.is_remote and settings.federation_enabled and user.ap_inbox:
         followed_ap_id = user.ap_id or actor_id(user.username)

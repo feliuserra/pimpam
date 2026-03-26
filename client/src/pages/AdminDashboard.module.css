@@ -1,0 +1,133 @@
+.headerTitle {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.container {
+  padding: 1rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
+/* Period selector */
+.periodSelector {
+  display: flex;
+  gap: 4px;
+}
+
+.periodBtn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.periodActive {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+/* Stat cards */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Charts */
+.chartSection {
+  margin-bottom: 24px;
+}
+
+.chartTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.empty {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+}
+
+/* Top communities table */
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tableRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+}
+
+.communityName {
+  font-weight: 600;
+  flex: 1;
+}
+
+.stat {
+  font-weight: 500;
+}
+
+.statMuted {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+/* Moderation bar */
+.modBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.modDot {
+  color: var(--color-text-muted);
+}

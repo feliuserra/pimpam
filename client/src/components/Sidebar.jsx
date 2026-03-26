@@ -24,6 +24,9 @@ export default function Sidebar() {
     { to: "/notifications", icon: <BellIcon size={20} />, label: "Notifications", badge: unreadNotifications },
     { to: "/issues", icon: <IssuesIcon size={20} />, label: "Issues" },
     { to: `/u/${user?.username || ""}`, icon: <UserIcon size={20} />, label: "Profile" },
+    ...(user?.is_admin
+      ? [{ to: "/admin", icon: <TrendingIcon size={20} />, label: "Admin" }]
+      : []),
   ];
 
   return (

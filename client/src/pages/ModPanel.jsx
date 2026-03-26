@@ -2,21 +2,21 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Header from "../components/Header";
 import Spinner from "../components/ui/Spinner";
-import RemovedContent from "../components/mod/RemovedContent";
+import QueueTab from "../components/mod/QueueTab";
 import BanSection from "../components/mod/BanSection";
-import ModPromotion from "../components/mod/ModPromotion";
-import OwnershipTransfer from "../components/mod/OwnershipTransfer";
+import LabelsTab from "../components/mod/LabelsTab";
+import TeamTab from "../components/mod/TeamTab";
 import * as communitiesApi from "../api/communities";
 import styles from "./ModPanel.module.css";
 
-const TABS = ["Removed", "Bans", "Moderators", "Transfer"];
+const TABS = ["Queue", "Bans", "Labels", "Team"];
 
 export default function ModPanel() {
   const { name } = useParams();
   const navigate = useNavigate();
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("Removed");
+  const [tab, setTab] = useState("Queue");
 
   useEffect(() => {
     communitiesApi
@@ -63,10 +63,10 @@ export default function ModPanel() {
           ))}
         </nav>
 
-        {tab === "Removed" && <RemovedContent communityName={name} />}
+        {tab === "Queue" && <QueueTab communityName={name} />}
         {tab === "Bans" && <BanSection communityName={name} />}
-        {tab === "Moderators" && <ModPromotion communityName={name} />}
-        {tab === "Transfer" && <OwnershipTransfer communityName={name} />}
+        {tab === "Labels" && <LabelsTab communityName={name} />}
+        {tab === "Team" && <TeamTab communityName={name} />}
       </div>
     </>
   );

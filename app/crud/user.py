@@ -82,25 +82,39 @@ async def get_local_follower_ids(db: AsyncSession, user_id: int) -> list[int]:
 
 
 async def get_follower_count(db: AsyncSession, user_id: int) -> int:
-    """Return the number of confirmed (non-pending) followers."""
+    """Return the number of confirmed (non-pending) followers. Cached 2 min."""
+    from app.core.cache import cache_get, cache_set
+
+    cached = await cache_get(f"followers:{user_id}")
+    if cached is not None:
+        return cached.get("count", 0)
     result = await db.execute(
         select(func.count(Follow.id)).where(
             Follow.followed_id == user_id,
             Follow.is_pending == False,  # noqa: E712
         )
     )
-    return result.scalar_one()
+    count = result.scalar_one()
+    await cache_set(f"followers:{user_id}", {"count": count}, ttl=120)
+    return count
 
 
 async def get_following_count(db: AsyncSession, user_id: int) -> int:
-    """Return the number of users this user is confirmed following."""
+    """Return the number of users this user is confirmed following. Cached 2 min."""
+    from app.core.cache import cache_get, cache_set
+
+    cached = await cache_get(f"following:{user_id}")
+    if cached is not None:
+        return cached.get("count", 0)
     result = await db.execute(
         select(func.count(Follow.id)).where(
             Follow.follower_id == user_id,
             Follow.is_pending == False,  # noqa: E712
         )
     )
-    return result.scalar_one()
+    count = result.scalar_one()
+    await cache_set(f"following:{user_id}", {"count": count}, ttl=120)
+    return count
 
 
 async def check_is_following(

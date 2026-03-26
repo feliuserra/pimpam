@@ -23,6 +23,12 @@ from app.crud.admin import (
     suspend_user,
     unsuspend_user,
 )
+from app.crud.analytics import (
+    get_moderation_summary,
+    get_overview,
+    get_timeseries,
+    get_top_communities,
+)
 from app.crud.comment import get_comment
 from app.crud.post import get_post
 from app.crud.user import get_user_by_id
@@ -35,6 +41,12 @@ from app.schemas.admin import (
     ReportResolve,
     SuspensionCreate,
     SuspensionPublic,
+)
+from app.schemas.analytics import (
+    ModerationSummary,
+    OverviewStats,
+    TimeseriesPoint,
+    TopCommunity,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -333,3 +345,46 @@ async def list_removals_endpoint(
 ):
     """List content removal audit log."""
     return await list_content_removals(db, limit=limit)
+
+
+# --- Analytics ---
+
+
+@router.get("/analytics/overview", response_model=OverviewStats)
+async def analytics_overview(db: DBSession, admin: CurrentAdmin):
+    """Current aggregate totals: users, posts, comments, communities, active users."""
+    return await get_overview(db)
+
+
+@router.get("/analytics/timeseries", response_model=list[TimeseriesPoint])
+async def analytics_timeseries(
+    db: DBSession,
+    admin: CurrentAdmin,
+    metric: str = Query(
+        default="posts", description="signups|posts|comments|messages|stories"
+    ),
+    days: int = Query(default=30, ge=1, le=365),
+):
+    """Daily counts for a given metric over the last N days."""
+    return await get_timeseries(db, metric, days)
+
+
+@router.get("/analytics/top-communities", response_model=list[TopCommunity])
+async def analytics_top_communities(
+    db: DBSession,
+    admin: CurrentAdmin,
+    days: int = Query(default=30, ge=1, le=365),
+    limit: int = Query(default=10, ge=1, le=50),
+):
+    """Most active communities by post count over the last N days."""
+    return await get_top_communities(db, days, limit)
+
+
+@router.get("/analytics/moderation", response_model=ModerationSummary)
+async def analytics_moderation(
+    db: DBSession,
+    admin: CurrentAdmin,
+    days: int = Query(default=30, ge=1, le=365),
+):
+    """Moderation activity summary: pending reports, bans, removals, suspensions."""
+    return await get_moderation_summary(db, days)

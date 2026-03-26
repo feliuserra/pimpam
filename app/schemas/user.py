@@ -43,6 +43,7 @@ class UserUpdate(BaseModel):
     pronouns: str | None = None
     profile_layout: list[str] | None = None
     show_community_stats: bool | None = None
+    show_posts_on_profile: bool | None = None
 
     @field_validator("accent_color")
     @classmethod
@@ -104,6 +105,8 @@ class UserPublic(BaseModel):
     pinned_post_id: int | None = None
     profile_layout: list[str] | None = None
     show_community_stats: bool = True
+    show_posts_on_profile: bool = True
+    is_admin: bool = False
 
     model_config = {"from_attributes": True}
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { create } from "../api/posts";
 import { listJoined } from "../api/communities";
 import { upload } from "../api/media";
+import * as labelsApi from "../api/communityLabels";
 import { useToast } from "../contexts/ToastContext";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
@@ -17,6 +18,8 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
   const [url, setUrl] = useState("");
   const [communityId, setCommunityId] = useState(defaultCommunityId ? String(defaultCommunityId) : "");
   const [communities, setCommunities] = useState([]);
+  const [labelId, setLabelId] = useState("");
+  const [labels, setLabels] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -33,6 +36,20 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
   useEffect(() => {
     if (open) fetchCommunities();
   }, [open, fetchCommunities]);
+
+  // Fetch labels when community changes
+  useEffect(() => {
+    if (!communityId) {
+      setLabels([]);
+      setLabelId("");
+      return;
+    }
+    const comm = communities.find((c) => String(c.id) === communityId);
+    if (comm) {
+      labelsApi.list(comm.name).then((r) => setLabels(r.data)).catch(() => setLabels([]));
+    }
+    setLabelId("");
+  }, [communityId, communities]);
 
   const handleFile = (e) => {
     const f = e.target.files?.[0];
@@ -52,6 +69,7 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
     setContent("");
     setUrl("");
     setCommunityId(defaultCommunityId ? String(defaultCommunityId) : "");
+    setLabelId("");
     removeImage();
   };
 
@@ -71,6 +89,7 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
         url: url.trim() || null,
         image_url,
         community_id: communityId ? Number(communityId) : null,
+        label_id: labelId ? Number(labelId) : null,
       };
       const { data: post } = await create(body);
       addToast("Post created!", "success");
@@ -129,6 +148,22 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
             {communities.map((c) => (
               <option key={c.id} value={c.id}>
                 c/{c.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {labels.length > 0 && (
+          <select
+            value={labelId}
+            onChange={(e) => setLabelId(e.target.value)}
+            className={styles.input}
+            aria-label="Label"
+          >
+            <option value="">No label</option>
+            {labels.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
               </option>
             ))}
           </select>

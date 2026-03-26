@@ -5,12 +5,13 @@ import * as modApi from "../../api/moderation";
 import styles from "./ModSection.module.css";
 
 const COC_VIOLATIONS = [
-  "harassment",
-  "hate_speech",
-  "spam",
-  "misinformation",
-  "illegal_content",
-  "other",
+  "HARASSMENT",
+  "HATE_SPEECH",
+  "ABUSE",
+  "SPAM",
+  "IMPERSONATION",
+  "NSFW",
+  "OTHER",
 ];
 
 export default function BanSection({ communityName }) {

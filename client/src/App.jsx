@@ -37,6 +37,7 @@ const Friends = lazy(() => import("./pages/Friends"));
 const Issues = lazy(() => import("./pages/Issues"));
 const IssueDetail = lazy(() => import("./pages/IssueDetail"));
 const ModPanel = lazy(() => import("./pages/ModPanel"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Offline = lazy(() => import("./pages/Offline"));
@@ -82,6 +83,7 @@ export default function App() {
                     <Route path="/posts/:id" element={<PostDetail />} />
                     <Route path="/c/:name" element={<CommunityPage />} />
                     <Route path="/c/:name/mod" element={<ModPanel />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/search" element={<Search />} />
                     <Route path="/tag/:name" element={<HashtagPage />} />
                     <Route path="/messages/:userId" element={<MessageThread />} />

@@ -101,6 +101,7 @@ export default function UserProfile() {
       pronouns: profile.pronouns || "",
       profile_layout: profile.profile_layout || DEFAULT_LAYOUT,
       show_community_stats: profile.show_community_stats !== false,
+      show_posts_on_profile: profile.show_posts_on_profile !== false,
     });
     setEditMode(true);
   };
@@ -527,6 +528,16 @@ export default function UserProfile() {
                 />
               </span>
             </label>
+            <label className={styles.editLabel}>
+              <span className={styles.toggleRow}>
+                Show posts on profile
+                <input
+                  type="checkbox"
+                  checked={draft.show_posts_on_profile ?? true}
+                  onChange={(e) => setDraft((d) => ({ ...d, show_posts_on_profile: e.target.checked }))}
+                />
+              </span>
+            </label>
             <div className={styles.editLabel}>
               Layout order
               <p className={styles.editHint}>Drag to reorder profile sections</p>
@@ -557,13 +568,17 @@ export default function UserProfile() {
 
         {/* Tab content */}
         {tab === "Posts" && (
-          <PostsTab
-            username={profile.username}
-            isSelf={isSelf}
-            pinnedPostId={profile.pinned_post_id}
-            onPin={handlePin}
-            onUnpin={handleUnpin}
-          />
+          !isSelf && profile.show_posts_on_profile === false ? (
+            <p className={styles.empty}>This user has hidden their posts.</p>
+          ) : (
+            <PostsTab
+              username={profile.username}
+              isSelf={isSelf}
+              pinnedPostId={profile.pinned_post_id}
+              onPin={handlePin}
+              onUnpin={handleUnpin}
+            />
+          )
         )}
         {tab === "Followers" && <UserListTab username={profile.username} type="followers" />}
         {tab === "Following" && <UserListTab username={profile.username} type="following" />}

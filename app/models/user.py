@@ -78,6 +78,7 @@ class User(Base):
     )
     profile_layout: Mapped[str | None] = mapped_column(Text)  # JSON list
     show_community_stats: Mapped[bool] = mapped_column(Boolean, default=True)
+    show_posts_on_profile: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
     posts: Mapped[list["Post"]] = relationship(

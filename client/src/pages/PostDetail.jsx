@@ -78,7 +78,7 @@ export default function PostDetail() {
       await postsApi.remove(post.id);
       navigate("/", { replace: true });
     } catch {
-      // silent
+      addToast("Failed to delete post", "error");
     }
   };
 

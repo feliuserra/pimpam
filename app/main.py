@@ -135,6 +135,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Cache-Control headers for public, read-only GET endpoints (pure ASGI middleware)
+_CC_RULES: list[tuple[str, str]] = [
+    ("/api/v1/communities/", "public, max-age=30"),
+    ("/api/v1/communities", "public, max-age=60"),
+    ("/avatars/", "public, max-age=86400"),
+]
+
+
+class _CacheControlMiddleware:
+    """Pure ASGI middleware — avoids BaseHTTPMiddleware async session issues."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope.get("method") != "GET":
+            return await self.app(scope, receive, send)
+
+        path = scope.get("path", "")
+
+        cc_value = None
+        if "/labels" in path and path.startswith("/api/v1/communities/"):
+            cc_value = "public, max-age=120"
+        else:
+            for prefix, cc in _CC_RULES:
+                if path.startswith(prefix):
+                    cc_value = cc
+                    break
+
+        if cc_value is None:
+            return await self.app(scope, receive, send)
+
+        async def send_with_cache_control(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.append((b"cache-control", cc_value.encode()))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self.app(scope, receive, send_with_cache_control)
+
+
+app.add_middleware(_CacheControlMiddleware)
+
 # Routers — versioned API
 _prefix = "/api/v1"
 app.include_router(auth.router, prefix=_prefix)
@@ -152,8 +196,9 @@ app.include_router(stories.router, prefix=_prefix)
 app.include_router(post_comments_router, prefix=_prefix)
 app.include_router(comments_router, prefix=_prefix)
 
-from app.api.v1 import admin, hashtags, issues, reports  # noqa: E402
+from app.api.v1 import admin, community_labels, hashtags, issues, reports  # noqa: E402
 
+app.include_router(community_labels.router, prefix=_prefix)
 app.include_router(hashtags.router, prefix=_prefix)
 
 app.include_router(reports.router, prefix=_prefix)

@@ -41,3 +41,16 @@ export const respondTransfer = (name, transferId, accept) =>
   api.post(`/communities/${name}/ownership-transfer/${transferId}/respond`, {
     accept,
   });
+
+export const listReports = (name, status) => {
+  const params = status ? `?status=${status}` : "";
+  return api.get(`/communities/${name}/reports${params}`);
+};
+
+export const resolveReport = (name, reportId, action) =>
+  api.post(`/communities/${name}/reports/${reportId}/resolve?action=${action}`);
+
+export const listRemoved = (name) =>
+  api.get(`/communities/${name}/removed`);
+
+export const listTeam = (name) => api.get(`/communities/${name}/team`);

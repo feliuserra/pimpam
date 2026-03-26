@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, model_validator
 
+from app.schemas.community_label import LabelPublic
+
 
 class PostCreate(BaseModel):
     title: str
@@ -13,6 +15,7 @@ class PostCreate(BaseModel):
         str
     ] = []  # multi-image; takes precedence over image_url when non-empty
     community_id: int | None = None
+    label_id: int | None = None  # community label (must belong to target community)
     visibility: Literal["public", "group"] = "public"
     friend_group_id: int | None = None
 
@@ -33,6 +36,7 @@ class PostUpdate(BaseModel):
     content: str | None = None
     url: str | None = None
     image_url: str | None = None
+    label_id: int | None = None
 
 
 class PostImagePublic(BaseModel):
@@ -54,6 +58,8 @@ class PostPublic(BaseModel):
     author_avatar_url: str | None = None
     community_id: int | None
     community_name: str | None = None
+    label_id: int | None = None
+    label: "LabelPublic | None" = None
     karma: int
     comment_count: int = 0
     is_edited: bool

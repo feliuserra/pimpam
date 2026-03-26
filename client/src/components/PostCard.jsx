@@ -47,7 +47,7 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
       await postsApi.remove(post.id);
       onDelete?.(post.id);
     } catch {
-      // silent — toast could be added later
+      addToast("Failed to delete post", "error");
     }
   };
 
@@ -114,6 +114,18 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
               c/{post.community_name}
             </Link>
           </>
+        )}
+
+        {post.label && (
+          <span
+            className={styles.labelPill}
+            style={post.label.color ? { "--label-color": post.label.color } : undefined}
+          >
+            {post.label.color && (
+              <span className={styles.labelDot} style={{ background: post.label.color }} aria-hidden="true" />
+            )}
+            {post.label.name}
+          </span>
         )}
 
         <span className={styles.dot}>·</span>
