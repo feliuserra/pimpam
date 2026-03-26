@@ -19,7 +19,7 @@ def _mock_client(*, status_code=200, content_type="text/html; charset=utf-8", bo
     mock_http.get = AsyncMock(return_value=resp)
     mock_http.__aenter__ = AsyncMock(return_value=mock_http)
     mock_http.__aexit__ = AsyncMock(return_value=False)
-    return patch("app.api.v1.posts.httpx.AsyncClient", return_value=mock_http)
+    return patch("app.core.og_parser.httpx.AsyncClient", return_value=mock_http)
 
 
 def _mock_client_error(exc):
@@ -28,7 +28,7 @@ def _mock_client_error(exc):
     mock_http.get = AsyncMock(side_effect=exc)
     mock_http.__aenter__ = AsyncMock(return_value=mock_http)
     mock_http.__aexit__ = AsyncMock(return_value=False)
-    return patch("app.api.v1.posts.httpx.AsyncClient", return_value=mock_http)
+    return patch("app.core.og_parser.httpx.AsyncClient", return_value=mock_http)
 
 
 OG_HTML = """\

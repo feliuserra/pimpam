@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import Avatar from "./ui/Avatar";
 import CloseIcon from "./ui/icons/CloseIcon";
 import styles from "./StoryViewer.module.css";
 
@@ -80,6 +81,10 @@ export default function StoryViewer({ group, onClose }) {
 
   if (!story) return null;
 
+  const lp = story.link_preview;
+  const mentions = story.mentions || [];
+  const hasImage = !!story.image_url;
+
   return createPortal(
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Story viewer">
       {/* Progress bars */}
@@ -98,12 +103,28 @@ export default function StoryViewer({ group, onClose }) {
       </div>
 
       <div className={styles.topBar}>
-        <button
-          className={styles.authorBtn}
-          onClick={() => { onClose(); navigate(`/u/${group.author?.username}`); }}
-        >
-          {group.author?.display_name || group.author?.username}
-        </button>
+        <div className={styles.authorRow}>
+          <button
+            className={styles.authorBtn}
+            onClick={() => { onClose(); navigate(`/u/${group.author?.username}`); }}
+          >
+            {group.author?.display_name || group.author?.username}
+          </button>
+          {mentions.length > 0 && (
+            <div className={styles.mentionChips}>
+              {mentions.map((m) => (
+                <button
+                  key={m.user_id}
+                  className={styles.mentionChip}
+                  onClick={() => { onClose(); navigate(`/u/${m.username}`); }}
+                  aria-label={`View @${m.username}`}
+                >
+                  <Avatar username={m.username} avatarUrl={m.avatar_url} size={18} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button className={styles.close} onClick={onClose} aria-label="Close">
           <CloseIcon size={24} />
         </button>
@@ -127,11 +148,40 @@ export default function StoryViewer({ group, onClose }) {
           aria-label="Next story"
         />
 
-        <img
-          className={styles.image}
-          src={story.image_url}
-          alt={story.caption || "Story"}
-        />
+        {hasImage && (
+          <img
+            className={styles.image}
+            src={story.image_url}
+            alt={story.caption || "Story"}
+          />
+        )}
+
+        {/* Link preview card — shown for link and link_image stories */}
+        {lp && (
+          <a
+            href={lp.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${styles.storyLinkCard} ${!hasImage ? styles.storyLinkCardMain : ""}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {lp.image && !hasImage && (
+              <img
+                src={lp.image}
+                alt=""
+                className={styles.storyLinkImage}
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+            )}
+            <div className={styles.storyLinkBody}>
+              {lp.title && <span className={styles.storyLinkTitle}>{lp.title}</span>}
+              {lp.description && (
+                <span className={styles.storyLinkDesc}>{lp.description}</span>
+              )}
+              <span className={styles.storyLinkUrl}>{lp.url}</span>
+            </div>
+          </a>
+        )}
 
         {story.caption && (
           <div className={styles.caption}>{story.caption}</div>

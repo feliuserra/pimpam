@@ -28,5 +28,6 @@ from app.models.post_image import PostImage  # noqa: F401
 from app.models.remote_actor import RemoteActor  # noqa: F401
 from app.models.report import Report  # noqa: F401
 from app.models.story import Story  # noqa: F401
+from app.models.story_mention import StoryMention  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.vote import Vote  # noqa: F401

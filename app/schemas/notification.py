@@ -13,6 +13,7 @@ class NotificationPublic(BaseModel):
     post_id: int | None
     comment_id: int | None
     community_id: int | None
+    story_id: int | None = None
     group_key: str | None
     group_count: int
     is_read: bool

@@ -1,5 +1,5 @@
 """
-Ephemeral stories — image + optional caption, user-chosen duration.
+Ephemeral stories — image, link, or both + optional caption, user-chosen duration.
 
 Design constraints (per CLAUDE.md):
   - No "seen by" tracking. Views are never recorded.
@@ -8,45 +8,53 @@ Design constraints (per CLAUDE.md):
   - Hourly cleanup task (app/main.py) hard-deletes expired non-reported stories.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 
+from app.core.config import settings
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
+from app.core.og_parser import fetch_og_metadata
+from app.crud.notification import notify
+from app.crud.story import (
+    build_link_preview,
+    create_story,
+    create_story_mentions,
+    determine_media_type,
+    extract_mentions,
+    get_story_mentions_batch,
+    resolve_mentions,
+)
 from app.models.community import CommunityMember
 from app.models.follow import Follow
 from app.models.story import Story
 from app.models.user import User
+from app.schemas.story import StoryCreate, StoryPublic
 
 router = APIRouter(prefix="/stories", tags=["stories"])
 
-ALLOWED_DURATIONS = {12, 24, 48, 168}  # hours
 
-
-# ---------------------------------------------------------------------------
-# Schemas (inline — simple enough not to need a separate file)
-# ---------------------------------------------------------------------------
-
-
-class StoryCreate(BaseModel):
-    image_url: str = Field(..., max_length=500)
-    caption: str | None = Field(default=None, max_length=200)
-    duration_hours: int = Field(default=24)
-
-
-class StoryPublic(BaseModel):
-    id: int
-    author_id: int
-    author_username: str
-    author_avatar_url: str | None
-    image_url: str
-    caption: str | None
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
+def _story_to_public(
+    story: Story,
+    username: str,
+    avatar_url: str | None,
+    mentions: list | None = None,
+) -> StoryPublic:
+    """Build a StoryPublic from a Story + author info."""
+    return StoryPublic(
+        id=story.id,
+        author_id=story.author_id,
+        author_username=username,
+        author_avatar_url=avatar_url,
+        media_type=story.media_type,
+        image_url=story.image_url,
+        caption=story.caption,
+        link_preview=build_link_preview(story),
+        mentions=mentions or [],
+        created_at=story.created_at,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -56,34 +64,69 @@ class StoryPublic(BaseModel):
 
 @router.post("", response_model=StoryPublic, status_code=status.HTTP_201_CREATED)
 @limiter.limit("20/hour")
-async def create_story(
+async def create_story_endpoint(
     request: Request,
     data: StoryCreate,
     current_user: CurrentUser,
     db: DBSession,
 ):
     """
-    Create a story. The image must already be uploaded via POST /media/upload.
-    duration_hours must be one of: 12, 24, 48, 168 (7 days). Default: 24.
+    Create a story. Images must already be uploaded via POST /media/upload.
+    Provide image_url, link_url, or both. duration_hours: 12, 24, 48, 168.
+    Mentions (@username) in the caption will notify tagged users.
     """
-    duration = data.duration_hours if data.duration_hours in ALLOWED_DURATIONS else 24
-    story = Story(
+    media_type = determine_media_type(data.image_url, data.link_url)
+
+    # Fetch OG metadata for link stories
+    link_title = link_description = link_image_url = None
+    if data.link_url:
+        og = await fetch_og_metadata(data.link_url)
+        link_title = og.get("title")
+        link_description = og.get("description")
+        link_image_url = og.get("image")
+
+    story = await create_story(
+        db,
         author_id=current_user.id,
+        media_type=media_type,
         image_url=data.image_url,
         caption=data.caption,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=duration),
+        duration_hours=data.duration_hours,
+        link_url=data.link_url,
+        link_title=link_title,
+        link_description=link_description,
+        link_image_url=link_image_url,
     )
-    db.add(story)
-    await db.commit()
-    await db.refresh(story)
-    return StoryPublic(
-        id=story.id,
-        author_id=story.author_id,
-        author_username=current_user.username,
-        author_avatar_url=current_user.avatar_url,
-        image_url=story.image_url,
-        caption=story.caption,
-        created_at=story.created_at,
+
+    # Process @mentions in caption
+    mention_list = []
+    if data.caption:
+        usernames = extract_mentions(data.caption)
+        if usernames:
+            users = await resolve_mentions(db, usernames, settings.story_max_mentions)
+            if users:
+                await create_story_mentions(db, story.id, [u.id for u in users])
+                for u in users:
+                    await notify(
+                        db,
+                        u.id,
+                        "story_mention",
+                        actor_id=current_user.id,
+                        story_id=story.id,
+                    )
+                from app.schemas.story import MentionedUser
+
+                mention_list = [
+                    MentionedUser(
+                        user_id=u.id,
+                        username=u.username,
+                        avatar_url=u.avatar_url,
+                    )
+                    for u in users
+                ]
+
+    return _story_to_public(
+        story, current_user.username, current_user.avatar_url, mention_list
     )
 
 
@@ -111,8 +154,6 @@ async def get_stories_feed(
     joined_community_ids = select(CommunityMember.community_id).where(
         CommunityMember.user_id == current_user.id
     )
-    # Authors of posts in joined communities (stories don't belong to communities,
-    # so we include stories from members of the same communities)
     community_member_ids = select(CommunityMember.user_id).where(
         CommunityMember.community_id.in_(joined_community_ids)
     )
@@ -127,22 +168,24 @@ async def get_stories_feed(
             ),
             Story.expires_at > now,
             Story.is_removed == False,  # noqa: E712
-            Story.author_id != current_user.id,  # own stories shown separately
+            Story.author_id != current_user.id,
         )
         .order_by(Story.created_at.desc())
         .limit(limit)
     )
 
     rows = result.all()
+
+    # Batch-load mentions to avoid N+1
+    story_ids = [story.id for story, _ in rows]
+    mentions_map = await get_story_mentions_batch(db, story_ids)
+
     return [
-        StoryPublic(
-            id=story.id,
-            author_id=story.author_id,
-            author_username=user.username,
-            author_avatar_url=user.avatar_url,
-            image_url=story.image_url,
-            caption=story.caption,
-            created_at=story.created_at,
+        _story_to_public(
+            story,
+            user.username,
+            user.avatar_url,
+            mentions_map.get(story.id, []),
         )
         for story, user in rows
     ]
@@ -166,16 +209,17 @@ async def get_my_stories(
         )
         .order_by(Story.created_at.desc())
     )
-    stories = result.scalars().all()
+    stories = list(result.scalars().all())
+
+    story_ids = [s.id for s in stories]
+    mentions_map = await get_story_mentions_batch(db, story_ids)
+
     return [
-        StoryPublic(
-            id=s.id,
-            author_id=s.author_id,
-            author_username=current_user.username,
-            author_avatar_url=current_user.avatar_url,
-            image_url=s.image_url,
-            caption=s.caption,
-            created_at=s.created_at,
+        _story_to_public(
+            s,
+            current_user.username,
+            current_user.avatar_url,
+            mentions_map.get(s.id, []),
         )
         for s in stories
     ]

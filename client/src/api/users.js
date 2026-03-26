@@ -34,3 +34,6 @@ export const unpinPost = () => api.delete("/users/me/pin");
 
 export const getCommunityStats = (username) =>
   api.get(`/users/${username}/community-stats`);
+
+export const autocompleteUsers = (q, limit = 5) =>
+  api.get("/users/autocomplete", { params: { q, limit } });

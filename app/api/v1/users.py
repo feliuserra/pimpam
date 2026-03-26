@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
+from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.core.config import settings  # noqa: F401 (used in delete endpoint)
@@ -34,6 +35,39 @@ from app.schemas.user import DeleteAccountRequest, UserPublic, UserUpdate
 logger = logging.getLogger("pimpam.users")
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+class _UserBrief(BaseModel):
+    user_id: int
+    username: str
+    avatar_url: str | None = None
+
+
+@router.get("/autocomplete", response_model=list[_UserBrief])
+@limiter.limit("60/minute")
+async def autocomplete_users(
+    request: Request,
+    current_user: CurrentUser,
+    db: DBSession,
+    q: str = Query(..., min_length=1, max_length=50),
+    limit: int = Query(default=5, le=10),
+):
+    """Lightweight username-prefix search for @mention autocomplete."""
+    from app.models.user import User as UserModel
+
+    result = await db.execute(
+        select(UserModel.id, UserModel.username, UserModel.avatar_url)
+        .where(
+            UserModel.username.ilike(f"{q}%"),
+            UserModel.is_active == True,  # noqa: E712
+        )
+        .order_by(UserModel.username)
+        .limit(limit)
+    )
+    return [
+        _UserBrief(user_id=row.id, username=row.username, avatar_url=row.avatar_url)
+        for row in result.all()
+    ]
 
 
 @router.get("/me", response_model=UserPublic)
