@@ -17,6 +17,7 @@ const TYPE_CONFIG = {
   ban_proposal:  { text: "proposed a ban",                link: () => null },
   ban_appeal:    { text: "appealed a ban",                link: () => null },
   ban_resolved:  { text: "ban resolved",                  link: () => null },
+  story_mention: { text: "mentioned you in a story",       link: () => "/" },
   story_report:  { text: "reported a story",              link: () => null },
   welcome:       { text: "Welcome to PimPam!",            link: () => "/" },
   friend_group_added:   { text: "added you to a friend group",   link: () => null },

@@ -4,6 +4,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 const mockAddToast = vi.fn();
 const mockUpload = vi.fn();
 const mockCreate = vi.fn();
+const mockAutocompleteUsers = vi.fn();
+const mockGetLinkPreview = vi.fn();
 
 vi.mock("../contexts/ToastContext", () => ({
   useToast: vi.fn(() => ({ addToast: mockAddToast })),
@@ -15,6 +17,14 @@ vi.mock("../api/stories", () => ({
 
 vi.mock("../api/media", () => ({
   upload: (...args) => mockUpload(...args),
+}));
+
+vi.mock("../api/users", () => ({
+  autocompleteUsers: (...args) => mockAutocompleteUsers(...args),
+}));
+
+vi.mock("../api/posts", () => ({
+  getLinkPreview: (...args) => mockGetLinkPreview(...args),
 }));
 
 vi.mock("./ui/Modal", () => ({
@@ -39,12 +49,17 @@ vi.mock("./ui/icons/ImageIcon", () => ({
   default: () => <span data-testid="image-icon" />,
 }));
 
+vi.mock("./ui/Avatar", () => ({
+  default: ({ username }) => <span data-testid={`avatar-${username}`} />,
+}));
+
 import StoryCompose from "./StoryCompose";
+
+const CAPTION_PLACEHOLDER = "Add a caption... use @ to tag people";
 
 describe("StoryCompose", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock URL.createObjectURL
     vi.stubGlobal("URL", {
       ...URL,
       createObjectURL: vi.fn(() => "blob:http://localhost/fake"),
@@ -57,24 +72,26 @@ describe("StoryCompose", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("renders image picker when open and no file selected", () => {
+  it("renders story type toggle and image picker when open", () => {
     render(<StoryCompose open={true} onClose={vi.fn()} />);
 
     expect(screen.getByRole("dialog")).toHaveAttribute("aria-label", "New story");
+    expect(screen.getByText("Image")).toBeInTheDocument();
+    expect(screen.getByText("Link")).toBeInTheDocument();
+    expect(screen.getByText("Image + Link")).toBeInTheDocument();
     expect(screen.getByLabelText("Choose image")).toBeInTheDocument();
   });
 
   it("shows preview and form after selecting an image", async () => {
     render(<StoryCompose open={true} onClose={vi.fn()} />);
 
-    // Simulate file selection
     const fileInput = document.querySelector('input[type="file"]');
     const file = new File(["img"], "photo.png", { type: "image/png" });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => {
       expect(screen.getByAltText("Preview")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Add a caption...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(CAPTION_PLACEHOLDER)).toBeInTheDocument();
       expect(screen.getByText("Post story")).toBeInTheDocument();
     });
   });
@@ -94,28 +111,25 @@ describe("StoryCompose", () => {
     });
   });
 
-  it("submits story successfully", async () => {
+  it("submits image story successfully", async () => {
     const onClose = vi.fn();
     mockUpload.mockResolvedValue({ data: { url: "/uploaded.webp" } });
     mockCreate.mockResolvedValue({});
 
     render(<StoryCompose open={true} onClose={onClose} />);
 
-    // Select file
     const fileInput = document.querySelector('input[type="file"]');
     const file = new File(["img"], "photo.png", { type: "image/png" });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText("Add a caption...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(CAPTION_PLACEHOLDER)).toBeInTheDocument();
     });
 
-    // Add caption
-    fireEvent.change(screen.getByPlaceholderText("Add a caption..."), {
+    fireEvent.change(screen.getByPlaceholderText(CAPTION_PLACEHOLDER), {
       target: { value: "My caption" },
     });
 
-    // Submit
     fireEvent.click(screen.getByText("Post story"));
 
     await waitFor(() => {
@@ -135,7 +149,6 @@ describe("StoryCompose", () => {
 
     render(<StoryCompose open={true} onClose={vi.fn()} />);
 
-    // Select file
     const fileInput = document.querySelector('input[type="file"]');
     const file = new File(["img"], "photo.png", { type: "image/png" });
     fireEvent.change(fileInput, { target: { files: [file] } });
@@ -148,6 +161,45 @@ describe("StoryCompose", () => {
 
     await waitFor(() => {
       expect(mockAddToast).toHaveBeenCalledWith("Failed to post story.", "error");
+    });
+  });
+
+  it("shows link URL input when Link type is selected", async () => {
+    render(<StoryCompose open={true} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("Link"));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("https://...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(CAPTION_PLACEHOLDER)).toBeInTheDocument();
+    });
+  });
+
+  it("submits link-only story", async () => {
+    const onClose = vi.fn();
+    mockCreate.mockResolvedValue({});
+    mockGetLinkPreview.mockResolvedValue({ data: {} });
+
+    render(<StoryCompose open={true} onClose={onClose} />);
+
+    fireEvent.click(screen.getByText("Link"));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("https://...")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("https://..."), {
+      target: { value: "https://example.com" },
+    });
+
+    fireEvent.click(screen.getByText("Post story"));
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledWith({
+        link_url: "https://example.com",
+        caption: null,
+        duration_hours: 24,
+      });
     });
   });
 });

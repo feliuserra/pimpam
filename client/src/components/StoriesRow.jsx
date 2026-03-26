@@ -134,7 +134,10 @@ export default function StoriesRow({ onView, onCompose }) {
   };
 
   const isGroupSeen = (group) => group.items.every((s) => seen.has(s.id));
-  const latestImage = (group) => group.items[0]?.image_url;
+  const latestImage = (group) =>
+    group.items[0]?.image_url ||
+    group.items[0]?.link_preview?.image ||
+    null;
   const hasOwnStories = myStories.length > 0;
   const unseenCount = stories.filter((g) => !isGroupSeen(g)).length;
 

@@ -12,6 +12,10 @@ vi.mock("./ui/icons/CloseIcon", () => ({
   default: () => <span data-testid="close-icon">X</span>,
 }));
 
+vi.mock("./ui/Avatar", () => ({
+  default: ({ username }) => <span data-testid={`avatar-${username}`} />,
+}));
+
 import StoryViewer from "./StoryViewer";
 
 const makeGroup = (items) => ({
@@ -108,5 +112,46 @@ describe("StoryViewer", () => {
     fireEvent.click(screen.getByText("Alice"));
     expect(onClose).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/u/alice");
+  });
+
+  it("renders link preview card for link-only stories", () => {
+    const group = makeGroup([
+      {
+        id: 1,
+        image_url: null,
+        caption: null,
+        link_preview: {
+          url: "https://example.com",
+          title: "Example",
+          description: "A test page",
+          image: null,
+        },
+        mentions: [],
+      },
+    ]);
+
+    render(<StoryViewer group={group} onClose={vi.fn()} />);
+
+    expect(screen.getByText("Example")).toBeInTheDocument();
+    expect(screen.getByText("A test page")).toBeInTheDocument();
+    // No <img> for story content since image_url is null
+    expect(screen.queryByAltText("Story")).not.toBeInTheDocument();
+  });
+
+  it("renders mention chips when mentions are present", () => {
+    const group = makeGroup([
+      {
+        id: 1,
+        image_url: "/story1.webp",
+        caption: "Hey @bob",
+        mentions: [
+          { user_id: 2, username: "bob", avatar_url: null },
+        ],
+      },
+    ]);
+
+    render(<StoryViewer group={group} onClose={vi.fn()} />);
+
+    expect(screen.getByLabelText("View @bob")).toBeInTheDocument();
   });
 });
