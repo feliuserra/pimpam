@@ -71,7 +71,30 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Square thumbnail with rounded corners */
+/* Controls row above stories */
+.rowControls {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 0.25rem;
+}
+
+.modeToggle {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--gray-100);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.modeToggle:hover {
+  background: var(--gray-200);
+}
+
+/* Square thumbnail with rounded corners (image mode) */
 .thumb {
   position: relative;
   width: 72px;
@@ -80,6 +103,17 @@
   overflow: hidden;
   background: var(--gray-200);
   border: 2px solid transparent;
+}
+
+/* Circular thumbnail (avatar mode) */
+.thumbCircle {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--gray-200);
+  border: 3px solid transparent;
 }
 
 .unseenRing {

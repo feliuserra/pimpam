@@ -6,6 +6,7 @@ import styles from "./StoriesRow.module.css";
 
 const SCROLL_PX_PER_SEC = 4; // very gentle drift
 const COLLAPSED_KEY = "pimpam_stories_collapsed";
+const THUMB_MODE_KEY = "pimpam_stories_thumb_mode";
 
 export default function StoriesRow({ onView, onCompose }) {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function StoriesRow({ onView, onCompose }) {
   const [myStories, setMyStories] = useState([]);
   const [seen, setSeen] = useState(() => getSeenStories());
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === "1");
+  const [thumbMode, setThumbMode] = useState(() => localStorage.getItem(THUMB_MODE_KEY) || "image");
   const rowRef = useRef(null);
   const scrollingRef = useRef(true);
   const rafRef = useRef(null);
@@ -133,6 +135,15 @@ export default function StoriesRow({ onView, onCompose }) {
     });
   };
 
+  const toggleThumbMode = (e) => {
+    e.stopPropagation();
+    setThumbMode((prev) => {
+      const next = prev === "image" ? "avatar" : "image";
+      localStorage.setItem(THUMB_MODE_KEY, next);
+      return next;
+    });
+  };
+
   const isGroupSeen = (group) => group.items.every((s) => seen.has(s.id));
   const latestImage = (group) =>
     group.items[0]?.image_url ||
@@ -154,59 +165,77 @@ export default function StoriesRow({ onView, onCompose }) {
       </button>
 
       {!collapsed && (
-        <div className={styles.row} ref={rowRef} aria-label="Stories">
-          {/* Own story */}
-          <button className={styles.item} onClick={handleOwnTap} aria-label={hasOwnStories ? "View your story" : "Add story"}>
-            <div className={`${styles.thumb} ${hasOwnStories ? styles.ownRing : ""}`}>
-              {user?.avatar_url ? (
-                <img
-                  className={styles.thumbImg}
-                  src={user.avatar_url}
-                  alt={`@${user.username}`}
-                />
-              ) : (
-                <span className={styles.thumbFallback}>
-                  {(user?.username || "?").slice(0, 2).toUpperCase()}
-                </span>
-              )}
-              <span className={styles.addBadge} onClick={(e) => { e.stopPropagation(); onCompose(); }}>+</span>
-            </div>
-            <span className={styles.label}>Your story</span>
-          </button>
-
-          {stories.map((group) => (
+        <>
+          <div className={styles.rowControls}>
             <button
-              key={group.author.username}
-              className={styles.item}
-              onClick={() => handleView(group)}
-              aria-label={`View ${group.author.username}'s story`}
+              className={styles.modeToggle}
+              onClick={toggleThumbMode}
+              aria-label={thumbMode === "image" ? "Show avatars" : "Show story images"}
             >
-              <div className={`${styles.thumb} ${isGroupSeen(group) ? styles.seenRing : styles.unseenRing}`}>
-                {latestImage(group) ? (
+              {thumbMode === "image" ? "Avatars" : "Images"}
+            </button>
+          </div>
+          <div className={styles.row} ref={rowRef} aria-label="Stories">
+            {/* Own story */}
+            <button className={styles.item} onClick={handleOwnTap} aria-label={hasOwnStories ? "View your story" : "Add story"}>
+              <div className={`${thumbMode === "avatar" ? styles.thumbCircle : styles.thumb} ${hasOwnStories ? styles.ownRing : ""}`}>
+                {user?.avatar_url ? (
                   <img
                     className={styles.thumbImg}
-                    src={latestImage(group)}
-                    alt={`${group.author.username}'s story`}
+                    src={user.avatar_url}
+                    alt={`@${user.username}`}
                   />
                 ) : (
                   <span className={styles.thumbFallback}>
-                    {(group.author.username || "?").slice(0, 2).toUpperCase()}
+                    {(user?.username || "?").slice(0, 2).toUpperCase()}
                   </span>
                 )}
-                {group.author.avatar_url && (
-                  <img
-                    className={styles.avatarOverlay}
-                    src={group.author.avatar_url}
-                    alt={`@${group.author.username}`}
-                  />
-                )}
+                <span className={styles.addBadge} onClick={(e) => { e.stopPropagation(); onCompose(); }}>+</span>
               </div>
-              <span className={styles.label}>
-                {group.author.username}
-              </span>
+              <span className={styles.label}>Your story</span>
             </button>
-          ))}
-        </div>
+
+            {stories.map((group) => {
+              const showAvatar = thumbMode === "avatar";
+              const img = latestImage(group);
+              const avatarSrc = group.author.avatar_url;
+              const mainSrc = showAvatar ? avatarSrc : img;
+
+              return (
+                <button
+                  key={group.author.username}
+                  className={styles.item}
+                  onClick={() => handleView(group)}
+                  aria-label={`View ${group.author.username}'s story`}
+                >
+                  <div className={`${showAvatar ? styles.thumbCircle : styles.thumb} ${isGroupSeen(group) ? styles.seenRing : styles.unseenRing}`}>
+                    {mainSrc ? (
+                      <img
+                        className={styles.thumbImg}
+                        src={mainSrc}
+                        alt={`${group.author.username}'s story`}
+                      />
+                    ) : (
+                      <span className={styles.thumbFallback}>
+                        {(group.author.username || "?").slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                    {!showAvatar && avatarSrc && (
+                      <img
+                        className={styles.avatarOverlay}
+                        src={avatarSrc}
+                        alt={`@${group.author.username}`}
+                      />
+                    )}
+                  </div>
+                  <span className={styles.label}>
+                    {group.author.username}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
