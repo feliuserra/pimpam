@@ -1,0 +1,61 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+.navLink {
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.navLink:hover {
+  color: var(--color-text);
+}
+
+.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.content {
+  min-height: 200px;
+}
+
+.logoutBtn {
+  display: block;
+  width: 100%;
+  margin-top: 2rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--color-danger, #e53e3e);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--color-danger, #e53e3e);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.logoutBtn:hover {
+  background: var(--color-danger, #e53e3e);
+  color: #fff;
+}

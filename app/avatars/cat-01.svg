@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- White cat with blue eyes -->
+  <circle cx="50" cy="50" r="50" fill="#E8E8E8"/>
+  <!-- Ears -->
+  <path d="M24,36 Q20,16 33,10 Q42,16 38,34" fill="#F5F5F5" stroke="#D0D0D0" stroke-width="0.5"/>
+  <path d="M62,34 Q58,16 67,10 Q80,16 76,36" fill="#F5F5F5" stroke="#D0D0D0" stroke-width="0.5"/>
+  <path d="M27,33 Q24,18 33,14 Q40,18 37,32" fill="#F0C4C4"/>
+  <path d="M63,32 Q60,18 67,14 Q76,18 73,33" fill="#F0C4C4"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="54" rx="28" ry="26" fill="#F5F5F5"/>
+  <!-- Eyes -->
+  <ellipse cx="39" cy="48" rx="5" ry="5.5" fill="#4A90D9"/>
+  <ellipse cx="61" cy="48" rx="5" ry="5.5" fill="#4A90D9"/>
+  <ellipse cx="40" cy="46.5" rx="2" ry="2.5" fill="#1A1A2E"/>
+  <ellipse cx="62" cy="46.5" rx="2" ry="2.5" fill="#1A1A2E"/>
+  <circle cx="41.5" cy="45.5" r="1" fill="white"/>
+  <circle cx="63.5" cy="45.5" r="1" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="56" rx="3" ry="2" fill="#F0A0A0"/>
+  <!-- Mouth -->
+  <path d="M47,58 Q50,62 53,58" fill="none" stroke="#C08080" stroke-width="1" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="14" y1="53" x2="36" y2="55" stroke="#C0C0C0" stroke-width="0.7"/>
+  <line x1="14" y1="58" x2="36" y2="58" stroke="#C0C0C0" stroke-width="0.7"/>
+  <line x1="64" y1="55" x2="86" y2="53" stroke="#C0C0C0" stroke-width="0.7"/>
+  <line x1="64" y1="58" x2="86" y2="58" stroke="#C0C0C0" stroke-width="0.7"/>
+</svg>

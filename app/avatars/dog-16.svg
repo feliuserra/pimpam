@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Dachshund (brown, long face) -->
+  <circle cx="50" cy="50" r="50" fill="#7A4820"/>
+  <!-- Long floppy ears -->
+  <ellipse cx="18" cy="50" rx="13" ry="22" fill="#5A3010" transform="rotate(-5 18 50)"/>
+  <ellipse cx="82" cy="50" rx="13" ry="22" fill="#5A3010" transform="rotate(5 82 50)"/>
+  <ellipse cx="19" cy="50" rx="10" ry="18" fill="#6A3818" transform="rotate(-5 19 50)"/>
+  <ellipse cx="81" cy="50" rx="10" ry="18" fill="#6A3818" transform="rotate(5 81 50)"/>
+  <!-- Face - longer snout -->
+  <ellipse cx="50" cy="50" rx="26" ry="26" fill="#8A5828"/>
+  <!-- Extended muzzle -->
+  <ellipse cx="50" cy="62" rx="16" ry="15" fill="#9A6838"/>
+  <ellipse cx="50" cy="66" rx="12" ry="11" fill="#A87848"/>
+  <!-- Eyebrow dots -->
+  <circle cx="37" cy="40" r="3" fill="#A87848"/>
+  <circle cx="63" cy="40" r="3" fill="#A87848"/>
+  <!-- Eyes -->
+  <ellipse cx="38" cy="46" rx="5" ry="5.5" fill="#3A1A08"/>
+  <ellipse cx="62" cy="46" rx="5" ry="5.5" fill="#3A1A08"/>
+  <circle cx="39.5" cy="44.5" r="1.5" fill="#6A3818"/>
+  <circle cx="63.5" cy="44.5" r="1.5" fill="#6A3818"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="57" rx="5" ry="3.5" fill="#1A1A1A"/>
+  <!-- Mouth -->
+  <path d="M45,62 Q50,67 55,62" fill="none" stroke="#6A4020" stroke-width="1" stroke-linecap="round"/>
+</svg>

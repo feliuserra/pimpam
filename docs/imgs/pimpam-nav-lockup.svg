@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="44" viewBox="0 0 160 44">
+  <defs>
+    <style>
+    @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400&amp;display=swap");
+    text { font-family: "DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  </style>
+  </defs>
+  
+  <circle cx="20" cy="22" r="14.0" fill="#caf0f8"/>
+  <circle cx="20" cy="22" r="9.7" fill="#90e0ef"/>
+  <circle cx="20" cy="22" r="6.2" fill="#0077b6"/>
+  <circle cx="20" cy="22" r="3.1" fill="#03045e"/>
+  <line x1="35" y1="22" x2="43" y2="22" stroke="#0077b6" stroke-width="0.5"/>
+  <text x="48" y="29" font-size="20" font-weight="300" fill="#03045e" letter-spacing="0.5">pim</text>
+  <text x="84" y="29" font-size="20" font-weight="300" fill="#0077b6" letter-spacing="0.5">pam</text>
+</svg>

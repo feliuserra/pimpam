@@ -1,0 +1,378 @@
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.error,
+.empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Label filter pills */
+.labelFilters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.labelPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: transparent;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.labelPill:hover {
+  border-color: var(--color-accent);
+}
+
+.labelActive {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.labelDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Header */
+.header {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 12px;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatarOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.avatarWrap:hover .avatarOverlay {
+  opacity: 1;
+}
+
+.headerInfo {
+  min-width: 0;
+}
+
+.name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.desc {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.members {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.actionRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Join button */
+.joinBtn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modLink {
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.modLink:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.joinBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.joinBtn.joined {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.joinBtn.joined:hover:not(:disabled) {
+  border-color: var(--color-danger, #e53e3e);
+  color: var(--color-danger, #e53e3e);
+}
+
+/* Role badge */
+.userRole {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.role_owner {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role_senior_mod,
+.role_moderator {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.role_trusted_member {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* Audit log */
+.auditToggle {
+  background: none;
+  border: none;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+.auditToggle:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.auditLog {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.auditEmpty {
+  padding: 16px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.auditEntry {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.auditEntry:last-child {
+  border-bottom: none;
+}
+
+.auditUser {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.auditAction {
+  color: var(--color-text-muted);
+  flex: 1;
+  min-width: 0;
+}
+
+.auditTime {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.sentinel {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* Curated picks */
+.picksSection {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.picksTitle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px;
+}
+
+.pickWrap {
+  position: relative;
+}
+
+.pickHeader {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pickHeader strong {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.pickNote {
+  font-style: italic;
+}
+
+.pickRemove {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.pickRemove:hover {
+  color: var(--color-danger, #e53e3e);
+  background: var(--gray-100);
+}
+
+/* Pick action on posts */
+.postWithAction {
+  position: relative;
+}
+
+.pickAction {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  z-index: 1;
+}
+
+.pickAction:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.pickAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (prefers-color-scheme: dark) {
+  .role_owner {
+    background: #451a03;
+    color: #fcd34d;
+  }
+  .role_senior_mod,
+  .role_moderator {
+    background: #172554;
+    color: #93c5fd;
+  }
+  .role_trusted_member {
+    background: #052e16;
+    color: #86efac;
+  }
+}

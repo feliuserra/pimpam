@@ -13,7 +13,7 @@ dist/
 .env
 
 # Node
-client/node_modules/
+node_modules/
 client/dist/
 client/.vite/
 

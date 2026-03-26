@@ -1,0 +1,59 @@
+.gallery {
+  display: grid;
+  gap: 4px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.single {
+  grid-template-columns: 1fr;
+}
+
+.double {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+}
+
+.imageBtn {
+  position: relative;
+  display: block;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  max-height: 400px;
+}
+
+.single .image {
+  max-height: 500px;
+}
+
+.double .image,
+.grid .image {
+  max-height: 250px;
+}
+
+.more {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 600;
+}

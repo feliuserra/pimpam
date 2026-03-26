@@ -5,8 +5,9 @@ from pydantic import BaseModel
 
 class MessageSend(BaseModel):
     recipient_id: int
-    ciphertext: str   # encrypted client-side — server never sees plaintext
+    ciphertext: str  # encrypted client-side — server never sees plaintext
     encrypted_key: str  # AES key wrapped with recipient's public key
+    sender_encrypted_key: str | None = None  # AES key wrapped with sender's own key
 
 
 class MessagePublic(BaseModel):
@@ -15,6 +16,7 @@ class MessagePublic(BaseModel):
     recipient_id: int
     ciphertext: str
     encrypted_key: str
+    sender_encrypted_key: str | None = None
     is_read: bool
     created_at: datetime
 
@@ -23,7 +25,9 @@ class MessagePublic(BaseModel):
 
 class ConversationSummary(BaseModel):
     """One entry per conversation in the inbox, ordered by most recent message."""
+
     other_user_id: int
     other_username: str
+    other_avatar_url: str | None = None
     last_message_at: datetime
     unread_count: int

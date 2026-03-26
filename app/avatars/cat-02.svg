@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Orange tabby -->
+  <circle cx="50" cy="50" r="50" fill="#E8944A"/>
+  <!-- Ears -->
+  <path d="M23,36 Q18,14 32,8 Q43,14 38,34" fill="#D97B2F"/>
+  <path d="M62,34 Q57,14 68,8 Q82,14 77,36" fill="#D97B2F"/>
+  <path d="M26,33 Q22,18 32,13 Q40,18 37,32" fill="#E8B090"/>
+  <path d="M63,32 Q60,18 68,13 Q78,18 74,33" fill="#E8B090"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="54" rx="27" ry="25" fill="#F0A858"/>
+  <!-- White muzzle -->
+  <ellipse cx="50" cy="62" rx="14" ry="12" fill="#FAE8D0"/>
+  <!-- Tabby stripes on forehead -->
+  <path d="M40,30 Q50,24 60,30" fill="none" stroke="#B85A1A" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M43,26 Q50,21 57,26" fill="none" stroke="#B85A1A" stroke-width="1.3" stroke-linecap="round"/>
+  <!-- Eyes -->
+  <ellipse cx="38" cy="48" rx="5.5" ry="5" fill="#7AB648"/>
+  <ellipse cx="62" cy="48" rx="5.5" ry="5" fill="#7AB648"/>
+  <ellipse cx="39" cy="47" rx="2.5" ry="3" fill="#1A1A2E"/>
+  <ellipse cx="63" cy="47" rx="2.5" ry="3" fill="#1A1A2E"/>
+  <circle cx="40.5" cy="46" r="1.2" fill="white"/>
+  <circle cx="64.5" cy="46" r="1.2" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="56" rx="3" ry="2" fill="#E87070"/>
+  <!-- Mouth -->
+  <path d="M47,58 Q50,62 53,58" fill="none" stroke="#C06060" stroke-width="1" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="12" y1="54" x2="35" y2="56" stroke="#D09050" stroke-width="0.7"/>
+  <line x1="12" y1="59" x2="35" y2="59" stroke="#D09050" stroke-width="0.7"/>
+  <line x1="14" y1="63" x2="36" y2="61" stroke="#D09050" stroke-width="0.7"/>
+  <line x1="65" y1="56" x2="88" y2="54" stroke="#D09050" stroke-width="0.7"/>
+  <line x1="65" y1="59" x2="88" y2="59" stroke="#D09050" stroke-width="0.7"/>
+  <line x1="64" y1="61" x2="86" y2="63" stroke="#D09050" stroke-width="0.7"/>
+</svg>

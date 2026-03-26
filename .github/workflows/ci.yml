@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: Tests & Coverage
+  backend:
+    name: Backend Tests & Coverage
     runs-on: ubuntu-latest
 
     steps:
@@ -24,12 +24,85 @@ jobs:
       - name: Install dependencies
         run: uv pip install -r requirements.txt --system
 
-      - name: Run tests
+      - name: Run tests with coverage
         run: pytest -v --tb=short
+
+      - name: Generate coverage JSON
+        if: always()
+        run: |
+          TOTAL=$(python -m coverage report --format=total 2>/dev/null || echo "0")
+          echo "BACKEND_COV=${TOTAL}" >> $GITHUB_ENV
 
       - name: Write coverage summary
         if: always()
         run: |
-          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "## Backend Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           python -m coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+
+      - name: Update backend coverage badge
+        if: github.ref == 'refs/heads/main' && always()
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: 11acd090998f214a96fadc472f921d7f
+          filename: backend-coverage.json
+          label: backend coverage
+          message: ${{ env.BACKEND_COV }}%
+          valColorRange: ${{ env.BACKEND_COV }}
+          minColorRange: 40
+          maxColorRange: 90
+
+  frontend:
+    name: Frontend Tests & Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: client
+
+      - name: Run tests with coverage
+        run: npx vitest run --coverage --coverage.include='src/**/*.{js,jsx}' --coverage.exclude='src/main.jsx' 2>&1 | tee coverage-output.txt
+        working-directory: client
+
+      - name: Extract coverage percentage
+        if: always()
+        working-directory: client
+        run: |
+          TOTAL=$(grep "All files" coverage-output.txt | awk '{print $4}' | tr -d '%' || echo "0")
+          if [ -z "$TOTAL" ] || [ "$TOTAL" = "0" ]; then
+            TOTAL=$(grep "All files" coverage-output.txt | awk -F'|' '{print $2}' | tr -d ' %' || echo "0")
+          fi
+          echo "FRONTEND_COV=${TOTAL}" >> $GITHUB_ENV
+
+      - name: Write coverage summary
+        if: always()
+        working-directory: client
+        run: |
+          echo "## Frontend Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n +3 coverage-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Update frontend coverage badge
+        if: github.ref == 'refs/heads/main' && always()
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: 11acd090998f214a96fadc472f921d7f
+          filename: frontend-coverage.json
+          label: frontend coverage
+          message: ${{ env.FRONTEND_COV }}%
+          valColorRange: ${{ env.FRONTEND_COV }}
+          minColorRange: 20
+          maxColorRange: 80

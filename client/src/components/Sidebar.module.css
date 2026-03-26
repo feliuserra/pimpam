@@ -1,0 +1,116 @@
+.sidebar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    z-index: var(--z-sidebar);
+    padding: 1.5rem 1rem;
+  }
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  padding: 0 0.75rem;
+  margin-bottom: 2rem;
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: background-color 0.15s;
+}
+
+.link:hover {
+  background: var(--gray-100);
+}
+
+.link.active {
+  color: var(--accent);
+  background: var(--accent-subtle);
+  font-weight: 600;
+}
+
+.badge {
+  margin-left: auto;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.footer {
+  margin-top: auto;
+  padding: 1rem 0.75rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.ethos {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-secondary, var(--color-text-muted));
+  margin: 0 0 10px;
+  font-style: italic;
+}
+
+.legal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.legalLink {
+  font-size: 0.6875rem;
+  color: var(--text-secondary, var(--color-text-muted));
+  text-decoration: none;
+}
+
+.legalLink:hover {
+  text-decoration: underline;
+  color: var(--color-accent);
+}
+
+.dot {
+  font-size: 0.6875rem;
+  color: var(--text-secondary, var(--color-text-muted));
+}
+
+.copyright {
+  font-size: 0.6875rem;
+  color: var(--text-secondary, var(--color-text-muted));
+  margin: 6px 0 0;
+}

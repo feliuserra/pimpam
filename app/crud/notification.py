@@ -79,17 +79,26 @@ async def notify(
 
         # Push real-time event — fire-and-forget
         from app.core.redis import publish_to_user
-        await publish_to_user(user_id, "notification", {
-            "id": notif.id,
-            "type": notification_type,
-            "group_count": notif.group_count,
-            "actor_id": actor_id,
-            "post_id": post_id,
-            "comment_id": comment_id,
-            "community_id": community_id,
-        })
+
+        await publish_to_user(
+            user_id,
+            "notification",
+            {
+                "id": notif.id,
+                "type": notification_type,
+                "group_count": notif.group_count,
+                "actor_id": actor_id,
+                "post_id": post_id,
+                "comment_id": comment_id,
+                "community_id": community_id,
+            },
+        )
     except Exception:
-        logger.exception("Failed to create notification (type=%s, user=%s)", notification_type, user_id)
+        logger.exception(
+            "Failed to create notification (type=%s, user=%s)",
+            notification_type,
+            user_id,
+        )
 
 
 async def get_notifications(
@@ -97,15 +106,23 @@ async def get_notifications(
     user_id: int,
     limit: int = 20,
     before_id: int | None = None,
+    type_filter: list[str] | None = None,
+    type_exclude: list[str] | None = None,
 ) -> list[Notification]:
     """
     Return notifications for a user — unread first, then read, newest first within each group.
-    Cursor-paginated by id.
+    Cursor-paginated by id. Optionally filtered by notification type(s).
     """
     query = select(Notification).where(Notification.user_id == user_id)
 
     if before_id is not None:
         query = query.where(Notification.id < before_id)
+
+    if type_filter:
+        query = query.where(Notification.type.in_(type_filter))
+
+    if type_exclude:
+        query = query.where(Notification.type.notin_(type_exclude))
 
     query = query.order_by(
         Notification.is_read.asc(),
@@ -116,7 +133,9 @@ async def get_notifications(
     return list(result.scalars().all())
 
 
-async def mark_read(db: AsyncSession, notification_id: int, user_id: int) -> Notification | None:
+async def mark_read(
+    db: AsyncSession, notification_id: int, user_id: int
+) -> Notification | None:
     result = await db.execute(
         select(Notification).where(
             Notification.id == notification_id,
@@ -144,6 +163,7 @@ async def mark_all_read(db: AsyncSession, user_id: int) -> int:
 
 async def unread_count(db: AsyncSession, user_id: int) -> int:
     from sqlalchemy import func
+
     result = await db.execute(
         select(func.count(Notification.id)).where(
             Notification.user_id == user_id,
@@ -151,6 +171,57 @@ async def unread_count(db: AsyncSession, user_id: int) -> int:
         )
     )
     return result.scalar_one()
+
+
+async def delete_notification(
+    db: AsyncSession, notification_id: int, user_id: int
+) -> bool:
+    """Delete a single notification. Returns True if deleted."""
+    result = await db.execute(
+        select(Notification).where(
+            Notification.id == notification_id,
+            Notification.user_id == user_id,
+        )
+    )
+    notif = result.scalar_one_or_none()
+    if notif is None:
+        return False
+    await db.delete(notif)
+    await db.commit()
+    return True
+
+
+async def delete_notifications_batch(
+    db: AsyncSession, notification_ids: list[int], user_id: int
+) -> int:
+    """Delete multiple notifications. Returns count deleted."""
+    from sqlalchemy import delete as sa_delete
+
+    result = await db.execute(
+        sa_delete(Notification).where(
+            Notification.id.in_(notification_ids),
+            Notification.user_id == user_id,
+        )
+    )
+    await db.commit()
+    return result.rowcount
+
+
+async def mark_read_batch(
+    db: AsyncSession, notification_ids: list[int], user_id: int
+) -> int:
+    """Mark multiple notifications as read. Returns count updated."""
+    result = await db.execute(
+        update(Notification)
+        .where(
+            Notification.id.in_(notification_ids),
+            Notification.user_id == user_id,
+            Notification.is_read == False,  # noqa: E712
+        )
+        .values(is_read=True)
+    )
+    await db.commit()
+    return result.rowcount
 
 
 async def get_preferences(db: AsyncSession, user_id: int) -> list[str]:
@@ -181,5 +252,7 @@ async def set_preference(
         await db.commit()
     elif not enabled and existing is None:
         # Add a disabled row
-        db.add(NotificationPreference(user_id=user_id, notification_type=notification_type))
+        db.add(
+            NotificationPreference(user_id=user_id, notification_type=notification_type)
+        )
         await db.commit()

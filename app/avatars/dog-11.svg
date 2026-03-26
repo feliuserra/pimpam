@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Shiba Inu (orange/cream) -->
+  <circle cx="50" cy="50" r="50" fill="#D88830"/>
+  <!-- Perky ears -->
+  <path d="M22,38 Q16,10 34,8 Q44,16 38,36" fill="#C07820"/>
+  <path d="M62,36 Q56,16 66,8 Q84,10 78,38" fill="#C07820"/>
+  <path d="M25,35 Q20,14 34,12 Q41,18 37,34" fill="#E8B070"/>
+  <path d="M63,34 Q59,18 66,12 Q80,14 75,35" fill="#E8B070"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="52" rx="28" ry="27" fill="#E89838"/>
+  <!-- Cream/white mask -->
+  <path d="M34,40 Q50,32 66,40 L64,62 Q50,74 36,62 Z" fill="#FAF0E0"/>
+  <ellipse cx="50" cy="64" rx="18" ry="14" fill="#FAF0E0"/>
+  <!-- Cheek puffs -->
+  <ellipse cx="32" cy="56" rx="8" ry="7" fill="#F0A848"/>
+  <ellipse cx="68" cy="56" rx="8" ry="7" fill="#F0A848"/>
+  <!-- Eyes - small, dark, fox-like -->
+  <ellipse cx="40" cy="47" rx="3.5" ry="4" fill="#1A1A0A"/>
+  <ellipse cx="60" cy="47" rx="3.5" ry="4" fill="#1A1A0A"/>
+  <circle cx="41" cy="45.5" r="1.2" fill="#4A3A18"/>
+  <circle cx="61" cy="45.5" r="1.2" fill="#4A3A18"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="56" rx="4.5" ry="3" fill="#1A1A1A"/>
+  <!-- Mouth - that shiba smile -->
+  <path d="M43,60 Q50,66 57,60" fill="none" stroke="#A07838" stroke-width="1.2" stroke-linecap="round"/>
+</svg>

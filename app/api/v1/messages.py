@@ -14,32 +14,48 @@ router = APIRouter(prefix="/messages", tags=["messages"])
 
 @router.post("", response_model=MessagePublic, status_code=status.HTTP_201_CREATED)
 @limiter.limit("20/minute")
-async def send_message(request: Request, data: MessageSend, current_user: CurrentUser, db: DBSession):
+async def send_message(
+    request: Request, data: MessageSend, current_user: CurrentUser, db: DBSession
+):
     """
     Send an E2EE message. The server stores only ciphertext.
     Encryption must be done client-side before calling this endpoint.
     """
     if data.recipient_id == current_user.id:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Cannot message yourself")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="Cannot message yourself"
+        )
 
     recipient = await get_user_by_id(db, data.recipient_id)
     if recipient is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Recipient not found")
+
+    from app.crud.block import is_blocked_either_direction
+
+    if await is_blocked_either_direction(db, current_user.id, data.recipient_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="Cannot message this user"
+        )
 
     message = Message(
         sender_id=current_user.id,
         recipient_id=data.recipient_id,
         ciphertext=data.ciphertext,
         encrypted_key=data.encrypted_key,
+        sender_encrypted_key=data.sender_encrypted_key,
     )
     db.add(message)
     await db.commit()
     await db.refresh(message)
 
-    await publish_to_user(data.recipient_id, "new_message", {
-        "sender_id": current_user.id,
-        "sender_username": current_user.username,
-    })
+    await publish_to_user(
+        data.recipient_id,
+        "new_message",
+        {
+            "sender_id": current_user.id,
+            "sender_username": current_user.username,
+        },
+    )
 
     return message
 
@@ -81,6 +97,7 @@ async def get_inbox(current_user: CurrentUser, db: DBSession):
         select(
             subq.c.other_user_id,
             User.username.label("other_username"),
+            User.avatar_url.label("other_avatar_url"),
             subq.c.last_message_at,
             subq.c.unread_count,
         )
@@ -92,6 +109,7 @@ async def get_inbox(current_user: CurrentUser, db: DBSession):
         ConversationSummary(
             other_user_id=row.other_user_id,
             other_username=row.other_username,
+            other_avatar_url=row.other_avatar_url,
             last_message_at=row.last_message_at,
             unread_count=row.unread_count,
         )
@@ -100,14 +118,18 @@ async def get_inbox(current_user: CurrentUser, db: DBSession):
 
 
 @router.get("/{other_user_id}", response_model=list[MessagePublic])
-async def get_conversation(other_user_id: int, current_user: CurrentUser, db: DBSession):
+async def get_conversation(
+    other_user_id: int, current_user: CurrentUser, db: DBSession
+):
     """Retrieve the conversation thread with another user, newest first."""
     result = await db.execute(
         select(Message)
         .where(
             or_(
-                (Message.sender_id == current_user.id) & (Message.recipient_id == other_user_id),
-                (Message.sender_id == other_user_id) & (Message.recipient_id == current_user.id),
+                (Message.sender_id == current_user.id)
+                & (Message.recipient_id == other_user_id),
+                (Message.sender_id == other_user_id)
+                & (Message.recipient_id == current_user.id),
             )
         )
         .order_by(Message.created_at.desc())

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Bulldog (brown/white, stocky face) -->
+  <circle cx="50" cy="50" r="50" fill="#B08050"/>
+  <!-- Floppy ears - small and folded -->
+  <ellipse cx="24" cy="40" rx="9" ry="12" fill="#8A6030" transform="rotate(-15 24 40)"/>
+  <ellipse cx="76" cy="40" rx="9" ry="12" fill="#8A6030" transform="rotate(15 76 40)"/>
+  <!-- Face - wide -->
+  <ellipse cx="50" cy="54" rx="30" ry="28" fill="#C09060"/>
+  <!-- White chest/lower face -->
+  <ellipse cx="50" cy="66" rx="22" ry="18" fill="#F0E8E0"/>
+  <!-- Wrinkles -->
+  <path d="M36,38 Q50,34 64,38" fill="none" stroke="#9A7040" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M38,42 Q50,39 62,42" fill="none" stroke="#9A7040" stroke-width="1" stroke-linecap="round"/>
+  <!-- Jowls -->
+  <ellipse cx="38" cy="62" rx="10" ry="8" fill="#E8D8C8"/>
+  <ellipse cx="62" cy="62" rx="10" ry="8" fill="#E8D8C8"/>
+  <!-- Eyes - droopy -->
+  <ellipse cx="38" cy="48" rx="5" ry="4.5" fill="#4A2808"/>
+  <ellipse cx="62" cy="48" rx="5" ry="4.5" fill="#4A2808"/>
+  <circle cx="39.5" cy="46.5" r="1.3" fill="#7A4818"/>
+  <circle cx="63.5" cy="46.5" r="1.3" fill="#7A4818"/>
+  <!-- Big nose -->
+  <ellipse cx="50" cy="57" rx="6" ry="4.5" fill="#1A1A1A"/>
+  <circle cx="47" cy="56.5" r="1.5" fill="#333"/>
+  <circle cx="53" cy="56.5" r="1.5" fill="#333"/>
+  <!-- Mouth -->
+  <path d="M40,63 Q50,70 60,63" fill="none" stroke="#8A6838" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Underbite tooth -->
+  <rect x="48" y="64" width="4" height="3" rx="1" fill="#F8F8F0"/>
+</svg>

@@ -55,7 +55,9 @@ async def _get_current_user(
 
 
 async def _get_optional_user(
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_optional)],
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Depends(bearer_optional)
+    ],
     db: DBSession,
 ):
     """Returns the authenticated user or None if no/invalid token is provided."""
@@ -82,3 +84,21 @@ CurrentUser = Annotated[Any, Depends(_get_current_user)]
 UnverifiedCurrentUser = Annotated[Any, Depends(_get_current_user_any)]
 
 OptionalUser = Annotated[Any, Depends(_get_optional_user)]
+
+
+async def _get_current_admin(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
+    db: DBSession,
+):
+    """Authenticate and require is_admin=True. For site-wide admin endpoints."""
+    user = await _get_current_user(credentials, db)
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user
+
+
+# Requires valid token + is_active + is_verified + is_admin
+CurrentAdmin = Annotated[Any, Depends(_get_current_admin)]

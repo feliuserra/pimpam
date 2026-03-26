@@ -3,14 +3,19 @@ from typing import Literal
 
 from pydantic import BaseModel, model_validator
 
+from app.schemas.community_label import LabelPublic
+
 
 class PostCreate(BaseModel):
     title: str
     content: str | None = None
-    url: str | None = None        # external link
+    url: str | None = None  # external link
     image_url: str | None = None  # single uploaded image (backward compat)
-    image_urls: list[str] = []    # multi-image; takes precedence over image_url when non-empty
+    image_urls: list[
+        str
+    ] = []  # multi-image; takes precedence over image_url when non-empty
     community_id: int | None = None
+    label_id: int | None = None  # community label (must belong to target community)
     visibility: Literal["public", "group"] = "public"
     friend_group_id: int | None = None
 
@@ -31,6 +36,7 @@ class PostUpdate(BaseModel):
     content: str | None = None
     url: str | None = None
     image_url: str | None = None
+    label_id: int | None = None
 
 
 class PostImagePublic(BaseModel):
@@ -38,6 +44,14 @@ class PostImagePublic(BaseModel):
     display_order: int
 
     model_config = {"from_attributes": True}
+
+
+class PostAttribution(BaseModel):
+    type: str  # "hashtag" or "pick"
+    hashtag: str | None = None
+    curator_username: str | None = None
+    community_name: str | None = None
+    note: str | None = None
 
 
 class PostPublic(BaseModel):
@@ -48,8 +62,14 @@ class PostPublic(BaseModel):
     image_url: str | None
     images: list[PostImagePublic] = []
     author_id: int | None
+    author_username: str | None = None
+    author_avatar_url: str | None = None
     community_id: int | None
+    community_name: str | None = None
+    label_id: int | None = None
+    label: "LabelPublic | None" = None
     karma: int
+    comment_count: int = 0
     is_edited: bool
     edited_at: datetime | None
     is_removed: bool
@@ -58,5 +78,16 @@ class PostPublic(BaseModel):
     share_comment: str | None = None
     visibility: str = "public"
     friend_group_id: int | None = None
+    user_vote: int | None = None
+    hashtags: list[str] = []
+    attribution: list[PostAttribution] | None = None
 
     model_config = {"from_attributes": True}
+
+
+class LinkPreview(BaseModel):
+    url: str
+    title: str | None = None
+    description: str | None = None
+    image: str | None = None
+    site_name: str | None = None

@@ -1,0 +1,498 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+}
+
+.loader,
+.tabLoader {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.tabLoader {
+  padding: 2rem;
+}
+
+.error,
+.empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Cover image */
+.cover {
+  width: 100%;
+  height: 200px;
+  background: #fff;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.coverOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.coverOverlay:hover {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.fileInput {
+  display: none;
+}
+
+/* Profile header */
+.header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px 1rem 0;
+  margin-top: -40px;
+  position: relative;
+}
+
+.avatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatarOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.avatarWrap:hover .avatarOverlay {
+  opacity: 1;
+}
+
+.headerInfo {
+  min-width: 0;
+  flex: 1;
+  padding-top: 44px;
+}
+
+.displayName {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.username {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 2px 0 0;
+}
+
+.pronouns {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+/* Bio & fields */
+.section {
+  padding: 0 1rem;
+}
+
+.bio {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}
+
+.bioFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.bioField {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+a.bioField:hover {
+  color: var(--accent, var(--color-accent));
+  text-decoration: underline;
+}
+
+/* Stats */
+.stats {
+  display: flex;
+  gap: 16px;
+  padding: 8px 1rem 12px;
+}
+
+.stat {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.stat strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.stat:hover {
+  text-decoration: underline;
+}
+
+span.stat {
+  cursor: default;
+}
+
+span.stat:hover {
+  text-decoration: none;
+}
+
+/* Pinned post */
+.pinnedLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  padding-top: 8px;
+}
+
+.unpinBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.unpinBtn:hover {
+  color: var(--color-text);
+}
+
+.sectionTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Community stats */
+.communityStats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+}
+
+.communityStats strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.statDot {
+  color: var(--color-text-muted);
+}
+
+/* Follow / Edit / Save buttons */
+.followBtn {
+  display: block;
+  width: calc(100% - 2rem);
+  margin: 0 1rem 16px;
+  padding: 10px;
+  border: 1px solid var(--accent, var(--color-accent));
+  border-radius: var(--radius);
+  background: var(--accent, var(--color-accent));
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.followBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.followBtn.following {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.followBtn.following:hover:not(:disabled) {
+  border-color: var(--color-danger, #e53e3e);
+  color: var(--color-danger, #e53e3e);
+}
+
+.editBtn {
+  display: block;
+  width: calc(100% - 2rem);
+  margin: 0 1rem 16px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.editBtn:hover {
+  background: var(--gray-100);
+}
+
+.editActions {
+  display: flex;
+  gap: 8px;
+  padding: 0 1rem 16px;
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.saveBtn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent, var(--color-accent));
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Edit mode fields */
+.editSection {
+  padding: 0 1rem 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.editInput {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: var(--color-bg, #fff);
+  color: var(--color-text);
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: var(--accent, var(--color-accent));
+}
+
+.editTextarea {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: var(--color-bg, #fff);
+  color: var(--color-text);
+  resize: vertical;
+  min-height: 60px;
+}
+
+.editTextarea:focus {
+  outline: none;
+  border-color: var(--accent, var(--color-accent));
+}
+
+.editHint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* Color picker */
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.colorPicker {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 2px;
+  cursor: pointer;
+  background: none;
+}
+
+.colorHex {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+.resetLink {
+  background: none;
+  border: none;
+  color: var(--accent, var(--color-accent));
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.resetLink:hover {
+  text-decoration: underline;
+}
+
+/* Toggle row */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Drag list */
+.dragList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.dragItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg, #fff);
+  cursor: grab;
+  user-select: none;
+}
+
+.dragItem:active {
+  cursor: grabbing;
+  background: var(--color-surface);
+}
+
+.dragHandle {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+
+.dragLabel {
+  font-size: 0.8125rem;
+  color: var(--color-text);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin: 8px 1rem 8px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.activeTab {
+  color: var(--color-text);
+  border-bottom-color: var(--accent, var(--color-accent));
+}
+
+.sentinel {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}

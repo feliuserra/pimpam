@@ -17,6 +17,8 @@ class CommentPublic(BaseModel):
     id: int
     post_id: int
     author_id: int | None
+    author_username: str | None = None
+    author_avatar_url: str | None = None
     parent_id: int | None
     depth: int
     content: str
@@ -24,6 +26,7 @@ class CommentPublic(BaseModel):
     created_at: datetime
     reaction_counts: dict[str, int] = {}
     reply_count: int = 0
+    user_reaction: str | None = None
 
     model_config = {"from_attributes": True}
 

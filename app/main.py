@@ -8,9 +8,22 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import ws as ws_router
-from app.api.v1 import auth, communities, feed, friend_groups, media, messages, moderation, notifications, posts, search, stories, users
-from app.api.v1.comments import comments_router, post_comments_router
 from app.api.federation import actor_routes, wellknown
+from app.api.v1 import (
+    auth,
+    communities,
+    feed,
+    friend_groups,
+    media,
+    messages,
+    moderation,
+    notifications,
+    posts,
+    search,
+    stories,
+    users,
+)
+from app.api.v1.comments import comments_router, post_comments_router
 from app.core.config import settings
 from app.core.limiter import limiter
 
@@ -20,25 +33,35 @@ logger = logging.getLogger("pimpam.main")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.core.logging import setup_logging
+
     setup_logging()
 
     if settings.storage_enabled:
         from app.core.storage import ensure_bucket_exists
+
         try:
             ensure_bucket_exists()
         except Exception:
-            logger.exception("Storage unavailable at startup — upload endpoints will return 502")
+            logger.exception(
+                "Storage unavailable at startup — upload endpoints will return 502"
+            )
     if settings.search_enabled:
         from app.core.search import configure_index
+
         try:
             configure_index()
         except Exception:
-            logger.exception("Search unavailable at startup — search endpoints will return 503")
+            logger.exception(
+                "Search unavailable at startup — search endpoints will return 503"
+            )
     from app.core.redis import get_redis
+
     try:
         get_redis()  # eagerly create the client; actual connection is lazy
     except Exception:
-        logger.exception("Redis unavailable at startup — real-time features will be degraded")
+        logger.exception(
+            "Redis unavailable at startup — real-time features will be degraded"
+        )
     cleanup_task = asyncio.create_task(_account_cleanup_loop())
     yield
     cleanup_task.cancel()
@@ -47,17 +70,21 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
     from app.core.redis import close_redis
+
     await close_redis()
 
 
 async def _account_cleanup_loop() -> None:
     """Hourly background task: execute due deletions, purge expired unverified accounts, and purge old consent logs."""
-    from datetime import timedelta, timezone
     from datetime import datetime as _dt
+    from datetime import timedelta, timezone
 
     from sqlalchemy import delete
 
-    from app.crud.account_deletion import process_expired_unverified, process_pending_deletions
+    from app.crud.account_deletion import (
+        process_expired_unverified,
+        process_pending_deletions,
+    )
     from app.db.session import AsyncSessionLocal
     from app.models.consent import ConsentLog
 
@@ -69,9 +96,12 @@ async def _account_cleanup_loop() -> None:
                 await process_expired_unverified(db)
                 # GDPR: purge consent log entries older than 30 days
                 cutoff = _dt.now(timezone.utc) - timedelta(days=30)
-                await db.execute(delete(ConsentLog).where(ConsentLog.created_at < cutoff))
+                await db.execute(
+                    delete(ConsentLog).where(ConsentLog.created_at < cutoff)
+                )
                 # Stories: hard-delete expired non-reported stories
                 from app.models.story import Story
+
                 await db.execute(
                     delete(Story).where(
                         Story.expires_at < _dt.now(timezone.utc),
@@ -105,6 +135,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Cache-Control headers for public, read-only GET endpoints (pure ASGI middleware)
+_CC_RULES: list[tuple[str, str]] = [
+    ("/api/v1/communities/", "public, max-age=30"),
+    ("/api/v1/communities", "public, max-age=60"),
+    ("/avatars/", "public, max-age=86400"),
+]
+
+
+class _CacheControlMiddleware:
+    """Pure ASGI middleware — avoids BaseHTTPMiddleware async session issues."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope.get("method") != "GET":
+            return await self.app(scope, receive, send)
+
+        path = scope.get("path", "")
+
+        cc_value = None
+        if "/labels" in path and path.startswith("/api/v1/communities/"):
+            cc_value = "public, max-age=120"
+        else:
+            for prefix, cc in _CC_RULES:
+                if path.startswith(prefix):
+                    cc_value = cc
+                    break
+
+        if cc_value is None:
+            return await self.app(scope, receive, send)
+
+        async def send_with_cache_control(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.append((b"cache-control", cc_value.encode()))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self.app(scope, receive, send_with_cache_control)
+
+
+app.add_middleware(_CacheControlMiddleware)
+
 # Routers — versioned API
 _prefix = "/api/v1"
 app.include_router(auth.router, prefix=_prefix)
@@ -122,6 +196,23 @@ app.include_router(stories.router, prefix=_prefix)
 app.include_router(post_comments_router, prefix=_prefix)
 app.include_router(comments_router, prefix=_prefix)
 
+from app.api.v1 import (  # noqa: E402
+    admin,
+    community_labels,
+    curated_picks,
+    hashtags,
+    issues,
+    reports,
+)
+
+app.include_router(community_labels.router, prefix=_prefix)
+app.include_router(curated_picks.router, prefix=_prefix)
+app.include_router(hashtags.router, prefix=_prefix)
+
+app.include_router(reports.router, prefix=_prefix)
+app.include_router(admin.router, prefix=_prefix)
+app.include_router(issues.router, prefix=_prefix)
+
 # WebSocket — no version prefix, mounted at root
 app.include_router(ws_router.router)
 
@@ -130,8 +221,21 @@ if settings.federation_enabled:
     app.include_router(wellknown.router)
     app.include_router(actor_routes.router)
 
+# Static files — default avatars
+from pathlib import Path as _Path  # noqa: E402
+
+from fastapi.staticfiles import StaticFiles as _StaticFiles  # noqa: E402
+
+_avatars_dir = _Path(__file__).parent / "avatars"
+if _avatars_dir.is_dir():
+    app.mount("/avatars", _StaticFiles(directory=str(_avatars_dir)), name="avatars")
+
 
 @app.get("/health", tags=["health"])
 async def health():
     """Liveness probe."""
-    return {"status": "ok", "version": settings.app_version, "federation": settings.federation_enabled}
+    return {
+        "status": "ok",
+        "version": settings.app_version,
+        "federation": settings.federation_enabled,
+    }

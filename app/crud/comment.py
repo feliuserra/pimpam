@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta, timezone
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,7 +61,9 @@ async def get_post_comments(
     )
 
     if before_id is not None and sort == "latest":
-        subq = select(Comment.created_at).where(Comment.id == before_id).scalar_subquery()
+        subq = (
+            select(Comment.created_at).where(Comment.id == before_id).scalar_subquery()
+        )
         query = query.where(Comment.created_at < subq)
 
     if sort == "top":
@@ -104,14 +104,21 @@ async def soft_delete_comment(db: AsyncSession, comment: Comment) -> None:
     await db.commit()
 
 
-async def mod_remove_comment(db: AsyncSession, comment: Comment, moderator_id: int) -> None:
+async def mod_remove_comment(
+    db: AsyncSession, comment: Comment, moderator_id: int
+) -> None:
     comment.is_removed = True
     comment.removed_by_id = moderator_id
     await db.commit()
     from app.crud.notification import notify
+
     await notify(
-        db, comment.author_id, "comment_removed",
-        actor_id=moderator_id, comment_id=comment.id, post_id=comment.post_id,
+        db,
+        comment.author_id,
+        "comment_removed",
+        actor_id=moderator_id,
+        comment_id=comment.id,
+        post_id=comment.post_id,
     )
 
 
@@ -161,6 +168,31 @@ async def get_reaction_counts_batch(
     return counts
 
 
+async def get_user_reactions_batch(
+    db: AsyncSession, user_id: int, comment_ids: list[int]
+) -> dict[int, str | None]:
+    """
+    Fetch the current user's active reaction for each comment.
+    Returns {comment_id: reaction_type} (first active reaction per comment).
+    """
+    if not comment_ids:
+        return {}
+    result = await db.execute(
+        select(CommentReaction.comment_id, CommentReaction.reaction_type)
+        .where(
+            CommentReaction.comment_id.in_(comment_ids),
+            CommentReaction.user_id == user_id,
+            CommentReaction.activated == True,  # noqa: E712
+        )
+        .order_by(CommentReaction.created_at.asc())
+    )
+    reactions: dict[int, str | None] = {cid: None for cid in comment_ids}
+    for comment_id, reaction_type in result.all():
+        if reactions[comment_id] is None:
+            reactions[comment_id] = reaction_type
+    return reactions
+
+
 async def get_reply_count(db: AsyncSession, comment_id: int) -> int:
     result = await db.execute(
         select(func.count(Comment.id)).where(Comment.parent_id == comment_id)
@@ -188,22 +220,20 @@ async def get_reply_counts_batch(
     return counts
 
 
-async def get_watchers(db: AsyncSession, post_id: int, exclude_user_id: int) -> list[int]:
+async def get_watchers(
+    db: AsyncSession, post_id: int, exclude_user_id: int
+) -> list[int]:
     """
     Return user IDs of the post author + everyone who has commented on the post,
     excluding the given user (the one triggering the notification).
     """
     from app.models.post import Post
 
-    author_result = await db.execute(
-        select(Post.author_id).where(Post.id == post_id)
-    )
+    author_result = await db.execute(select(Post.author_id).where(Post.id == post_id))
     author_id = author_result.scalar_one_or_none()
 
     commenters_result = await db.execute(
-        select(Comment.author_id)
-        .where(Comment.post_id == post_id)
-        .distinct()
+        select(Comment.author_id).where(Comment.post_id == post_id).distinct()
     )
     watcher_ids = set(commenters_result.scalars().all())
     if author_id is not None:

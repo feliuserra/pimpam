@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from app.core.dependencies import CurrentUser, DBSession, UnverifiedCurrentUser
+from app.core.dependencies import DBSession, UnverifiedCurrentUser
 from app.core.email import send_password_reset_email, send_verification_email
 from app.core.limiter import limiter
 from app.core.search import index_user
@@ -13,8 +13,6 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-
-logger = logging.getLogger("pimpam.auth")
 from app.core.totp import (
     decrypt_totp_secret,
     encrypt_totp_secret,
@@ -22,15 +20,43 @@ from app.core.totp import (
     get_totp_uri,
     verify_totp_code,
 )
-from app.crud.password_reset import consume_reset_token, count_recent_requests, create_reset_token
-from app.crud.user import authenticate_user, create_user, get_user_by_email, get_user_by_id, get_user_by_username, record_consent
-from app.schemas.token import ChangePasswordRequest, PasswordResetConfirm, PasswordResetRequest, RefreshRequest, TokenPair
-from app.schemas.user import TotpDisableRequest, TotpSetupResponse, TotpVerifyRequest, UserCreate, UserLogin, UserPublic
+from app.crud.password_reset import (
+    consume_reset_token,
+    count_recent_requests,
+    create_reset_token,
+)
+from app.crud.user import (
+    authenticate_user,
+    create_user,
+    get_user_by_email,
+    get_user_by_id,
+    get_user_by_username,
+    record_consent,
+)
+from app.schemas.token import (
+    ChangePasswordRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RefreshRequest,
+    TokenPair,
+)
+from app.schemas.user import (
+    TotpDisableRequest,
+    TotpSetupResponse,
+    TotpVerifyRequest,
+    UserCreate,
+    UserLogin,
+    UserPublic,
+)
+
+logger = logging.getLogger("pimpam.auth")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED
+)
 @limiter.limit("10/minute")
 async def register(request: Request, data: UserCreate, db: DBSession):
     """Register a new account. Rate-limited to prevent abuse."""
@@ -71,12 +97,43 @@ async def login(request: Request, data: UserLogin, db: DBSession):
             detail="Incorrect username or password",
         )
 
+    if not user.is_active:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            detail="Account is deactivated",
+        )
+
+    # Check for active suspension
+    from datetime import datetime as _dt
+    from datetime import timezone as _tz
+
+    from app.crud.admin import get_active_suspension
+
+    suspension = await get_active_suspension(db, user.id)
+    if suspension:
+        # Auto-expire if past expiry
+        expired = (
+            suspension.expires_at is not None
+            and suspension.expires_at.tzinfo is not None
+            and suspension.expires_at < _dt.now(_tz.utc)
+        )
+        if expired:
+            suspension.is_active = False
+            await db.commit()
+        else:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="Account is suspended",
+            )
+
     if user.totp_enabled:
         if not data.totp_code:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="totp_required")
         secret = decrypt_totp_secret(user.totp_secret)
         if not verify_totp_code(secret, data.totp_code):
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Incorrect TOTP code")
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED, detail="Incorrect TOTP code"
+            )
 
     return TokenPair(
         access_token=create_access_token(user.id),
@@ -99,13 +156,19 @@ async def refresh(data: RefreshRequest, db: DBSession):
         user_id = int(payload["sub"])
         token_version = int(payload.get("ver", 0))
     except (JWTError, KeyError, ValueError, TypeError):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
 
     user = await get_user_by_id(db, user_id)
     if user is None or not user.is_active:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
     if user.token_version != token_version:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Refresh token revoked")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, detail="Refresh token revoked"
+        )
 
     return TokenPair(
         access_token=create_access_token(user.id),
@@ -116,6 +179,7 @@ async def refresh(data: RefreshRequest, db: DBSession):
 # ---------------------------------------------------------------------------
 # Logout
 # ---------------------------------------------------------------------------
+
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(current_user: UnverifiedCurrentUser, db: DBSession):
@@ -133,8 +197,11 @@ async def logout(current_user: UnverifiedCurrentUser, db: DBSession):
 # Change password (authenticated)
 # ---------------------------------------------------------------------------
 
+
 @router.post("/change-password", status_code=status.HTTP_200_OK)
-async def change_password(data: ChangePasswordRequest, current_user: UnverifiedCurrentUser, db: DBSession):
+async def change_password(
+    data: ChangePasswordRequest, current_user: UnverifiedCurrentUser, db: DBSession
+):
     """
     Change password for the currently authenticated user.
 
@@ -142,7 +209,9 @@ async def change_password(data: ChangePasswordRequest, current_user: UnverifiedC
     refresh tokens are invalidated — the client must log in again.
     """
     if not verify_password(data.current_password, current_user.hashed_password):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Incorrect current password")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, detail="Incorrect current password"
+        )
 
     current_user.hashed_password = hash_password(data.new_password)
     current_user.token_version += 1
@@ -155,9 +224,12 @@ async def change_password(data: ChangePasswordRequest, current_user: UnverifiedC
 # Password reset
 # ---------------------------------------------------------------------------
 
+
 @router.post("/password-reset/request", status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit("20/minute")
-async def password_reset_request(request: Request, data: PasswordResetRequest, db: DBSession):
+async def password_reset_request(
+    request: Request, data: PasswordResetRequest, db: DBSession
+):
     """
     Request a password reset email.
 
@@ -171,7 +243,9 @@ async def password_reset_request(request: Request, data: PasswordResetRequest, d
 
     user = await get_user_by_email(db, data.email)
     if user is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No account with that email address")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="No account with that email address"
+        )
 
     recent = await count_recent_requests(db, user.id)
     if recent >= cfg.password_reset_max_requests_per_hour:
@@ -202,11 +276,15 @@ async def password_reset_confirm(data: PasswordResetConfirm, db: DBSession):
     """
     token_row = await consume_reset_token(db, data.token)
     if token_row is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token"
+        )
 
     user = await get_user_by_id(db, token_row.user_id)
     if user is None or not user.is_active:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token"
+        )
 
     user.hashed_password = hash_password(data.new_password)
     user.token_version += 1  # invalidate all outstanding refresh tokens
@@ -219,12 +297,13 @@ async def password_reset_confirm(data: PasswordResetConfirm, db: DBSession):
 # Email verification
 # ---------------------------------------------------------------------------
 
+
 def _create_verification_token(user) -> str:
     """Generate a verification token, store its hash on the user, and return the raw token."""
     import hashlib
     import secrets
-    from datetime import timedelta, timezone
     from datetime import datetime as _dt
+    from datetime import timedelta, timezone
 
     from app.core.config import settings as cfg
 
@@ -258,14 +337,19 @@ async def verify_email(token: str, db: DBSession):
     user = result.scalar_one_or_none()
 
     if user is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token"
+        )
 
     expires = user.email_verification_token_expires_at
     if expires is not None:
         if expires.tzinfo is None:
             expires = expires.replace(tzinfo=timezone.utc)
         if expires < datetime.now(timezone.utc):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification token",
+            )
 
     user.is_verified = True
     user.email_verification_token_hash = None
@@ -277,7 +361,9 @@ async def verify_email(token: str, db: DBSession):
 
 @router.post("/resend-verification", status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit("5/hour")
-async def resend_verification(request: Request, current_user: UnverifiedCurrentUser, db: DBSession):
+async def resend_verification(
+    request: Request, current_user: UnverifiedCurrentUser, db: DBSession
+):
     """
     Resend the email verification link.
 
@@ -285,14 +371,18 @@ async def resend_verification(request: Request, current_user: UnverifiedCurrentU
     Rate-limited to 5 per hour per account.
     """
     if current_user.is_verified:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Account is already verified")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="Account is already verified"
+        )
 
     raw_token = _create_verification_token(current_user)
     await db.commit()
     try:
         await send_verification_email(current_user.email, raw_token)
     except Exception:
-        logger.exception("Failed to resend verification email for user %s", current_user.id)
+        logger.exception(
+            "Failed to resend verification email for user %s", current_user.id
+        )
 
     return {"detail": "Verification email sent"}
 
@@ -301,7 +391,10 @@ async def resend_verification(request: Request, current_user: UnverifiedCurrentU
 # 2FA — TOTP endpoints
 # ---------------------------------------------------------------------------
 
-@router.post("/totp/setup", response_model=TotpSetupResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/totp/setup", response_model=TotpSetupResponse, status_code=status.HTTP_201_CREATED
+)
 async def totp_setup(current_user: UnverifiedCurrentUser, db: DBSession):
     """
     Generate a TOTP secret and return the provisioning URI for QR code display.
@@ -328,7 +421,9 @@ async def totp_setup(current_user: UnverifiedCurrentUser, db: DBSession):
 
 
 @router.post("/totp/verify", status_code=status.HTTP_200_OK)
-async def totp_verify(data: TotpVerifyRequest, current_user: UnverifiedCurrentUser, db: DBSession):
+async def totp_verify(
+    data: TotpVerifyRequest, current_user: UnverifiedCurrentUser, db: DBSession
+):
     """
     Confirm a TOTP code to activate 2FA on the account.
 
@@ -338,11 +433,15 @@ async def totp_verify(data: TotpVerifyRequest, current_user: UnverifiedCurrentUs
     if current_user.totp_enabled:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="2FA is already enabled.")
     if not current_user.totp_secret:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Call POST /auth/totp/setup first.")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="Call POST /auth/totp/setup first."
+        )
 
     secret = decrypt_totp_secret(current_user.totp_secret)
     if not verify_totp_code(secret, data.code):
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid TOTP code.")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid TOTP code."
+        )
 
     current_user.totp_enabled = True
     await db.commit()
@@ -350,7 +449,9 @@ async def totp_verify(data: TotpVerifyRequest, current_user: UnverifiedCurrentUs
 
 
 @router.post("/totp/disable", status_code=status.HTTP_200_OK)
-async def totp_disable(data: TotpDisableRequest, current_user: UnverifiedCurrentUser, db: DBSession):
+async def totp_disable(
+    data: TotpDisableRequest, current_user: UnverifiedCurrentUser, db: DBSession
+):
     """
     Disable 2FA on the account.
 
@@ -364,7 +465,9 @@ async def totp_disable(data: TotpDisableRequest, current_user: UnverifiedCurrent
 
     secret = decrypt_totp_secret(current_user.totp_secret)
     if not verify_totp_code(secret, data.code):
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid TOTP code.")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid TOTP code."
+        )
 
     current_user.totp_secret = None
     current_user.totp_enabled = False

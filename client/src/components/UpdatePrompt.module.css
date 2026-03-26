@@ -1,0 +1,53 @@
+.banner {
+  position: fixed;
+  bottom: calc(var(--tab-bar-height) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: var(--z-toast);
+  font-size: 0.85rem;
+  max-width: calc(100vw - 32px);
+}
+
+@media (min-width: 1024px) {
+  .banner {
+    bottom: 16px;
+  }
+}
+
+.text {
+  white-space: nowrap;
+}
+
+.updateBtn {
+  padding: 4px 14px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dismissBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.dismissBtn:hover {
+  color: #fff;
+}

@@ -1,0 +1,122 @@
+.link {
+  display: block;
+  text-decoration: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.item.unread {
+  background: rgba(var(--accent-rgb, 59, 130, 246), 0.04);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  margin: 0 -8px;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.text {
+  font-size: 0.85rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.text strong {
+  font-weight: 600;
+}
+
+.body time {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+/* Karma badge for vote notifications */
+.karmaBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #dcfce7;
+  color: #15803d;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+@media (prefers-color-scheme: dark) {
+  .karmaBadge {
+    background: #052e16;
+    color: #86efac;
+  }
+}
+
+/* Dismiss button */
+.dismissBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  line-height: 1;
+}
+
+.item:hover .dismissBtn,
+.item:focus-within .dismissBtn {
+  opacity: 1;
+}
+
+.dismissBtn:hover {
+  color: var(--color-danger, #e53e3e);
+  background: var(--gray-100);
+}
+
+/* Selection checkbox */
+.checkbox {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: transparent;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.checkbox.checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}

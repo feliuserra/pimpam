@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -21,6 +21,7 @@ async def client():
     # Disable rate limiting in tests — slowapi captures key_func at decoration
     # time, so patching _key_func after the fact has no effect. Disabling is safer.
     from app.core.limiter import limiter as shared_limiter
+
     original_enabled = shared_limiter.enabled
     shared_limiter.enabled = False
 
@@ -36,7 +37,16 @@ async def client():
             yield session
 
     app.dependency_overrides[get_session] = override_get_session
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    # Flush any cached data from previous test runs so tests see fresh DB state
+    try:
+        from app.core.cache import cache_delete_pattern
+
+        await cache_delete_pattern("*")
+    except Exception:
+        pass  # Redis may not be running in CI
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         yield ac
     app.dependency_overrides.clear()
     _test_session_factory = None
@@ -44,6 +54,7 @@ async def client():
     # Reset the module-level Redis client so the next test gets a fresh one
     # bound to the correct event loop (prevents RuntimeError: Event loop is closed)
     import app.core.redis as _redis_mod
+
     _redis_mod._client = None
     await engine.dispose()
 
@@ -51,12 +62,15 @@ async def client():
 async def get_test_db():
     """Return an async session for direct DB access in tests."""
     if _test_session_factory is None:
-        raise RuntimeError("get_test_db() called outside of a test with the client fixture")
+        raise RuntimeError(
+            "get_test_db() called outside of a test with the client fixture"
+        )
     async with _test_session_factory() as session:
         yield session
 
 
 # --- Helpers (plain async functions, not fixtures) ---
+
 
 async def register(client, username, password="testpass123", email=None, verify=True):
     """Register a user and, by default, auto-verify their email."""
@@ -67,11 +81,14 @@ async def register(client, username, password="testpass123", email=None, verify=
         captured["token"] = token
 
     with patch("app.api.v1.auth.send_verification_email", new=_capture):
-        r = await client.post("/api/v1/auth/register", json={
-            "username": username,
-            "email": email,
-            "password": password,
-        })
+        r = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": username,
+                "email": email,
+                "password": password,
+            },
+        )
 
     if verify and "token" in captured:
         await client.get(f"/api/v1/auth/verify?token={captured['token']}")
@@ -80,10 +97,13 @@ async def register(client, username, password="testpass123", email=None, verify=
 
 
 async def login(client, username, password="testpass123"):
-    r = await client.post("/api/v1/auth/login", json={
-        "username": username,
-        "password": password,
-    })
+    r = await client.post(
+        "/api/v1/auth/login",
+        json={
+            "username": username,
+            "password": password,
+        },
+    )
     return r.json()["access_token"]
 
 

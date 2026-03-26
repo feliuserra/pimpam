@@ -8,6 +8,8 @@ class NotificationPublic(BaseModel):
     user_id: int
     type: str
     actor_id: int | None
+    actor_username: str | None = None
+    actor_avatar_url: str | None = None
     post_id: int | None
     comment_id: int | None
     community_id: int | None
@@ -26,3 +28,7 @@ class PreferenceUpdate(BaseModel):
 
 class UnreadCount(BaseModel):
     count: int
+
+
+class NotificationIds(BaseModel):
+    ids: list[int]

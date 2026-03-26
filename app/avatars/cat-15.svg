@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Lilac/lavender gray cat -->
+  <circle cx="50" cy="50" r="50" fill="#A898B0"/>
+  <!-- Ears -->
+  <path d="M24,36 Q20,16 33,10 Q42,16 38,34" fill="#9888A0"/>
+  <path d="M62,34 Q58,16 67,10 Q80,16 76,36" fill="#9888A0"/>
+  <path d="M27,33 Q24,19 33,14 Q39,19 36,32" fill="#C0A8C0"/>
+  <path d="M64,32 Q61,19 67,14 Q76,19 73,33" fill="#C0A8C0"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="54" rx="27" ry="25" fill="#B8A8C0"/>
+  <!-- Lighter muzzle -->
+  <ellipse cx="50" cy="62" rx="13" ry="11" fill="#D8C8D8"/>
+  <!-- Eyes - gold/copper -->
+  <ellipse cx="38" cy="48" rx="5.5" ry="5.5" fill="#C89030"/>
+  <ellipse cx="62" cy="48" rx="5.5" ry="5.5" fill="#C89030"/>
+  <ellipse cx="39" cy="47" rx="2" ry="3" fill="#1A1A2E"/>
+  <ellipse cx="63" cy="47" rx="2" ry="3" fill="#1A1A2E"/>
+  <circle cx="40" cy="45.5" r="1.2" fill="#E8C060"/>
+  <circle cx="64" cy="45.5" r="1.2" fill="#E8C060"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="56" rx="3" ry="2" fill="#C090A0"/>
+  <!-- Mouth -->
+  <path d="M47,58 Q50,62 53,58" fill="none" stroke="#A07888" stroke-width="1" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="14" y1="54" x2="36" y2="56" stroke="#908098" stroke-width="0.7"/>
+  <line x1="14" y1="59" x2="36" y2="59" stroke="#908098" stroke-width="0.7"/>
+  <line x1="64" y1="56" x2="86" y2="54" stroke="#908098" stroke-width="0.7"/>
+  <line x1="64" y1="59" x2="86" y2="59" stroke="#908098" stroke-width="0.7"/>
+</svg>

@@ -14,6 +14,7 @@ The client then uses the returned URL in:
 
 To add multiple images per post later, see docs/missing.rst.
 """
+
 from fastapi import APIRouter, HTTPException, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
@@ -25,14 +26,16 @@ from app.core.storage import upload_image
 
 router = APIRouter(prefix="/media", tags=["media"])
 
-VALID_TYPES = {"avatar", "post_image"}
+VALID_TYPES = {"avatar", "post_image", "cover_image"}
 
 
 class UploadResponse(BaseModel):
     url: str
 
 
-@router.post("/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED
+)
 @limiter.limit("10/minute")
 async def upload(
     request: Request,

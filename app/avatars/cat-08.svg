@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Ginger cat (light orange, happy squinting face) -->
+  <circle cx="50" cy="50" r="50" fill="#F0B870"/>
+  <!-- Ears -->
+  <path d="M24,36 Q20,16 33,10 Q42,16 38,34" fill="#E8A050"/>
+  <path d="M62,34 Q58,16 67,10 Q80,16 76,36" fill="#E8A050"/>
+  <path d="M27,33 Q24,19 33,14 Q39,19 36,32" fill="#F0C8A0"/>
+  <path d="M64,32 Q61,19 67,14 Q76,19 73,33" fill="#F0C8A0"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="54" rx="27" ry="25" fill="#F5C078"/>
+  <!-- Lighter muzzle -->
+  <ellipse cx="50" cy="62" rx="15" ry="13" fill="#FAE0C0"/>
+  <!-- Eyes - happy squint -->
+  <path d="M32,48 Q38,42 44,48" fill="none" stroke="#1A1A2E" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M56,48 Q62,42 68,48" fill="none" stroke="#1A1A2E" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="55" rx="3" ry="2" fill="#E88080"/>
+  <!-- Mouth - big smile -->
+  <path d="M44,58 Q50,64 56,58" fill="none" stroke="#C07060" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="12" y1="53" x2="35" y2="56" stroke="#D09060" stroke-width="0.7"/>
+  <line x1="12" y1="58" x2="35" y2="59" stroke="#D09060" stroke-width="0.7"/>
+  <line x1="14" y1="63" x2="36" y2="61" stroke="#D09060" stroke-width="0.7"/>
+  <line x1="65" y1="56" x2="88" y2="53" stroke="#D09060" stroke-width="0.7"/>
+  <line x1="65" y1="59" x2="88" y2="58" stroke="#D09060" stroke-width="0.7"/>
+  <line x1="64" y1="61" x2="86" y2="63" stroke="#D09060" stroke-width="0.7"/>
+</svg>

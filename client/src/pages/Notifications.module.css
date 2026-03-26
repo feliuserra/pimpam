@@ -1,0 +1,240 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+/* Header actions */
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headerBtn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.headerBtn:hover {
+  background: var(--gray-100);
+  color: var(--color-accent);
+}
+
+.headerBtnActive {
+  color: var(--color-accent);
+  background: rgba(var(--accent-rgb, 59, 130, 246), 0.1);
+}
+
+/* Type-filter tabs */
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 20px;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab:hover {
+  background: var(--gray-100);
+  color: var(--color-text);
+}
+
+.activeTab {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.activeTab:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* Batch action bar */
+.batchBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.selectAllBtn {
+  background: none;
+  border: 1px solid var(--color-border);
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  border-radius: 14px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background 0.15s;
+}
+
+.selectAllBtn:hover {
+  background: var(--gray-100);
+}
+
+.selectedCount {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+.batchBtn {
+  background: none;
+  border: 1px solid var(--color-border);
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  border-radius: 14px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background 0.15s, color 0.15s;
+}
+
+.batchBtn:hover {
+  background: var(--gray-100);
+}
+
+.batchDismiss:hover {
+  color: var(--color-danger, #e53e3e);
+  border-color: var(--color-danger, #e53e3e);
+}
+
+/* Loader & empty */
+.loader {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 3rem 1rem;
+  font-size: 0.88rem;
+}
+
+/* Footer: dismiss read + load more + page size */
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 8px;
+}
+
+.dismissReadBtn {
+  background: none;
+  border: 1px solid var(--color-border);
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  border-radius: 16px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.dismissReadBtn:hover {
+  background: var(--gray-100);
+  color: var(--color-text);
+}
+
+.loadMoreBtn {
+  background: none;
+  border: 1px solid var(--color-border);
+  padding: 8px 24px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  border-radius: 20px;
+  cursor: pointer;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+
+.loadMoreBtn:hover {
+  background: var(--gray-100);
+}
+
+.loadMoreBtn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Page size selector */
+.pageSizeRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pageSizeLabel {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin-right: 4px;
+}
+
+.pageSizeBtn {
+  background: none;
+  border: 1px solid var(--color-border);
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.pageSizeBtn:hover {
+  background: var(--gray-100);
+  color: var(--color-text);
+}
+
+.pageSizeActive {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.pageSizeActive:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .headerBtn:hover,
+  .selectAllBtn:hover,
+  .batchBtn:hover,
+  .dismissReadBtn:hover,
+  .loadMoreBtn:hover,
+  .pageSizeBtn:hover,
+  .tab:hover {
+    background: var(--gray-800, #2d2d2d);
+  }
+}
