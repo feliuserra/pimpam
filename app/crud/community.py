@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.community import Community, CommunityMember
 from app.schemas.community import CommunityCreate
 
-_DOG_AVATARS = [f"/avatars/dog-{i:02d}.svg" for i in range(1, 21)]
+_AVATARS = [f"/avatars/dog-{i:02d}.svg" for i in range(1, 21)]
 
 
 async def get_community_by_name(db: AsyncSession, name: str) -> Community | None:
@@ -18,7 +18,7 @@ async def create_community(
     import random
 
     community = Community(
-        **data.model_dump(), owner_id=owner_id, avatar_url=random.choice(_DOG_AVATARS)
+        **data.model_dump(), owner_id=owner_id, avatar_url=random.choice(_AVATARS)
     )
     db.add(community)
     await db.flush()  # get the id before adding membership
