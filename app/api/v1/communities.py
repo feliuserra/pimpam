@@ -35,7 +35,8 @@ async def list_communities(
     db: DBSession,
     sort: SortBy = Query(default=SortBy.popular),
     page: int = Query(default=1, ge=1),
-    limit: int = Query(default=20, le=50),
+    limit: int = Query(default=20, le=200),
+    q: str | None = Query(default=None, max_length=100),
 ):
     """
     List all communities.
@@ -44,8 +45,10 @@ async def list_communities(
     - **popular** — most members first (default)
     - **alphabetical** — A to Z
     - **newest** — most recently created first
+
+    Optional **q** parameter filters by name (case-insensitive contains).
     """
-    from sqlalchemy import select
+    from sqlalchemy import func, select
 
     from app.models.community import Community
 
@@ -56,9 +59,12 @@ async def list_communities(
         SortBy.newest: Community.created_at.desc(),
     }[sort]
 
-    result = await db.execute(
-        select(Community).order_by(order).offset(offset).limit(limit)
-    )
+    query = select(Community)
+    if q:
+        query = query.where(func.lower(Community.name).contains(q.lower()))
+    query = query.order_by(order).offset(offset).limit(limit)
+
+    result = await db.execute(query)
     return result.scalars().all()
 
 

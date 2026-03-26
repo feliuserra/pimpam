@@ -88,19 +88,43 @@ async def get_news(
     before_id: int | None = Query(default=None),
 ):
     """
-    Chronological posts from communities tagged as news.
+    Chronological news posts.
 
-    No editorial layer — just an aggregated feed from is_news communities,
-    newest first, cursor-paginated.
+    A post qualifies as news if:
+      - it belongs to a community whose name contains "news" or "noticias", OR
+      - it is tagged with the #news hashtag.
+
+    No editorial layer, newest first, cursor-paginated.
     """
+    from sqlalchemy import or_, union
+
+    from app.models.hashtag import Hashtag, PostHashtag
+
+    # Community-based: name contains "news" or "noticias" (case-insensitive)
     news_community_ids = select(Community.id).where(
-        Community.is_news == True  # noqa: E712
+        or_(
+            func.lower(Community.name).contains("news"),
+            func.lower(Community.name).contains("noticias"),
+        )
     )
+
+    # Hashtag-based: posts tagged #news
+    news_hashtag_post_ids = (
+        select(PostHashtag.post_id)
+        .join(Hashtag, PostHashtag.hashtag_id == Hashtag.id)
+        .where(func.lower(Hashtag.name) == "news")
+    )
+
+    # Union both sources
+    community_post_ids = select(Post.id).where(
+        Post.community_id.in_(news_community_ids)
+    )
+    all_news_ids = union(community_post_ids, news_hashtag_post_ids).subquery()
 
     query = (
         select(Post)
         .where(
-            Post.community_id.in_(news_community_ids),
+            Post.id.in_(select(all_news_ids.c.id)),
             Post.is_removed == False,  # noqa: E712
             Post.visibility == "public",
         )
