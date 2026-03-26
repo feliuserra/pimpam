@@ -1,8 +1,8 @@
 """Tests for the community issue tracker (/api/v1/issues/*)."""
 
-from app.models.user import User
 from sqlalchemy import update
 
+from app.models.user import User
 from tests.conftest import get_test_db, setup_user
 
 
@@ -490,3 +490,152 @@ async def test_admin_update_not_found(client):
         json={"status": "completed"},
     )
     assert r.status_code == 404
+
+
+# ── Close / Reopen ──────────────────────────────────────────────────
+
+
+async def test_author_can_close_issue(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Close this issue",
+            "description": "Author should be able to close",
+            "category": "feature",
+        },
+    )
+    issue_id = r.json()["id"]
+    assert r.json()["is_closed"] is False
+
+    r = await client.post(f"/api/v1/issues/{issue_id}/close", headers=h)
+    assert r.status_code == 200
+    assert r.json()["is_closed"] is True
+    assert r.json()["closed_at"] is not None
+
+
+async def test_author_can_reopen_issue(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Reopen this issue",
+            "description": "Author should be able to reopen",
+            "category": "bug",
+        },
+    )
+    issue_id = r.json()["id"]
+
+    await client.post(f"/api/v1/issues/{issue_id}/close", headers=h)
+    r = await client.post(f"/api/v1/issues/{issue_id}/reopen", headers=h)
+    assert r.status_code == 200
+    assert r.json()["is_closed"] is False
+    assert r.json()["closed_at"] is None
+
+
+async def test_admin_can_close_any_issue(client):
+    admin_h = await _setup_admin(client)
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Admin close test",
+            "description": "Admin should close any issue",
+            "category": "feature",
+        },
+    )
+    issue_id = r.json()["id"]
+
+    r = await client.post(f"/api/v1/issues/{issue_id}/close", headers=admin_h)
+    assert r.status_code == 200
+    assert r.json()["is_closed"] is True
+
+
+async def test_non_author_cannot_close(client):
+    h = await setup_user(client, "alice")
+    bob_h = await setup_user(client, "bob")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Cannot close this",
+            "description": "Non-author should not close",
+            "category": "bug",
+        },
+    )
+    issue_id = r.json()["id"]
+
+    r = await client.post(f"/api/v1/issues/{issue_id}/close", headers=bob_h)
+    assert r.status_code == 403
+
+
+async def test_close_already_closed(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Already closed issue",
+            "description": "Should conflict on double close",
+            "category": "feature",
+        },
+    )
+    issue_id = r.json()["id"]
+
+    await client.post(f"/api/v1/issues/{issue_id}/close", headers=h)
+    r = await client.post(f"/api/v1/issues/{issue_id}/close", headers=h)
+    assert r.status_code == 409
+
+
+async def test_reopen_not_closed(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Not closed issue",
+            "description": "Should conflict on reopen of open issue",
+            "category": "bug",
+        },
+    )
+    issue_id = r.json()["id"]
+
+    r = await client.post(f"/api/v1/issues/{issue_id}/reopen", headers=h)
+    assert r.status_code == 409
+
+
+async def test_list_issues_filter_by_closed(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Open issue stays",
+            "description": "This one stays open for filter",
+            "category": "feature",
+        },
+    )
+    r2 = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Closed issue here",
+            "description": "This one will be closed for filter",
+            "category": "bug",
+        },
+    )
+    closed_id = r2.json()["id"]
+    await client.post(f"/api/v1/issues/{closed_id}/close", headers=h)
+
+    # Filter open only
+    r = await client.get("/api/v1/issues?closed=false")
+    assert all(not i["is_closed"] for i in r.json())
+    assert len(r.json()) == 1
+
+    # Filter closed only
+    r = await client.get("/api/v1/issues?closed=true")
+    assert all(i["is_closed"] for i in r.json())
+    assert len(r.json()) == 1
