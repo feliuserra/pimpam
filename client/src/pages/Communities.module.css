@@ -34,10 +34,41 @@
   margin-bottom: 24px;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
 .sectionTitle {
   font-size: 0.95rem;
   font-weight: 600;
-  margin: 0 0 10px;
+  margin: 0;
+}
+
+.inlineSearch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.inlineSearchInput {
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 0.75rem;
+  color: var(--color-text);
+  width: 80px;
+}
+
+.inlineSearchInput::placeholder {
+  color: var(--color-text-muted);
 }
 
 /* Your communities grid */

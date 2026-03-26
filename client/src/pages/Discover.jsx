@@ -11,8 +11,8 @@ import styles from "./Discover.module.css";
 
 export default function Discover() {
   const { user } = useAuth();
-  const defaultTab = user ? "For You" : "Trending";
-  const tabs = user ? ["For You", "Trending", "News"] : ["Trending", "News"];
+  const defaultTab = "Trending";
+  const tabs = user ? ["Trending", "For You", "News"] : ["Trending", "News"];
   const [tab, setTab] = useState(defaultTab);
 
   return (
@@ -264,20 +264,25 @@ function NewsList() {
   };
 
   if (loading) return <div>{[1,2,3].map((i) => <PostCardSkeleton key={i} />)}</div>;
-  if (posts.length === 0) return <p className={styles.empty}>No news posts yet. Join news communities to see content here.</p>;
+  if (posts.length === 0) return <p className={styles.empty}>No news posts yet.</p>;
 
   return (
-    <div className={styles.list}>
-      {posts.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          isCloseFriend={isCloseFriend(post.author_id)}
-          onUpdate={handlePostUpdate}
-          onDelete={handlePostDelete}
-        />
-      ))}
-      {hasMore && <div ref={sentinelRef} className={styles.loader}><Spinner size={16} /></div>}
+    <div>
+      <p className={styles.hint}>
+        Posts from communities with &ldquo;news&rdquo; or &ldquo;noticias&rdquo; in their name, or tagged #news. Chronological, no editorial filter.
+      </p>
+      <div className={styles.list}>
+        {posts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            isCloseFriend={isCloseFriend(post.author_id)}
+            onUpdate={handlePostUpdate}
+            onDelete={handlePostDelete}
+          />
+        ))}
+        {hasMore && <div ref={sentinelRef} className={styles.loader}><Spinner size={16} /></div>}
+      </div>
     </div>
   );
 }
