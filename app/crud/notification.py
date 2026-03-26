@@ -28,6 +28,7 @@ async def notify(
     post_id: int | None = None,
     comment_id: int | None = None,
     community_id: int | None = None,
+    story_id: int | None = None,
     group_key: str | None = None,
 ) -> None:
     """
@@ -68,6 +69,7 @@ async def notify(
                 post_id=post_id,
                 comment_id=comment_id,
                 community_id=community_id,
+                story_id=story_id,
                 group_key=group_key,
                 group_count=1,
             )
@@ -91,6 +93,7 @@ async def notify(
                 "post_id": post_id,
                 "comment_id": comment_id,
                 "community_id": community_id,
+                "story_id": story_id,
             },
         )
     except Exception:

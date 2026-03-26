@@ -10,7 +10,9 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False, index=True
+    )
     type: Mapped[str] = mapped_column(String(40), nullable=False)
 
     # Who triggered the notification (None for system events like bans)
@@ -18,8 +20,14 @@ class Notification(Base):
 
     # Context references — whichever are relevant for the type
     post_id: Mapped[int | None] = mapped_column(ForeignKey("posts.id"), nullable=True)
-    comment_id: Mapped[int | None] = mapped_column(ForeignKey("comments.id"), nullable=True)
-    community_id: Mapped[int | None] = mapped_column(ForeignKey("communities.id"), nullable=True)
+    comment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("comments.id"), nullable=True
+    )
+    community_id: Mapped[int | None] = mapped_column(
+        ForeignKey("communities.id"), nullable=True
+    )
+    # Plain integer — no FK because stories are ephemeral and get cleaned up
+    story_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Grouping — reactions and votes are aggregated into a single unread row
     group_key: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
@@ -38,9 +46,12 @@ class NotificationPreference(Base):
     Opt-out list per user. Presence of a row means the notification type is DISABLED.
     All types are enabled by default — no rows needed.
     """
+
     __tablename__ = "notification_preferences"
     __table_args__ = (UniqueConstraint("user_id", "notification_type"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False, index=True
+    )
     notification_type: Mapped[str] = mapped_column(String(40), nullable=False)

@@ -101,6 +101,15 @@ class Settings(BaseSettings):
     multi_image_posts_enabled: bool = False
     post_max_images: int = 10
 
+    # Stories
+    story_max_mentions: int = 5
+    story_link_preview_timeout: float = 5.0
+
+    # Video stories (future — placeholders only)
+    video_enabled: bool = False
+    video_max_duration_seconds: int = 10
+    video_max_upload_bytes: int = 50 * 1024 * 1024  # 50 MB
+
     def model_post_init(self, __context) -> None:
         if self.environment != "development":
             if self.secret_key == "change-me-in-production":
