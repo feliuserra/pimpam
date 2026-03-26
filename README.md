@@ -92,16 +92,25 @@ All features are exposed via a versioned REST API at `/api/v1/`. Interactive doc
 | Messages | Send (E2EE), inbox, conversation thread, mark as read |
 | Friend groups | CRUD groups + member management, group-scoped post visibility |
 | Media | Upload images (JPEG/PNG/WebP/GIF → WebP, EXIF stripped, S3 storage) |
-| Search | Full-text search over posts, users, and communities; `?type=post\|user\|community` filter |
+| Hashtags | Trending hashtags, lookup by tag, posts-by-tag listing, subscriptions |
+| Search | Full-text search over posts, users, communities, and hashtags; `?type=` filter to scope results |
+| Blocking | Block/unblock users; blocked users hidden from feeds, search, and suggestions |
+| Reports | Report posts, comments, and stories (rate-limited, one per content per user) |
+| Admin | Site admin role, report management (resolve/dismiss), global bans/unbans, user suspensions, content removal, aggregate analytics |
+| Community labels | Moderator-created, ordered labels for organizing posts within a community |
+| Curated picks | Moderators surface up to 3 posts per community, with curator attribution |
+| Discover | Personalized chronological feed: hashtag-subscribed posts + curated picks (no algorithmic ranking) |
+| Issues | Community issue tracker: submit bugs/features/improvements, voting, comments, admin status updates |
 | Notifications | Persistent inbox, 14 event types, grouped reactions/votes, per-type opt-out |
 | Real-time | WebSocket at `WS /ws?token=<jwt>` — new_post, new_comment, new_message, karma_update, notification, typing |
 | Federation | ActivityPub: WebFinger, NodeInfo, Actor, Inbox, Outbox, HTTP Signatures |
 
 ## Project status
 
-The core backend is complete and covered by an integration test suite (`pytest -v`). All API endpoints are implemented, documented, and rate-limited.
+PimPam is a fully functional application with a complete backend API and a production-ready React PWA frontend. The codebase is covered by **649 backend tests** (pytest) and **559 frontend tests** (Vitest), all running in CI.
 
-**What's working today:**
+### Backend — what's working today
+
 - Full auth flow with optional 2FA (TOTP, secrets encrypted at rest)
 - Password reset — link mode (15 min) or code mode (6-digit, 10 min), delivered via SMTP, rate-limited to 3/hour per account; resets invalidate all outstanding refresh tokens
 - Email verification — new accounts are gated until verified; tokens expire in 60 min; unverified accounts auto-deleted after 30 days; resend endpoint included
@@ -114,24 +123,61 @@ The core backend is complete and covered by an integration test suite (`pytest -
 - Comments: nested threads up to 5 levels, sort by latest or most-reacted, author delete, mod remove/restore
 - Comment reactions: agree, love, misleading, disagree — each with a distinct karma effect; disagree requires an accompanying reply to activate, capped at 10/day
 - Two-tier karma: global (shown on profile) + per-community (unlocks trusted_member at 50, gates mod eligibility at 200/500)
-- Communities with a full moderation system: role hierarchy (member → trusted_member → moderator → senior_mod → owner), ban proposals, ban appeals, mod promotion, ownership transfer
+- Communities with a full moderation system: role hierarchy (member → trusted_member → moderator → senior_mod → owner), ban proposals, ban appeals, mod promotion, ownership transfer, community labels, audit log
 - End-to-end encrypted direct messages
 - Stories — ephemeral posts with configurable duration (12h–7d), no seen-by tracking, hourly cleanup of expired stories, report with 48h mod review retention
 - Friend groups with group-scoped post visibility
 - Real-time updates via WebSocket (new post, new comment, new message, karma update, notifications, typing indicators for DMs)
 - Persistent notification inbox: 14 event types covering social actions and moderation, with grouped counts for reactions/votes, per-type opt-out preferences
-- Full-text search via Meilisearch over posts, users, and communities; `?type=` filter to scope results
-- Multi-image posts (`PostImage` table; behind `MULTI_IMAGE_POSTS_ENABLED` flag)
+- Full-text search via Meilisearch over posts, users, communities, and hashtags
+- Hashtags: auto-extracted from post content, trending, per-hashtag post listing, subscriptions
+- User blocking: block/unblock users, blocked users hidden from feeds, search, and suggestions
+- Content reporting: report posts, comments, and stories (rate-limited, one report per content per user)
+- Admin layer: site admin role, report management (resolve/dismiss), global bans/unbans, user suspensions, content removal
+- Admin analytics: aggregate-only overview stats, timeseries (signups/posts/comments/messages/stories), top communities, moderation summary (cached via Redis, 5-min TTL)
+- Community labels: moderator-created, ordered labels for organizing posts within a community
+- Curated picks: moderators can surface up to 3 posts per community, with curator attribution
+- Hashtag subscriptions: users subscribe to hashtags; subscribed posts appear in discover feed
+- Discover feed: personalized chronological feed combining hashtag-subscribed posts + curated picks from joined communities (no algorithmic ranking)
+- Issue tracker: community-submitted bugs, features, and improvements with voting, comments, and admin status updates
+- Device tokens: APNs/FCM token registration for push notifications (iOS/Android/Web)
+- Redis cache layer: graceful fallback caching for analytics and expensive queries
 - GDPR compliance: data export endpoint, consent log at registration, 30-day consent purge
 - ActivityPub federation — follow remote users, receive posts, boost content across the fediverse
 - CI/CD with coverage enforcement (≥70%) on every push
-- 399 tests covering all endpoints
 
-**What's next:**
-- Admin layer — platform-level moderation: site admin role, global bans, user suspension, platform content removal (required before public launch)
-- React frontend (the `client/` directory is currently a skeleton — see [CLAUDE.md](CLAUDE.md) for the full frontend roadmap)
+### Frontend — fully implemented React PWA
+
+The `client/` directory contains a complete, production-ready React + Vite progressive web app:
+
+- **App shell:** bottom tab bar (mobile) + left sidebar (desktop ≥1024px), per-tab headers with contextual actions
+- **Auth flows:** register (with GDPR consent), login, TOTP 2FA, email verification banner, forgot/reset password, logout
+- **Feed:** chronological post stream with infinite scroll, stories row (compose, full-screen viewer — no countdown/seen-by), compose modal (title, content, URL, community, visibility, image), WS-driven "new posts" banner
+- **PostCard:** author + community badge, content truncation, image gallery (+N), optimistic voting, comment count, boost, share, hashtag pills, overflow menu (edit/delete/mod actions)
+- **Post detail:** full content, image lightbox, nested comment thread (5 levels), reactions, sort by latest/top, inline reply, live comments via WS
+- **User profiles:** inline editing (cover image, avatar with crop modal, bio fields, accent color, pinned post, draggable layout reorder, community stats toggle), follow/unfollow, follower/following tabs
+- **Communities:** your communities, discover (Popular/New), community page with post list, join/leave, create community modal, mod panel link, community labels
+- **Notifications:** WS-driven badge, grouped inbox, mark all read, per-type preference toggles (14 types)
+- **Search:** animated search input on Feed, search pill on Communities, results page with type tabs (All/Posts/Users/Communities/Hashtags), trending hashtags, inline follow/join
+- **Direct messages:** conversation inbox (recency sorted, unread dots), message thread (bubble layout, typing indicator, live append via WS, mark read), new DM via user search
+- **Settings:** account (password, 2FA), profile, notification preferences, friend groups CRUD, GDPR (data export, account deletion with 7-day grace + cancel)
+- **Moderation panel:** removed content restore, ban proposals (10-vote consensus), appeals, mod promotions, ownership transfer
+- **Issues tracker:** submit, vote, comment, admin management
+- **Admin dashboard:** report management, global bans, user suspensions, content removal, analytics (overview, timeseries, top communities, moderation summary)
+- **Discovery page:** curated picks, hashtag-subscribed posts
+- **Friend groups:** CRUD, member management
+- **PWA:** service worker (Workbox), offline fallback, install/update prompt
+- **Legal pages:** Privacy policy, Terms of service
+- **Shared UI kit:** Avatar, Button, Modal, Toast, Spinner, Skeleton, ErrorBoundary, InfiniteList, RelativeTime, CropModal
+- **Accessibility:** WCAG 2.1 AA, keyboard navigation, semantic HTML, `prefers-reduced-motion` support
+
+### What's next
+
+- DM E2EE key management (Web Crypto API — RSA-OAEP, IndexedDB for private key)
+- Multi-image post UI (backend ready, frontend pending)
 - Karma privilege thresholds (rate-limit relaxation, community creation gating for trusted users)
 - Mod rewards / separate moderation karma track
+- NCMEC content hash-matching
 
 Want to help? Read our [Contributing Guide](CONTRIBUTING.md) and check the open issues.
 
