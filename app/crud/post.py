@@ -209,12 +209,16 @@ async def create_share(
         original.shared_from_id if original.shared_from_id is not None else original.id
     )
 
-    existing = await db.execute(
-        select(Post).where(
-            Post.author_id == author_id,
-            Post.shared_from_id == root_id,
-        )
+    existing_q = select(Post).where(
+        Post.author_id == author_id,
+        Post.shared_from_id == root_id,
     )
+    # When sharing to a community, check per-community; otherwise check profile-level
+    if data.community_id:
+        existing_q = existing_q.where(Post.community_id == data.community_id)
+    else:
+        existing_q = existing_q.where(Post.community_id.is_(None))
+    existing = await db.execute(existing_q)
     if existing.scalar_one_or_none() is not None:
         raise ValueError("already_shared")
 

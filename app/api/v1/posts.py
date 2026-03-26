@@ -453,7 +453,8 @@ async def share(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, detail="Cannot share a group post"
         )
-    if original.author_id == current_user.id:
+    # Allow sharing your own post only when cross-posting to a community
+    if original.author_id == current_user.id and not data.community_id:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, detail="Cannot share your own post"
         )
