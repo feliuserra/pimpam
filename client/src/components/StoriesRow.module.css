@@ -79,19 +79,25 @@
 }
 
 .modeToggle {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: var(--gray-100);
+  display: flex;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 2px 8px;
-  cursor: pointer;
-  transition: background 0.15s;
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
-.modeToggle:hover {
+.modeBtn {
+  padding: 2px 8px;
+  border: none;
+  background: none;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.modeBtnActive {
   background: var(--gray-200);
+  color: var(--color-text);
 }
 
 /* Square thumbnail with rounded corners (image mode) */
@@ -111,9 +117,13 @@
   width: 68px;
   height: 68px;
   border-radius: 50%;
-  overflow: hidden;
   background: var(--gray-200);
   border: 3px solid transparent;
+}
+
+.thumbCircle .thumbImg,
+.thumbCircle .thumbFallback {
+  border-radius: 50%;
 }
 
 .unseenRing {
@@ -159,6 +169,33 @@
   object-fit: cover;
   border: 2px solid #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Story count badge */
+.countBadge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  line-height: 1;
+}
+
+.thumbCircle .countBadge {
+  top: auto;
+  bottom: 0;
+  right: 0;
 }
 
 /* "+" badge for compose */

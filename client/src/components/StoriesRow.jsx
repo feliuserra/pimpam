@@ -135,15 +135,6 @@ export default function StoriesRow({ onView, onCompose }) {
     });
   };
 
-  const toggleThumbMode = (e) => {
-    e.stopPropagation();
-    setThumbMode((prev) => {
-      const next = prev === "image" ? "avatar" : "image";
-      localStorage.setItem(THUMB_MODE_KEY, next);
-      return next;
-    });
-  };
-
   const isGroupSeen = (group) => group.items.every((s) => seen.has(s.id));
   const latestImage = (group) =>
     group.items[0]?.image_url ||
@@ -167,13 +158,20 @@ export default function StoriesRow({ onView, onCompose }) {
       {!collapsed && (
         <>
           <div className={styles.rowControls}>
-            <button
-              className={styles.modeToggle}
-              onClick={toggleThumbMode}
-              aria-label={thumbMode === "image" ? "Show avatars" : "Show story images"}
-            >
-              {thumbMode === "image" ? "Avatars" : "Images"}
-            </button>
+            <div className={styles.modeToggle}>
+              {[{ key: "image", label: "Images" }, { key: "avatar", label: "Avatars" }].map((m) => (
+                <button
+                  key={m.key}
+                  className={`${styles.modeBtn} ${thumbMode === m.key ? styles.modeBtnActive : ""}`}
+                  onClick={() => {
+                    setThumbMode(m.key);
+                    localStorage.setItem(THUMB_MODE_KEY, m.key);
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className={styles.row} ref={rowRef} aria-label="Stories">
             {/* Own story */}
@@ -201,6 +199,8 @@ export default function StoriesRow({ onView, onCompose }) {
               const avatarSrc = group.author.avatar_url;
               const mainSrc = showAvatar ? avatarSrc : img;
 
+              const count = group.items.length;
+
               return (
                 <button
                   key={group.author.username}
@@ -226,6 +226,9 @@ export default function StoriesRow({ onView, onCompose }) {
                         src={avatarSrc}
                         alt={`@${group.author.username}`}
                       />
+                    )}
+                    {count > 1 && (
+                      <span className={styles.countBadge}>{count}</span>
                     )}
                   </div>
                   <span className={styles.label}>
