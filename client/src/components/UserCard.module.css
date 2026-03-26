@@ -34,12 +34,6 @@
   color: var(--color-text-muted);
 }
 
-.star {
-  color: var(--color-accent);
-  margin-right: 4px;
-  font-size: 0.82rem;
-}
-
 .followBtn {
   padding: 6px 16px;
   border: 1px solid var(--color-accent);

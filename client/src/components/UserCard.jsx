@@ -36,10 +36,9 @@ export default function UserCard({ user, hideFollow = false, isCloseFriend = fal
   return (
     <div className={styles.card}>
       <Link to={`/u/${user.username}`} className={styles.info}>
-        <Avatar src={user.avatar_url} alt={`@${user.username}`} size={40} />
+        <Avatar src={user.avatar_url} alt={`@${user.username}`} size={40} isCloseFriend={isCloseFriend} />
         <div>
           <span className={styles.name}>
-            {isCloseFriend && <span className={styles.star} aria-label="Close friend">★</span>}
             {user.display_name || `@${user.username}`}
           </span>
           <span className={styles.username}>@{user.username}</span>

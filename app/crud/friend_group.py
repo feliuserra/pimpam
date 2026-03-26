@@ -21,7 +21,9 @@ async def get_or_create_close_friends(db: AsyncSession, owner_id: int) -> Friend
     )
     group = result.scalar_one_or_none()
     if group is None:
-        group = FriendGroup(owner_id=owner_id, name="Close Friends", is_close_friends=True)
+        group = FriendGroup(
+            owner_id=owner_id, name="Close Friends", is_close_friends=True
+        )
         db.add(group)
         await db.commit()
         await db.refresh(group)
@@ -36,7 +38,9 @@ async def get_group(db: AsyncSession, group_id: int) -> FriendGroup | None:
 async def get_owner_groups(db: AsyncSession, owner_id: int) -> list[FriendGroupPublic]:
     """Return all groups owned by the user, each with member_count (no member list)."""
     groups_result = await db.execute(
-        select(FriendGroup).where(FriendGroup.owner_id == owner_id).order_by(
+        select(FriendGroup)
+        .where(FriendGroup.owner_id == owner_id)
+        .order_by(
             FriendGroup.is_close_friends.desc(),  # Close Friends first
             FriendGroup.created_at,
         )
@@ -67,17 +71,23 @@ async def get_owner_groups(db: AsyncSession, owner_id: int) -> list[FriendGroupP
 
 
 async def get_group_detail(db: AsyncSession, group: FriendGroup) -> FriendGroupPublic:
-    """Return a group with its full member list (user_id + username)."""
+    """Return a group with its full member list."""
     members_result = await db.execute(
-        select(FriendGroupMember, User.username)
+        select(FriendGroupMember, User.username, User.display_name, User.avatar_url)
         .join(User, User.id == FriendGroupMember.member_id)
         .where(FriendGroupMember.group_id == group.id)
         .order_by(FriendGroupMember.added_at)
     )
     rows = members_result.all()
     members = [
-        FriendGroupMemberPublic(user_id=m.member_id, username=username, added_at=m.added_at)
-        for m, username in rows
+        FriendGroupMemberPublic(
+            user_id=m.member_id,
+            username=username,
+            display_name=display_name,
+            avatar_url=avatar_url,
+            added_at=m.added_at,
+        )
+        for m, username, display_name, avatar_url in rows
     ]
     return FriendGroupPublic(
         id=group.id,
@@ -109,7 +119,9 @@ async def delete_group(db: AsyncSession, group: FriendGroup) -> None:
     await db.commit()
 
 
-async def add_member(db: AsyncSession, group: FriendGroup, user_id: int) -> FriendGroupMember:
+async def add_member(
+    db: AsyncSession, group: FriendGroup, user_id: int
+) -> FriendGroupMember:
     """
     Add user_id to the group.
     Raises ValueError('not_following') if the group owner doesn't follow user_id.
@@ -145,9 +157,12 @@ async def add_member(db: AsyncSession, group: FriendGroup, user_id: int) -> Frie
     # Notify the added user
     try:
         from app.crud.notification import notify
+
         await notify(db, user_id, "friend_group_added", actor_id=group.owner_id)
     except Exception:
-        logger.exception("Failed to send friend group add notification to user %s", user_id)
+        logger.exception(
+            "Failed to send friend group add notification to user %s", user_id
+        )
 
     return member
 
@@ -173,9 +188,12 @@ async def remove_member(db: AsyncSession, group: FriendGroup, user_id: int) -> N
 
     try:
         from app.crud.notification import notify
+
         await notify(db, user_id, "friend_group_removed", actor_id=group.owner_id)
     except Exception:
-        logger.exception("Failed to send friend group removal notification to user %s", user_id)
+        logger.exception(
+            "Failed to send friend group removal notification to user %s", user_id
+        )
 
 
 async def is_member(db: AsyncSession, group_id: int, user_id: int) -> bool:

@@ -6,6 +6,7 @@ import UserCard from "../components/UserCard";
 import CommunityCard from "../components/CommunityCard";
 import Spinner from "../components/ui/Spinner";
 import SearchIcon from "../components/ui/icons/SearchIcon";
+import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import * as searchApi from "../api/search";
 import * as hashtagsApi from "../api/hashtags";
 import styles from "./Search.module.css";
@@ -14,6 +15,7 @@ const TABS = ["All", "Posts", "Users", "Communities", "Hashtags"];
 const TAB_TO_TYPE = { All: undefined, Posts: "post", Users: "user", Communities: "community", Hashtags: "hashtag" };
 
 export default function Search() {
+  const { isCloseFriend } = useCloseFriends();
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(params.get("q") || "");
   const [tab, setTab] = useState(params.get("type") === "hashtag" ? "Hashtags" : "All");
@@ -139,7 +141,7 @@ export default function Search() {
                   );
                 }
                 if (hit.username !== undefined) {
-                  return <UserCard key={`u-${hit.id}`} user={hit} />;
+                  return <UserCard key={`u-${hit.id}`} user={hit} isCloseFriend={isCloseFriend(hit.id)} />;
                 }
                 if (hit.member_count !== undefined) {
                   return <CommunityCard key={`c-${hit.id}`} community={hit} />;
@@ -148,6 +150,7 @@ export default function Search() {
                   <PostCard
                     key={`p-${hit.id}`}
                     post={hit}
+                    isCloseFriend={isCloseFriend(hit.author_id)}
                     onDelete={handlePostDelete}
                   />
                 );

@@ -9,6 +9,7 @@ import CropModal from "../components/CropModal";
 import SettingsIcon from "../components/ui/icons/SettingsIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import * as usersApi from "../api/users";
 import * as postsApi from "../api/posts";
 import * as mediaApi from "../api/media";
@@ -22,6 +23,7 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const { user: me, updateUser } = useAuth();
   const { addToast } = useToast();
+  const { isCloseFriend } = useCloseFriends();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -292,7 +294,7 @@ export default function UserProfile() {
                 <button className={styles.unpinBtn} onClick={handleUnpin}>Unpin</button>
               )}
             </div>
-            <PostCard post={pinnedPost} />
+            <PostCard post={pinnedPost} isCloseFriend={isCloseFriend(pinnedPost.author_id)} />
           </div>
         );
       case "community_stats":
@@ -577,11 +579,12 @@ export default function UserProfile() {
               pinnedPostId={profile.pinned_post_id}
               onPin={handlePin}
               onUnpin={handleUnpin}
+              isCloseFriend={isCloseFriend}
             />
           )
         )}
-        {tab === "Followers" && <UserListTab username={profile.username} type="followers" />}
-        {tab === "Following" && <UserListTab username={profile.username} type="following" />}
+        {tab === "Followers" && <UserListTab username={profile.username} type="followers" isCloseFriend={isCloseFriend} />}
+        {tab === "Following" && <UserListTab username={profile.username} type="following" isCloseFriend={isCloseFriend} />}
       </div>
 
       {/* Crop modal */}
@@ -631,7 +634,7 @@ function BioFields({ profile }) {
   );
 }
 
-function PostsTab({ username, isSelf, pinnedPostId, onPin, onUnpin }) {
+function PostsTab({ username, isSelf, pinnedPostId, onPin, onUnpin, isCloseFriend }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -660,6 +663,7 @@ function PostsTab({ username, isSelf, pinnedPostId, onPin, onUnpin }) {
         <PostCard
           key={post.id}
           post={post}
+          isCloseFriend={isCloseFriend(post.author_id)}
           onDelete={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
           showPinAction={isSelf}
           isPinned={post.id === pinnedPostId}
@@ -671,7 +675,7 @@ function PostsTab({ username, isSelf, pinnedPostId, onPin, onUnpin }) {
   );
 }
 
-function UserListTab({ username, type }) {
+function UserListTab({ username, type, isCloseFriend }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -697,7 +701,7 @@ function UserListTab({ username, type }) {
   return (
     <div>
       {users.map((u) => (
-        <UserCard key={u.id} user={u} />
+        <UserCard key={u.id} user={u} isCloseFriend={isCloseFriend(u.id)} />
       ))}
     </div>
   );

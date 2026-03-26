@@ -8,6 +8,7 @@ export default function Avatar({
   hasStory,
   unseenStory,
   showPlus,
+  isCloseFriend = false,
   className = "",
 }) {
   const [imgError, setImgError] = useState(false);
@@ -40,6 +41,7 @@ export default function Avatar({
         <span className={styles.fallback} style={{ width: size, height: size }}>{initials}</span>
       )}
       {showPlus && <span className={styles.plus}>+</span>}
+      {isCloseFriend && <span className={styles.closeStar} aria-label="Close friend">★</span>}
     </div>
   );
 }

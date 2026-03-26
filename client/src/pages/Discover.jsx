@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import PostCard from "../components/PostCard";
 import Spinner from "../components/ui/Spinner";
 import PostCardSkeleton from "../components/PostCardSkeleton";
+import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import * as feedApi from "../api/feed";
 import styles from "./Discover.module.css";
 
@@ -37,6 +38,7 @@ export default function Discover() {
 }
 
 function TrendingList() {
+  const { isCloseFriend } = useCloseFriends();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [window, setWindow] = useState(24);
@@ -93,6 +95,7 @@ function TrendingList() {
               <div className={styles.postWrap}>
                 <PostCard
                   post={post}
+                  isCloseFriend={isCloseFriend(post.author_id)}
                   onUpdate={handlePostUpdate}
                   onDelete={handlePostDelete}
                 />
@@ -106,6 +109,7 @@ function TrendingList() {
 }
 
 function NewsList() {
+  const { isCloseFriend } = useCloseFriends();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -168,6 +172,7 @@ function NewsList() {
         <PostCard
           key={post.id}
           post={post}
+          isCloseFriend={isCloseFriend(post.author_id)}
           onUpdate={handlePostUpdate}
           onDelete={handlePostDelete}
         />

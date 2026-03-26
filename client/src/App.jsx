@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { WSProvider } from "./contexts/WSContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { CloseFriendsProvider } from "./contexts/CloseFriendsContext";
 import AppShell from "./layouts/AppShell";
 
 const Login = lazy(() => import("./pages/Login"));
@@ -57,6 +58,7 @@ export default function App() {
         <WSProvider>
           <ToastProvider>
             <NotificationProvider>
+              <CloseFriendsProvider>
               <UpdatePrompt />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
@@ -97,6 +99,7 @@ export default function App() {
                   </Route>
                 </Routes>
               </Suspense>
+            </CloseFriendsProvider>
             </NotificationProvider>
           </ToastProvider>
         </WSProvider>

@@ -1,18 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import UserCard from "../components/UserCard";
 import Spinner from "../components/ui/Spinner";
 import { useAuth } from "../contexts/AuthContext";
+import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import * as usersApi from "../api/users";
 import * as friendGroupsApi from "../api/friendGroups";
 import styles from "./Friends.module.css";
 
-const TABS = ["Following", "Followers", "Groups", "Suggestions"];
+const TABS = ["Close Friends", "Following", "Followers", "Groups", "Suggestions"];
 
 export default function Friends() {
   const { user: me } = useAuth();
-  const [tab, setTab] = useState("Following");
+  const [tab, setTab] = useState("Close Friends");
 
   return (
     <>
@@ -32,6 +33,7 @@ export default function Friends() {
           ))}
         </nav>
 
+        {tab === "Close Friends" && <CloseFriendsList />}
         {tab === "Following" && <FollowList username={me?.username} type="following" hideFollow />}
         {tab === "Followers" && <FollowList username={me?.username} type="followers" />}
         {tab === "Groups" && <GroupsList />}
@@ -41,43 +43,72 @@ export default function Friends() {
   );
 }
 
+function CloseFriendsList() {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    friendGroupsApi.getCloseFriends()
+      .then((res) => setMembers(res.data?.members || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className={styles.loader}><Spinner size={20} /></div>;
+  if (members.length === 0) {
+    return (
+      <p className={styles.empty}>
+        No close friends yet. Add people from the Groups tab.
+      </p>
+    );
+  }
+
+  return (
+    <div className={styles.list}>
+      {members.map((m) => (
+        <UserCard
+          key={m.user_id}
+          user={{ id: m.user_id, username: m.username, display_name: m.display_name, avatar_url: m.avatar_url }}
+          isCloseFriend
+        />
+      ))}
+    </div>
+  );
+}
+
 function FollowList({ username, type, hideFollow = false }) {
+  const { isCloseFriend } = useCloseFriends();
   const [users, setUsers] = useState([]);
-  const [closeFriendIds, setCloseFriendIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!username) return;
     setLoading(true);
     const fetcher = type === "followers" ? usersApi.getFollowers : usersApi.getFollowing;
-    const promises = [fetcher(username, { limit: 100 })];
-    if (type === "following") {
-      promises.push(friendGroupsApi.getCloseFriends().catch(() => ({ data: { members: [] } })));
-    }
-    Promise.all(promises)
-      .then(([usersRes, cfRes]) => {
-        const cfIds = new Set((cfRes?.data?.members || []).map((m) => m.user_id));
-        setCloseFriendIds(cfIds);
-        // Sort close friends first in the following list
-        const sorted = [...usersRes.data].sort((a, b) => {
-          const aClose = cfIds.has(a.id);
-          const bClose = cfIds.has(b.id);
-          if (aClose === bClose) return 0;
-          return aClose ? -1 : 1;
-        });
-        setUsers(sorted);
-      })
+    fetcher(username, { limit: 100 })
+      .then((res) => setUsers(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [username, type]);
 
+  // Sort close friends first (computed at render, not in effect)
+  const sorted = useMemo(() => {
+    return [...users].sort((a, b) => {
+      const aClose = isCloseFriend(a.id);
+      const bClose = isCloseFriend(b.id);
+      if (aClose === bClose) return 0;
+      return aClose ? -1 : 1;
+    });
+  }, [users, isCloseFriend]);
+
   if (loading) return <div className={styles.loader}><Spinner size={20} /></div>;
-  if (users.length === 0) return <p className={styles.empty}>No {type} yet.</p>;
+  if (sorted.length === 0) return <p className={styles.empty}>No {type} yet.</p>;
 
   return (
     <div className={styles.list}>
-      {users.map((u) => (
-        <UserCard key={u.id} user={u} hideFollow={hideFollow} isCloseFriend={closeFriendIds.has(u.id)} />
+      {sorted.map((u) => (
+        <UserCard key={u.id} user={u} hideFollow={hideFollow} isCloseFriend={isCloseFriend(u.id)} />
       ))}
     </div>
   );
@@ -85,6 +116,7 @@ function FollowList({ username, type, hideFollow = false }) {
 
 function GroupsList() {
   const { user: me } = useAuth();
+  const { refresh: refreshCloseFriends } = useCloseFriends();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
@@ -159,6 +191,7 @@ function GroupsList() {
       setAddQuery("");
       setSelectedUser(null);
       await loadGroups();
+      refreshCloseFriends();
     } catch {
       // silent
     } finally {
@@ -173,6 +206,7 @@ function GroupsList() {
       const res = await friendGroupsApi.getDetail(groupId);
       setDetail(res.data);
       await loadGroups();
+      refreshCloseFriends();
     } catch {
       // silent
     }
@@ -184,6 +218,7 @@ function GroupsList() {
       setExpanded(null);
       setDetail(null);
       await loadGroups();
+      refreshCloseFriends();
     } catch {
       // silent
     }
@@ -324,6 +359,7 @@ function GroupsList() {
 }
 
 function SuggestionsList() {
+  const { isCloseFriend } = useCloseFriends();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -341,7 +377,7 @@ function SuggestionsList() {
   return (
     <div className={styles.list}>
       <p className={styles.hint}>People followed by your friends</p>
-      {users.map((u) => <UserCard key={u.id} user={u} />)}
+      {users.map((u) => <UserCard key={u.id} user={u} isCloseFriend={isCloseFriend(u.id)} />)}
     </div>
   );
 }

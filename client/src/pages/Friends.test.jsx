@@ -32,6 +32,13 @@ const mockUser = { id: 1, username: "testuser" };
 vi.mock("../contexts/AuthContext", () => ({
   useAuth: vi.fn(() => ({ user: mockUser })),
 }));
+vi.mock("../contexts/CloseFriendsContext", () => ({
+  useCloseFriends: vi.fn(() => ({
+    closeFriendIds: new Set(),
+    isCloseFriend: () => false,
+    refresh: vi.fn(),
+  })),
+}));
 vi.mock("../contexts/WSContext", () => ({
   useWS: vi.fn(),
   useWSSend: vi.fn(() => vi.fn()),
@@ -82,12 +89,12 @@ describe("Friends", () => {
     { id: 4, username: "charlie", display_name: "Charlie" },
   ];
 
-  it("renders all four tabs", () => {
-    usersApi.getFollowing.mockReturnValue(new Promise(() => {}));
+  it("renders all five tabs", () => {
     friendGroupsApi.getCloseFriends.mockReturnValue(new Promise(() => {}));
 
     render(<Friends />);
 
+    expect(screen.getByRole("tab", { name: "Close Friends" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Following" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Followers" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Groups" })).toBeInTheDocument();
@@ -95,8 +102,7 @@ describe("Friends", () => {
     expect(screen.getByText("Friends")).toBeInTheDocument();
   });
 
-  it("shows spinner while Following tab is loading", () => {
-    usersApi.getFollowing.mockReturnValue(new Promise(() => {}));
+  it("shows spinner while Close Friends tab is loading", () => {
     friendGroupsApi.getCloseFriends.mockReturnValue(new Promise(() => {}));
 
     render(<Friends />);
@@ -105,12 +111,13 @@ describe("Friends", () => {
   });
 
   it("renders following users on the Following tab", async () => {
+    friendGroupsApi.getCloseFriends.mockResolvedValue({ data: { members: [] } });
     usersApi.getFollowing.mockResolvedValue({ data: followingUsers });
-    friendGroupsApi.getCloseFriends.mockResolvedValue({
-      data: { members: [] },
-    });
 
     render(<Friends />);
+
+    // Switch to Following tab
+    fireEvent.click(screen.getByRole("tab", { name: "Following" }));
 
     await waitFor(() => {
       expect(screen.getAllByTestId("user-card")).toHaveLength(2);
@@ -121,18 +128,10 @@ describe("Friends", () => {
   });
 
   it("switches to Followers tab and loads followers", async () => {
-    usersApi.getFollowing.mockResolvedValue({ data: followingUsers });
-    friendGroupsApi.getCloseFriends.mockResolvedValue({
-      data: { members: [] },
-    });
+    friendGroupsApi.getCloseFriends.mockResolvedValue({ data: { members: [] } });
     usersApi.getFollowers.mockResolvedValue({ data: followerUsers });
 
     render(<Friends />);
-
-    // Wait for following to load first
-    await waitFor(() => {
-      expect(screen.getAllByTestId("user-card")).toHaveLength(2);
-    });
 
     // Switch to Followers tab
     fireEvent.click(screen.getByRole("tab", { name: "Followers" }));
@@ -145,12 +144,13 @@ describe("Friends", () => {
   });
 
   it("shows empty state when no following", async () => {
+    friendGroupsApi.getCloseFriends.mockResolvedValue({ data: { members: [] } });
     usersApi.getFollowing.mockResolvedValue({ data: [] });
-    friendGroupsApi.getCloseFriends.mockResolvedValue({
-      data: { members: [] },
-    });
 
     render(<Friends />);
+
+    // Switch to Following tab
+    fireEvent.click(screen.getByRole("tab", { name: "Following" }));
 
     await waitFor(() => {
       expect(screen.getByText("No following yet.")).toBeInTheDocument();
@@ -158,10 +158,7 @@ describe("Friends", () => {
   });
 
   it("switches to Groups tab and shows create form", async () => {
-    usersApi.getFollowing.mockResolvedValue({ data: followingUsers });
-    friendGroupsApi.getCloseFriends.mockResolvedValue({
-      data: { members: [] },
-    });
+    friendGroupsApi.getCloseFriends.mockResolvedValue({ data: { members: [] } });
     friendGroupsApi.list.mockResolvedValue({ data: [] });
     usersApi.getFollowing.mockResolvedValue({ data: [] });
 
@@ -180,10 +177,7 @@ describe("Friends", () => {
   });
 
   it("switches to Suggestions tab and loads suggestions", async () => {
-    usersApi.getFollowing.mockResolvedValue({ data: followingUsers });
-    friendGroupsApi.getCloseFriends.mockResolvedValue({
-      data: { members: [] },
-    });
+    friendGroupsApi.getCloseFriends.mockResolvedValue({ data: { members: [] } });
     usersApi.getSuggestions.mockResolvedValue({
       data: [{ id: 5, username: "diana", display_name: "Diana" }],
     });

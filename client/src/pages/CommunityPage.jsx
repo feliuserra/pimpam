@@ -9,6 +9,7 @@ import ComposePost from "../components/ComposePost";
 import PlusIcon from "../components/ui/icons/PlusIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import { useInfiniteList } from "../hooks/useInfiniteList";
 import * as communitiesApi from "../api/communities";
 import * as labelsApi from "../api/communityLabels";
@@ -29,6 +30,7 @@ export default function CommunityPage() {
   const { name } = useParams();
   const { user } = useAuth();
   const { addToast } = useToast();
+  const { isCloseFriend } = useCloseFriends();
   const avatarInputRef = useRef(null);
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -281,6 +283,7 @@ export default function CommunityPage() {
             <PostCard
               key={post.id}
               post={post}
+              isCloseFriend={isCloseFriend(post.author_id)}
               onDelete={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
             />
           ))}

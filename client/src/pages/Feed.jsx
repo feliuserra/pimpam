@@ -12,8 +12,8 @@ import SearchIcon from "../components/ui/icons/SearchIcon";
 import TrendingIcon from "../components/ui/icons/TrendingIcon";
 import { useInfiniteList } from "../hooks/useInfiniteList";
 import { useWS } from "../contexts/WSContext";
+import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import { getFeed } from "../api/feed";
-import * as friendGroupsApi from "../api/friendGroups";
 import styles from "./Feed.module.css";
 
 export default function Feed() {
@@ -24,18 +24,9 @@ export default function Feed() {
   const [newPostsBanner, setNewPostsBanner] = useState(false);
   const [pullY, setPullY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [closeFriendIds, setCloseFriendIds] = useState(new Set());
+  const { isCloseFriend } = useCloseFriends();
   const touchStartY = useRef(0);
   const pulling = useRef(false);
-
-  useEffect(() => {
-    friendGroupsApi.getCloseFriends()
-      .then((res) => {
-        const ids = new Set((res.data?.members || []).map((m) => m.user_id));
-        setCloseFriendIds(ids);
-      })
-      .catch(() => {});
-  }, []);
 
   const fetchFeed = useCallback(
     (cursor) => getFeed({ limit: 20, before_id: cursor }),
@@ -163,7 +154,7 @@ export default function Feed() {
             <PostCard
               key={post.id}
               post={post}
-              isCloseFriend={closeFriendIds.has(post.author_id)}
+              isCloseFriend={isCloseFriend(post.author_id)}
               onDelete={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
               onUpdate={(updated) =>
                 setPosts((prev) =>

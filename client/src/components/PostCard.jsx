@@ -97,9 +97,9 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
             src={post.author_avatar_url}
             alt={`@${post.author_username}`}
             size={32}
+            isCloseFriend={isCloseFriend}
           />
           <span className={styles.authorName}>
-            {isCloseFriend && <span className={styles.closeStar} aria-label="Close friend">★</span>}
             @{post.author_username}
           </span>
         </Link>

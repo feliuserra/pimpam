@@ -3,10 +3,12 @@ import { useParams } from "react-router-dom";
 import Header from "../components/Header";
 import PostCard from "../components/PostCard";
 import Spinner from "../components/ui/Spinner";
+import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import * as hashtagsApi from "../api/hashtags";
 import styles from "./HashtagPage.module.css";
 
 export default function HashtagPage() {
+  const { isCloseFriend } = useCloseFriends();
   const { name } = useParams();
   const [hashtag, setHashtag] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -99,6 +101,7 @@ export default function HashtagPage() {
             <PostCard
               key={post.id}
               post={post}
+              isCloseFriend={isCloseFriend(post.author_id)}
               onDelete={handlePostDelete}
             />
           ))
