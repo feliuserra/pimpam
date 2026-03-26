@@ -230,16 +230,7 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
           )}
         </Link>
 
-        <button className={styles.actionBtn} aria-label="Share" onClick={() => {
-          if (navigator.share) {
-            navigator.share({
-              title: post.title,
-              url: `${window.location.origin}/posts/${post.id}`,
-            }).catch(() => {});
-          } else {
-            setShareOpen(true);
-          }
-        }}>
+        <button className={styles.actionBtn} aria-label="Share" onClick={() => setShareOpen(true)}>
           <ShareIcon size={18} />
         </button>
 

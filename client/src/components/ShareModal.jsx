@@ -13,6 +13,14 @@ export default function ShareModal({ open, onClose, postId }) {
   const [communities, setCommunities] = useState([]);
   const [sharing, setSharing] = useState(false);
 
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/posts/${postId}`;
+    navigator.clipboard.writeText(url).then(
+      () => addToast("Link copied!", "success"),
+      () => addToast("Failed to copy link", "error"),
+    );
+  };
+
   useEffect(() => {
     if (!open) return;
     setComment("");
@@ -73,9 +81,14 @@ export default function ShareModal({ open, onClose, postId }) {
           </select>
         </label>
 
-        <button className={styles.submitBtn} type="submit" disabled={sharing}>
-          {sharing ? <Spinner size={16} /> : "Share"}
-        </button>
+        <div className={styles.actions}>
+          <button className={styles.copyBtn} type="button" onClick={handleCopyLink}>
+            Copy link
+          </button>
+          <button className={styles.submitBtn} type="submit" disabled={sharing}>
+            {sharing ? <Spinner size={16} /> : "Share"}
+          </button>
+        </div>
       </form>
     </Modal>
   );

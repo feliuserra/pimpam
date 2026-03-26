@@ -182,12 +182,75 @@
   }
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pageBtn {
+  padding: 4px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 8px);
+  background: none;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.pageBtn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pageInfo {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
 /* Discover header */
 .discoverHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
+}
+
+.discoverControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sizeToggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sizeBtn {
+  padding: 4px 10px;
+  border: none;
+  background: none;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.sizeBtn.active {
+  background: var(--color-accent);
+  color: #fff;
 }
 
 .sortToggle {
