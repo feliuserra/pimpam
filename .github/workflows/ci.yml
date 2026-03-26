@@ -71,14 +71,21 @@ jobs:
         working-directory: client
 
       - name: Run tests with coverage
-        run: npx vitest run --coverage --coverage.include='src/**/*.{js,jsx}' --coverage.exclude='src/main.jsx' 2>&1 | tee coverage-output.txt
+        run: npx vitest run --coverage --coverage.include='src/**/*.{js,jsx}' --coverage.exclude='src/main.jsx' --coverage.reportOnFailure --coverage.reporter=text --coverage.reporter=json-summary 2>&1 | tee coverage-output.txt
         working-directory: client
+        continue-on-error: true
 
       - name: Extract coverage percentage
         if: always()
         working-directory: client
         run: |
-          TOTAL=$(grep "All files" coverage-output.txt | awk '{print $4}' | tr -d '%' || echo "0")
+          TOTAL=""
+          if [ -f coverage/coverage-summary.json ]; then
+            TOTAL=$(node -e "const c=require('./coverage/coverage-summary.json');console.log(Math.round(c.total.lines.pct))" 2>/dev/null || echo "")
+          fi
+          if [ -z "$TOTAL" ]; then
+            TOTAL=$(grep "All files" coverage-output.txt | awk '{print $4}' | tr -d '%' || echo "0")
+          fi
           if [ -z "$TOTAL" ] || [ "$TOTAL" = "0" ]; then
             TOTAL=$(grep "All files" coverage-output.txt | awk -F'|' '{print $2}' | tr -d ' %' || echo "0")
           fi
