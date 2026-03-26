@@ -202,9 +202,11 @@ pimpam/
 │   │   │   ├── comments.py         # nested comments + reactions
 │   │   │   ├── communities.py      # CRUD + join/leave
 │   │   │   ├── moderation.py       # bans, appeals, mod promotion
-│   │   │   ├── admin.py            # site-wide admin (reports, bans, suspensions)
+│   │   │   ├── admin.py            # site-wide admin (reports, bans, suspensions, analytics)
 │   │   │   ├── reports.py          # user content reporting
-│   │   │   ├── hashtags.py         # trending, lookup, posts-by-tag
+│   │   │   ├── hashtags.py         # trending, lookup, posts-by-tag, subscriptions
+│   │   │   ├── community_labels.py # moderator-created labels for community posts
+│   │   │   ├── curated_picks.py    # moderator-surfaced posts (up to 3 per community)
 │   │   │   ├── issues.py           # community issue tracker
 │   │   │   ├── search.py           # Meilisearch full-text + hashtag search
 │   │   │   └── messages.py         # E2EE messages
@@ -220,6 +222,7 @@ pimpam/
 │   │   ├── dependencies.py         # DBSession, CurrentUser
 │   │   ├── logging.py              # Structured logging setup
 │   │   ├── redis.py                # Redis client + pub/sub
+│   │   ├── cache.py                # Redis-backed cache with graceful fallback
 │   │   ├── search.py               # Meilisearch integration
 │   │   └── storage.py              # S3-compatible media
 │   └── db/
@@ -246,7 +249,7 @@ pimpam/
 
 ## Current Status
 
-**590 tests.** Backend is complete. Frontend is substantially complete — all major pages and components implemented.
+**649 backend tests + 559 frontend tests.** Backend is complete. Frontend is fully implemented as a React + Vite PWA.
 
 **Backend — implemented:**
 - Auth: register, login, refresh (bcrypt + JWT, rate-limited)
@@ -273,8 +276,14 @@ pimpam/
 - User blocking: block/unblock users, blocked users hidden from feeds/search/suggestions
 - Content reporting: report posts, comments, stories (rate-limited, one report per content per user)
 - Admin layer: report management (resolve/dismiss), global bans/unbans, user suspensions, content removals
+- Admin analytics: aggregate-only overview stats, timeseries (signups/posts/comments/messages/stories), top communities, moderation summary (cached via Redis, 5-min TTL)
+- Community labels: moderator-created, ordered labels for organizing posts within a community
+- Curated picks: moderators can surface up to 3 posts per community, with curator attribution
+- Hashtag subscriptions: users subscribe to hashtags; subscribed posts appear in discover feed
+- Discover feed: personalized chronological feed combining hashtag-subscribed posts + curated picks from joined communities (no algorithmic ranking)
 - Issue tracker: community-submitted bugs/features/improvements, voting, comments, admin status updates, security flag
 - Device tokens: APNs/FCM token registration for push notifications (iOS/Android/Web)
+- Redis cache layer: graceful fallback (fire-and-forget, never blocks on cache failure)
 - ActivityPub federation: WebFinger, NodeInfo, Actor, Inbox, Outbox, HTTP Signatures
 - WebSocket real-time: new_post, new_comment, new_message, karma_update, notifications via Redis pub/sub; typing indicators
 - Notifications: 14 event types, grouped, per-type opt-out, real-time WS push
@@ -287,7 +296,7 @@ pimpam/
 - PostCard: author, community badge, votes (optimistic UI), comments, boost, share, hashtag pills, images, overflow menu
 - Post detail: full content, image gallery + lightbox, comment thread (nested, reactions), inline reply
 - User profiles: inline editing (cover, avatar with crop modal, bio fields, accent color, pinned post, layout reorder, community stats toggle)
-- Communities: your communities, discover, create modal, community page with post list, mod panel
+- Communities: your communities, discover, create modal, community page with post list, mod panel, community labels
 - Notifications: badge, grouped inbox, mark all read, per-type preferences
 - Messages: conversation inbox, message thread, new DM modal, message bubbles
 - Search: full-text search with tabs (All, Posts, Users, Communities, Hashtags), trending hashtags
@@ -295,10 +304,12 @@ pimpam/
 - Settings: account (password, 2FA), profile, notifications, friend groups, data (GDPR export, account deletion)
 - Moderation panel: removed content, bans, ban proposals, mod promotions, ownership transfer
 - Issues tracker: submit, vote, comment, admin management
+- Admin dashboard: report management, global bans, user suspensions, content removal, analytics (overview, timeseries, top communities, moderation summary)
+- Discovery page: curated picks, hashtag-subscribed posts
+- Friend groups: CRUD, member management
 - Shared UI: Avatar, Button, Modal, Toast, Spinner, Skeleton, ErrorBoundary, RelativeTime, CropModal
 - PWA: service worker, offline fallback, update prompt
 - Legal pages: Privacy, Terms
-- Discovery page
 
 **Not yet implemented:**
 - Multiple images per post UI
