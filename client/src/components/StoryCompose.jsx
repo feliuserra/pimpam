@@ -196,7 +196,7 @@ export default function StoryCompose({ open, onClose }) {
       const payload = { caption: caption || null, duration_hours: duration, visibility };
       if (file) {
         const { data: media } = await upload(file, "post_image");
-        payload.image_url = media.url;
+        payload.image_url = media.key;
       }
       if (hasLink && linkUrl) {
         payload.link_url = linkUrl;

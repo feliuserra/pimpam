@@ -65,7 +65,7 @@ def _process_image(data: bytes, max_px: int) -> bytes:
     img.thumbnail((max_px, max_px), Image.Resampling.LANCZOS)
 
     out = io.BytesIO()
-    img.save(out, format="WEBP", quality=85, method=6)
+    img.save(out, format="WEBP", quality=78, method=6)
     return out.getvalue()
 
 
@@ -187,3 +187,135 @@ def ensure_bucket_exists() -> None:
             logger.exception(
                 "Failed to create storage bucket '%s'", settings.storage_bucket
             )
+
+
+# ---------------------------------------------------------------------------
+# v2 — multi-size, signed URLs, SSE-S3, user-scoped keys
+# ---------------------------------------------------------------------------
+
+_SIZE_CONFIGS = {
+    "avatar": [("full", settings.media_avatar_max_px)],
+    "post_image": [
+        ("thumb", settings.media_thumb_max_px),
+        ("medium", settings.media_medium_max_px),
+        ("full", settings.media_post_image_max_px),
+    ],
+    "cover_image": [
+        ("thumb", settings.media_thumb_max_px),
+        ("medium", settings.media_medium_max_px),
+        ("full", settings.media_post_image_max_px),
+    ],
+}
+
+_FOLDER_MAP = {
+    "avatar": "avatars",
+    "post_image": "post-images",
+    "cover_image": "covers",
+}
+
+
+def _process_image_sizes(
+    data: bytes, media_type: str
+) -> dict[str, tuple[bytes, str, str]]:
+    """Process image into multiple sizes.
+
+    Returns ``{size_label: (bytes, extension, content_type)}``.
+
+    Animated GIFs (cover_image only) produce a single ``"full"`` variant to
+    preserve animation.
+    """
+    is_animated_gif = media_type == "cover_image" and _is_gif(data)
+
+    if is_animated_gif:
+        max_px = settings.media_post_image_max_px
+        processed = _process_gif(data, max_px)
+        return {"full": (processed, "gif", "image/gif")}
+
+    sizes = _SIZE_CONFIGS.get(media_type, _SIZE_CONFIGS["post_image"])
+    result: dict[str, tuple[bytes, str, str]] = {}
+    for label, max_px in sizes:
+        processed = _process_image(data, max_px)
+        result[label] = (processed, "webp", "image/webp")
+    return result
+
+
+def upload_image_v2(data: bytes, media_type: str, user_id: int) -> dict:
+    """Validate, process, and upload an image with multi-size variants.
+
+    Returns::
+
+        {
+            "key": "users/42/post-images/abc123",          # base key (store in DB)
+            "keys": {"thumb": "...webp", "medium": "...", "full": "..."},
+            "total_bytes": 123456,
+        }
+
+    All uploads use SSE-S3 encryption (``AES256``).
+    """
+    if len(data) > settings.media_max_upload_bytes:
+        raise ValueError(
+            f"File too large — maximum is "
+            f"{settings.media_max_upload_bytes // (1024 * 1024)} MB"
+        )
+
+    variants = _process_image_sizes(data, media_type)
+    folder = _FOLDER_MAP.get(media_type, "uploads")
+    base_id = uuid.uuid4()
+    base_key = f"users/{user_id}/{folder}/{base_id}"
+
+    client = _s3()
+    keys: dict[str, str] = {}
+    total_bytes = 0
+
+    for label, (blob, ext, content_type) in variants.items():
+        if media_type == "avatar" and label == "full":
+            # Avatars are single-size — no suffix
+            key = f"{base_key}.{ext}"
+        else:
+            key = f"{base_key}_{label}.{ext}"
+
+        client.put_object(
+            Bucket=settings.storage_bucket,
+            Key=key,
+            Body=blob,
+            ContentType=content_type,
+            ServerSideEncryption="AES256",
+        )
+        keys[label] = key
+        total_bytes += len(blob)
+
+    return {
+        "key": base_key,
+        "keys": keys,
+        "total_bytes": total_bytes,
+    }
+
+
+def generate_signed_url(key: str, expires_in: int | None = None) -> str:
+    """Generate a pre-signed GET URL for an S3 object.
+
+    This is a local HMAC computation — no network call to S3.
+    """
+    if expires_in is None:
+        expires_in = settings.storage_signed_url_ttl
+
+    return _s3().generate_presigned_url(
+        "get_object",
+        Params={"Bucket": settings.storage_bucket, "Key": key},
+        ExpiresIn=expires_in,
+    )
+
+
+def delete_objects(keys: list[str]) -> None:
+    """Batch-delete S3 objects. Logs failures but does not raise."""
+    if not keys:
+        return
+
+    objects = [{"Key": k} for k in keys]
+    try:
+        _s3().delete_objects(
+            Bucket=settings.storage_bucket,
+            Delete={"Objects": objects, "Quiet": True},
+        )
+    except Exception:
+        logger.exception("Failed to delete %d S3 objects", len(keys))

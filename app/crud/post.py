@@ -413,14 +413,28 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
         for lbl in rows.scalars().all():
             labels[lbl.id] = LabelPublic.model_validate(lbl, from_attributes=True)
 
+    # -- resolve S3 keys → signed URLs --
+    from app.core.media_urls import resolve_urls
+
+    # Collect all keys that need resolution
+    avatar_keys = [
+        authors.get(p.author_id, (None, None))[1] if p.author_id else None
+        for p in posts
+    ]
+    image_keys = [p.image_url for p in posts]
+    all_keys = avatar_keys + image_keys
+    resolved = await resolve_urls(all_keys)
+    resolved_avatars = resolved[: len(posts)]
+    resolved_images = resolved[len(posts) :]
+
     extras: dict[int, dict] = {}
-    for p in posts:
+    for i, p in enumerate(posts):
         author_data = (
             authors.get(p.author_id, (None, None)) if p.author_id else (None, None)
         )
         extras[p.id] = {
             "author_username": author_data[0],
-            "author_avatar_url": author_data[1],
+            "author_avatar_url": resolved_avatars[i],
             "community_name": communities.get(p.community_id)
             if p.community_id
             else None,
@@ -428,6 +442,7 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
             "hashtags": post_hashtags.get(p.id, []),
             "label_id": p.label_id,
             "label": labels.get(p.label_id) if p.label_id else None,
+            "image_url": resolved_images[i],
         }
     return extras
 

@@ -37,6 +37,17 @@ logger = logging.getLogger("pimpam.users")
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+async def _resolve_user_urls(user_pub: UserPublic) -> UserPublic:
+    """Resolve avatar_url and cover_image_url S3 keys to signed URLs."""
+    from app.core.media_urls import resolve_urls
+
+    keys = [user_pub.avatar_url, user_pub.cover_image_url]
+    resolved = await resolve_urls(keys)
+    return user_pub.model_copy(
+        update={"avatar_url": resolved[0], "cover_image_url": resolved[1]}
+    )
+
+
 class _UserBrief(BaseModel):
     user_id: int
     username: str
@@ -64,9 +75,14 @@ async def autocomplete_users(
         .order_by(UserModel.username)
         .limit(limit)
     )
+    from app.core.media_urls import resolve_urls
+
+    rows = result.all()
+    avatar_keys = [row.avatar_url for row in rows]
+    resolved = await resolve_urls(avatar_keys)
     return [
-        _UserBrief(user_id=row.id, username=row.username, avatar_url=row.avatar_url)
-        for row in result.all()
+        _UserBrief(user_id=row.id, username=row.username, avatar_url=resolved[i])
+        for i, row in enumerate(rows)
     ]
 
 
@@ -75,9 +91,10 @@ async def get_me(current_user: UnverifiedCurrentUser, db: DBSession):
     """Return the authenticated user's own profile, including verification, deletion status, and follower counts."""
     fc = await get_follower_count(db, current_user.id)
     fing = await get_following_count(db, current_user.id)
-    return UserPublic.model_validate(current_user, from_attributes=True).model_copy(
+    pub = UserPublic.model_validate(current_user, from_attributes=True).model_copy(
         update={"follower_count": fc, "following_count": fing}
     )
+    return await _resolve_user_urls(pub)
 
 
 @router.patch("/me", response_model=UserPublic)
@@ -86,8 +103,31 @@ async def update_me(
 ):
     """Update the authenticated user's profile fields."""
     import json
+    from datetime import datetime, timedelta, timezone
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    from app.models.pending_deletion import PendingDeletion
+
+    updates = data.model_dump(exclude_unset=True)
+
+    # Schedule old images for deletion when avatar or cover changes
+    for img_field in ("avatar_url", "cover_image_url"):
+        if img_field in updates and updates[img_field] != getattr(
+            current_user, img_field
+        ):
+            old_key = getattr(current_user, img_field)
+            if old_key and not old_key.startswith("http"):
+                now = datetime.now(timezone.utc)
+                db.add(
+                    PendingDeletion(
+                        s3_key=old_key,
+                        scheduled_at=now,
+                        delete_after=now + timedelta(hours=1),
+                        user_id=current_user.id,
+                        bytes_to_reclaim=0,
+                    )
+                )
+
+    for field, value in updates.items():
         if field == "profile_layout":
             # Store as JSON string in the database
             setattr(
@@ -104,9 +144,10 @@ async def update_me(
     await cache_delete(f"user:{current_user.id}")
     fc = await get_follower_count(db, current_user.id)
     fing = await get_following_count(db, current_user.id)
-    return UserPublic.model_validate(current_user, from_attributes=True).model_copy(
+    pub = UserPublic.model_validate(current_user, from_attributes=True).model_copy(
         update={"follower_count": fc, "following_count": fing}
     )
+    return await _resolve_user_urls(pub)
 
 
 @router.post("/me/pin/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -239,15 +280,14 @@ async def get_follow_suggestions(
     for user, _mutual_count in rows:
         fc = await get_follower_count(db, user.id)
         fing = await get_following_count(db, user.id)
-        suggestions.append(
-            UserPublic.model_validate(user, from_attributes=True).model_copy(
-                update={
-                    "follower_count": fc,
-                    "following_count": fing,
-                    "is_following": False,
-                }
-            )
+        pub = UserPublic.model_validate(user, from_attributes=True).model_copy(
+            update={
+                "follower_count": fc,
+                "following_count": fing,
+                "is_following": False,
+            }
         )
+        suggestions.append(await _resolve_user_urls(pub))
 
     return suggestions
 
@@ -266,13 +306,14 @@ async def get_user(username: str, db: DBSession, current_user: OptionalUser = No
     is_following = None
     if current_user is not None and current_user.id != user.id:
         is_following = await check_is_following(db, current_user.id, user.id)
-    return UserPublic.model_validate(user, from_attributes=True).model_copy(
+    pub = UserPublic.model_validate(user, from_attributes=True).model_copy(
         update={
             "follower_count": fc,
             "following_count": fing,
             "is_following": is_following,
         }
     )
+    return await _resolve_user_urls(pub)
 
 
 @router.get("/{username}/followers", response_model=list[UserPublic])
@@ -294,11 +335,14 @@ async def list_followers(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     followers = await get_followers(db, user.id, limit=limit)
     if current_user is None:
-        return followers
+        results = [
+            UserPublic.model_validate(f, from_attributes=True) for f in followers
+        ]
+        return [await _resolve_user_urls(r) for r in results]
     following_set = await check_is_following_batch(
         db, current_user.id, [f.id for f in followers]
     )
-    return [
+    results = [
         UserPublic.model_validate(f, from_attributes=True).model_copy(
             update={
                 "is_following": None
@@ -308,6 +352,7 @@ async def list_followers(
         )
         for f in followers
     ]
+    return [await _resolve_user_urls(r) for r in results]
 
 
 @router.get("/{username}/following", response_model=list[UserPublic])
@@ -329,11 +374,14 @@ async def list_following(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     following = await get_following(db, user.id, limit=limit)
     if current_user is None:
-        return following
+        results = [
+            UserPublic.model_validate(f, from_attributes=True) for f in following
+        ]
+        return [await _resolve_user_urls(r) for r in results]
     following_set = await check_is_following_batch(
         db, current_user.id, [f.id for f in following]
     )
-    return [
+    results = [
         UserPublic.model_validate(f, from_attributes=True).model_copy(
             update={
                 "is_following": None
@@ -343,6 +391,7 @@ async def list_following(
         )
         for f in following
     ]
+    return [await _resolve_user_urls(r) for r in results]
 
 
 @router.get("/{username}/posts", response_model=list[PostPublic])
@@ -570,6 +619,7 @@ async def cancel_deletion_request(current_user: UnverifiedCurrentUser, db: DBSes
 @router.get("/me/blocked")
 async def list_blocked(current_user: CurrentUser, db: DBSession):
     """Return all users the authenticated user has blocked."""
+    from app.core.media_urls import resolve_url
     from app.crud.block import get_blocked_users
     from app.models.user import User
 
@@ -577,13 +627,14 @@ async def list_blocked(current_user: CurrentUser, db: DBSession):
     result = []
     for b in blocks:
         blocked_user = await db.get(User, b.blocked_id)
+        avatar = await resolve_url(blocked_user.avatar_url) if blocked_user else None
         result.append(
             {
                 "id": b.id,
                 "blocker_id": b.blocker_id,
                 "blocked_id": b.blocked_id,
                 "blocked_username": blocked_user.username if blocked_user else None,
-                "blocked_avatar_url": blocked_user.avatar_url if blocked_user else None,
+                "blocked_avatar_url": avatar,
                 "created_at": b.created_at.isoformat(),
             }
         )

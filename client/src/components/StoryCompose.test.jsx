@@ -121,7 +121,7 @@ describe("StoryCompose", () => {
 
   it("submits image story successfully", async () => {
     const onClose = vi.fn();
-    mockUpload.mockResolvedValue({ data: { url: "/uploaded.webp" } });
+    mockUpload.mockResolvedValue({ data: { url: "/uploaded-signed.webp", key: "users/1/post-images/abc" } });
     mockCreate.mockResolvedValue({});
 
     render(<StoryCompose open={true} onClose={onClose} />);
@@ -143,7 +143,7 @@ describe("StoryCompose", () => {
     await waitFor(() => {
       expect(mockUpload).toHaveBeenCalledWith(file, "post_image");
       expect(mockCreate).toHaveBeenCalledWith({
-        image_url: "/uploaded.webp",
+        image_url: "users/1/post-images/abc",
         caption: "My caption",
         duration_hours: 24,
         visibility: "close_friends",

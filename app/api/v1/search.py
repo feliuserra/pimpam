@@ -153,4 +153,23 @@ async def search(
             detail="Search service unavailable",
         )
 
+    # Resolve S3 keys to signed URLs for image fields in search results
+    from app.core.media_urls import resolve_urls
+
+    keys_to_resolve = []
+    key_indices = []  # (hit_index, field_name)
+    for i, h in enumerate(hits):
+        if isinstance(h, PostHit) and h.image_url:
+            key_indices.append((i, "image_url"))
+            keys_to_resolve.append(h.image_url)
+        elif isinstance(h, UserHit) and h.avatar_url:
+            key_indices.append((i, "avatar_url"))
+            keys_to_resolve.append(h.avatar_url)
+
+    if keys_to_resolve:
+        resolved = await resolve_urls(keys_to_resolve)
+        for j, (hit_idx, field) in enumerate(key_indices):
+            hit = hits[hit_idx]
+            setattr(hit, field, resolved[j])
+
     return SearchResponse(hits=hits, total=total, query=q)
