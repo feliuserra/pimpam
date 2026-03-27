@@ -639,3 +639,282 @@ async def test_list_issues_filter_by_closed(client):
     r = await client.get("/api/v1/issues?closed=true")
     assert all(i["is_closed"] for i in r.json())
     assert len(r.json()) == 1
+
+
+# ── Polls ──────────────────────────────────────────────────────────
+
+
+POLL_ISSUE = {
+    "title": "Which feature next",
+    "description": "Vote on what we should build next please",
+    "category": "feature",
+    "poll": {
+        "question": "What should we build?",
+        "options": [
+            {"text": "Dark mode"},
+            {"text": "Mobile app"},
+            {"text": "Better search"},
+        ],
+    },
+}
+
+
+async def test_create_issue_with_poll(client):
+    h = await setup_user(client, "alice")
+    r = await client.post("/api/v1/issues", headers=h, json=POLL_ISSUE)
+    assert r.status_code == 201
+    body = r.json()
+    assert body["poll"] is not None
+    poll = body["poll"]
+    assert poll["question"] == "What should we build?"
+    assert len(poll["options"]) == 3
+    assert poll["options"][0]["text"] == "Dark mode"
+    assert poll["options"][1]["text"] == "Mobile app"
+    assert poll["options"][2]["text"] == "Better search"
+    assert poll["total_votes"] == 0
+    assert poll["user_voted_option_ids"] == []
+
+
+async def test_create_issue_without_poll(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "No poll issue here",
+            "description": "This issue has no poll attached",
+            "category": "bug",
+        },
+    )
+    assert r.status_code == 201
+    assert r.json()["poll"] is None
+
+
+async def test_poll_requires_at_least_two_options(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Bad poll issue here",
+            "description": "Poll with only one option is invalid",
+            "category": "feature",
+            "poll": {
+                "question": "Only one choice?",
+                "options": [{"text": "Only option"}],
+            },
+        },
+    )
+    assert r.status_code == 422
+
+
+async def test_poll_rejects_duplicate_options(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Duplicate poll options",
+            "description": "Poll options must be unique text",
+            "category": "feature",
+            "poll": {
+                "question": "Pick one?",
+                "options": [{"text": "Same"}, {"text": "Same"}],
+            },
+        },
+    )
+    assert r.status_code == 422
+
+
+async def test_vote_on_poll(client):
+    h = await setup_user(client, "alice")
+    r = await client.post("/api/v1/issues", headers=h, json=POLL_ISSUE)
+    issue_id = r.json()["id"]
+    option_id = r.json()["poll"]["options"][0]["id"]
+
+    r = await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": option_id},
+    )
+    assert r.status_code == 204
+
+    # Verify vote reflected
+    r = await client.get(f"/api/v1/issues/{issue_id}", headers=h)
+    poll = r.json()["poll"]
+    assert poll["total_votes"] == 1
+    assert option_id in poll["user_voted_option_ids"]
+    assert poll["options"][0]["vote_count"] == 1
+
+
+async def test_vote_poll_duplicate_returns_409(client):
+    h = await setup_user(client, "alice")
+    r = await client.post("/api/v1/issues", headers=h, json=POLL_ISSUE)
+    issue_id = r.json()["id"]
+    option_id = r.json()["poll"]["options"][0]["id"]
+
+    await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": option_id},
+    )
+    r = await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": option_id},
+    )
+    assert r.status_code == 409
+
+
+async def test_single_choice_poll_replaces_vote(client):
+    h = await setup_user(client, "alice")
+    r = await client.post("/api/v1/issues", headers=h, json=POLL_ISSUE)
+    issue_id = r.json()["id"]
+    opt_a = r.json()["poll"]["options"][0]["id"]
+    opt_b = r.json()["poll"]["options"][1]["id"]
+
+    # Vote for option A
+    await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": opt_a},
+    )
+    # Vote for option B (should replace A in single-choice mode)
+    await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": opt_b},
+    )
+
+    r = await client.get(f"/api/v1/issues/{issue_id}", headers=h)
+    poll = r.json()["poll"]
+    assert poll["total_votes"] == 1
+    assert opt_b in poll["user_voted_option_ids"]
+    assert opt_a not in poll["user_voted_option_ids"]
+    # Option A should have 0, option B should have 1
+    opts = {o["id"]: o["vote_count"] for o in poll["options"]}
+    assert opts[opt_a] == 0
+    assert opts[opt_b] == 1
+
+
+async def test_unvote_poll(client):
+    h = await setup_user(client, "alice")
+    r = await client.post("/api/v1/issues", headers=h, json=POLL_ISSUE)
+    issue_id = r.json()["id"]
+    option_id = r.json()["poll"]["options"][0]["id"]
+
+    await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": option_id},
+    )
+    r = await client.request(
+        "DELETE",
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": option_id},
+    )
+    assert r.status_code == 204
+
+    r = await client.get(f"/api/v1/issues/{issue_id}", headers=h)
+    poll = r.json()["poll"]
+    assert poll["total_votes"] == 0
+    assert poll["user_voted_option_ids"] == []
+
+
+async def test_poll_multiple_users_vote(client):
+    alice_h = await setup_user(client, "alice")
+    bob_h = await setup_user(client, "bob")
+
+    r = await client.post("/api/v1/issues", headers=alice_h, json=POLL_ISSUE)
+    issue_id = r.json()["id"]
+    opt_a = r.json()["poll"]["options"][0]["id"]
+    opt_b = r.json()["poll"]["options"][1]["id"]
+
+    await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=alice_h,
+        json={"option_id": opt_a},
+    )
+    await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=bob_h,
+        json={"option_id": opt_b},
+    )
+
+    r = await client.get(f"/api/v1/issues/{issue_id}", headers=alice_h)
+    poll = r.json()["poll"]
+    assert poll["total_votes"] == 2
+    assert opt_a in poll["user_voted_option_ids"]
+
+    r = await client.get(f"/api/v1/issues/{issue_id}", headers=bob_h)
+    poll = r.json()["poll"]
+    assert opt_b in poll["user_voted_option_ids"]
+
+
+async def test_poll_vote_requires_auth(client):
+    h = await setup_user(client, "alice")
+    r = await client.post("/api/v1/issues", headers=h, json=POLL_ISSUE)
+    issue_id = r.json()["id"]
+    option_id = r.json()["poll"]["options"][0]["id"]
+
+    r = await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        json={"option_id": option_id},
+    )
+    assert r.status_code == 401
+
+
+async def test_poll_shown_in_issue_list(client):
+    h = await setup_user(client, "alice")
+    await client.post("/api/v1/issues", headers=h, json=POLL_ISSUE)
+
+    r = await client.get("/api/v1/issues")
+    assert r.status_code == 200
+    issues = r.json()
+    assert len(issues) == 1
+    assert issues[0]["poll"] is not None
+    assert issues[0]["poll"]["question"] == "What should we build?"
+
+
+async def test_allows_multiple_poll(client):
+    h = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/issues",
+        headers=h,
+        json={
+            "title": "Multi choice poll",
+            "description": "Poll that allows multiple selections",
+            "category": "feature",
+            "poll": {
+                "question": "Select all that apply",
+                "options": [
+                    {"text": "Option A"},
+                    {"text": "Option B"},
+                    {"text": "Option C"},
+                ],
+                "allows_multiple": True,
+            },
+        },
+    )
+    issue_id = r.json()["id"]
+    opt_a = r.json()["poll"]["options"][0]["id"]
+    opt_b = r.json()["poll"]["options"][1]["id"]
+
+    # Vote for both options
+    await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": opt_a},
+    )
+    await client.post(
+        f"/api/v1/issues/{issue_id}/poll/vote",
+        headers=h,
+        json={"option_id": opt_b},
+    )
+
+    r = await client.get(f"/api/v1/issues/{issue_id}", headers=h)
+    poll = r.json()["poll"]
+    assert poll["total_votes"] == 2
+    assert opt_a in poll["user_voted_option_ids"]
+    assert opt_b in poll["user_voted_option_ids"]
