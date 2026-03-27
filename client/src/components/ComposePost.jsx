@@ -3,12 +3,23 @@ import { create } from "../api/posts";
 import { listJoined } from "../api/communities";
 import { upload } from "../api/media";
 import * as labelsApi from "../api/communityLabels";
+import { getCloseFriends, list as listFriendGroups } from "../api/friendGroups";
 import { useToast } from "../contexts/ToastContext";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
 import ImageIcon from "./ui/icons/ImageIcon";
 import CloseIcon from "./ui/icons/CloseIcon";
+import InfoTooltip from "./ui/InfoTooltip";
 import styles from "./ComposePost.module.css";
+
+const VISIBILITY_OPTIONS = [
+  { key: "public", label: "Public" },
+  { key: "followers", label: "Followers" },
+  { key: "close_friends", label: "Close Friends" },
+  { key: "group", label: "Group..." },
+];
+
+const DEFAULT_POST_VISIBILITY_KEY = "pimpam_default_post_visibility";
 
 export default function ComposePost({ open, onClose, onCreated, defaultCommunityId }) {
   const { addToast } = useToast();
@@ -20,6 +31,12 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
   const [communities, setCommunities] = useState([]);
   const [labelId, setLabelId] = useState("");
   const [labels, setLabels] = useState([]);
+  const [visibility, setVisibility] = useState(
+    () => localStorage.getItem(DEFAULT_POST_VISIBILITY_KEY) || "public"
+  );
+  const [friendGroups, setFriendGroups] = useState([]);
+  const [friendGroupId, setFriendGroupId] = useState(null);
+  const [closeFriendsCount, setCloseFriendsCount] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -34,7 +51,16 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
   }, []);
 
   useEffect(() => {
-    if (open) fetchCommunities();
+    if (open) {
+      fetchCommunities();
+      // Fetch close friends count + friend groups for visibility selector
+      getCloseFriends()
+        .then(({ data }) => setCloseFriendsCount(data.member_count))
+        .catch(() => setCloseFriendsCount(0));
+      listFriendGroups()
+        .then(({ data }) => setFriendGroups(data.filter((g) => !g.is_close_friends)))
+        .catch(() => setFriendGroups([]));
+    }
   }, [open, fetchCommunities]);
 
   // Fetch labels when community changes
@@ -70,6 +96,8 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
     setUrl("");
     setCommunityId(defaultCommunityId ? String(defaultCommunityId) : "");
     setLabelId("");
+    setVisibility(localStorage.getItem(DEFAULT_POST_VISIBILITY_KEY) || "public");
+    setFriendGroupId(null);
     removeImage();
   };
 
@@ -83,6 +111,7 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
         const { data: media } = await upload(imageFile, "post_image");
         image_url = media.url;
       }
+      const effectiveVisibility = communityId ? "public" : visibility;
       const body = {
         title: title.trim(),
         content: content.trim() || null,
@@ -90,6 +119,8 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
         image_url,
         community_id: communityId ? Number(communityId) : null,
         label_id: labelId ? Number(labelId) : null,
+        visibility: effectiveVisibility,
+        friend_group_id: effectiveVisibility === "group" ? friendGroupId : null,
       };
       const { data: post } = await create(body);
       addToast("Post created!", "success");
@@ -167,6 +198,68 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
               </option>
             ))}
           </select>
+        )}
+
+        {/* Visibility selector — hidden when posting to a community (always public) */}
+        {!communityId ? (
+          <div className={styles.visSection}>
+            <label className={styles.visLabel}>
+              Who can see this
+              <InfoTooltip>
+                Choose who can see this post. &quot;Public&quot; means everyone.
+                &quot;Followers&quot; means people who follow you. &quot;Close Friends&quot;
+                is your inner circle. &quot;Group&quot; lets you pick a specific friend group.
+              </InfoTooltip>
+            </label>
+            <div className={styles.visToggle}>
+              {VISIBILITY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={`${styles.visBtn} ${visibility === opt.key ? styles.visBtnActive : ""}`}
+                  onClick={() => {
+                    setVisibility(opt.key);
+                    if (opt.key !== "group") {
+                      setFriendGroupId(null);
+                      localStorage.setItem(DEFAULT_POST_VISIBILITY_KEY, opt.key);
+                    }
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {visibility === "group" && (
+              <select
+                value={friendGroupId || ""}
+                onChange={(e) => setFriendGroupId(e.target.value ? Number(e.target.value) : null)}
+                className={styles.input}
+                aria-label="Friend group"
+              >
+                <option value="">Select a group...</option>
+                {friendGroups.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name} ({g.member_count})</option>
+                ))}
+              </select>
+            )}
+            <span className={styles.visInfo}>
+              {visibility === "public" && "Anyone can see this post"}
+              {visibility === "followers" && "Only your followers will see this"}
+              {visibility === "close_friends" && (
+                closeFriendsCount != null
+                  ? closeFriendsCount > 0
+                    ? `Sharing with ${closeFriendsCount} close friend${closeFriendsCount !== 1 ? "s" : ""}`
+                    : "You haven't added anyone to close friends yet"
+                  : "Loading..."
+              )}
+              {visibility === "group" && friendGroupId && (() => {
+                const g = friendGroups.find((fg) => fg.id === friendGroupId);
+                return g ? `Only members of "${g.name}" will see this` : "";
+              })()}
+            </span>
+          </div>
+        ) : (
+          <span className={styles.visInfo}>Community posts are always public</span>
         )}
 
         {imagePreview ? (

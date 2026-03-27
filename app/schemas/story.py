@@ -10,11 +10,16 @@ class StoryCreate(BaseModel):
     link_url: str | None = Field(default=None, max_length=2048)
     caption: str | None = Field(default=None, max_length=200)
     duration_hours: int = Field(default=24)
+    visibility: str = Field(default="close_friends")
 
     @model_validator(mode="after")
     def must_have_content(self) -> "StoryCreate":
         if not self.image_url and not self.link_url:
             raise ValueError("Story must have an image or a link")
+        if self.visibility not in ("close_friends", "followers", "public"):
+            raise ValueError(
+                "visibility must be 'close_friends', 'followers', or 'public'"
+            )
         return self
 
 
@@ -44,6 +49,7 @@ class StoryPublic(BaseModel):
     image_url: str | None = None
     caption: str | None = None
     link_preview: LinkPreviewPublic | None = None
+    visibility: str = "close_friends"
     mentions: list[MentionedUser] = []
     created_at: datetime
 

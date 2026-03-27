@@ -22,6 +22,11 @@ vi.mock("../api/media", () => ({
   upload: (...args) => mockUpload(...args),
 }));
 
+vi.mock("../api/friendGroups", () => ({
+  getCloseFriends: vi.fn(() => Promise.resolve({ data: { member_count: 3 } })),
+  list: vi.fn(() => Promise.resolve({ data: [] })),
+}));
+
 vi.mock("./ui/Modal", () => ({
   default: ({ open, onClose, title, children }) =>
     open ? (
@@ -46,6 +51,10 @@ vi.mock("./ui/icons/ImageIcon", () => ({
 
 vi.mock("./ui/icons/CloseIcon", () => ({
   default: () => <span data-testid="close-icon" />,
+}));
+
+vi.mock("./ui/InfoTooltip", () => ({
+  default: ({ children }) => <span data-testid="info-tooltip">{children}</span>,
 }));
 
 import ComposePost from "./ComposePost";
@@ -130,6 +139,9 @@ describe("ComposePost", () => {
         url: null,
         image_url: null,
         community_id: null,
+        label_id: null,
+        visibility: "public",
+        friend_group_id: null,
       });
       expect(mockAddToast).toHaveBeenCalledWith("Post created!", "success");
       expect(onClose).toHaveBeenCalled();

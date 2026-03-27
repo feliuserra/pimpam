@@ -363,9 +363,11 @@ async def list_user_posts(
     is_owner = current_user and current_user.id == user.id
     if not user.show_posts_on_profile and not is_owner:
         return []
-    posts = await get_user_posts(db, user.id, limit=limit, before_id=before_id)
-    user_id = current_user.id if current_user else None
-    return await annotate_posts_with_user_vote(db, posts, user_id)
+    viewer_id = current_user.id if current_user else None
+    posts = await get_user_posts(
+        db, user.id, limit=limit, before_id=before_id, viewer_id=viewer_id
+    )
+    return await annotate_posts_with_user_vote(db, posts, viewer_id)
 
 
 @router.post("/{username}/follow", status_code=status.HTTP_204_NO_CONTENT)

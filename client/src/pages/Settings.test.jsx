@@ -30,14 +30,15 @@ function renderSettings() {
 }
 
 describe("Settings", () => {
-  it("renders navigation links for all 5 sections", () => {
+  it("renders navigation links for all 6 sections", () => {
     renderSettings();
 
     expect(screen.getByRole("link", { name: "Account" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Profile" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Notifications" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Friend Groups" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Data & Privacy" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Privacy" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Data" })).toBeInTheDocument();
   });
 
   it("renders Outlet for nested content", () => {
@@ -45,8 +46,8 @@ describe("Settings", () => {
     // The nav is rendered and there is a content area for the Outlet
     const nav = screen.getByRole("navigation", { name: /settings navigation/i });
     expect(nav).toBeInTheDocument();
-    // 5 links inside the nav
+    // 6 links inside the nav
     const links = nav.querySelectorAll("a");
-    expect(links).toHaveLength(5);
+    expect(links).toHaveLength(6);
   });
 });

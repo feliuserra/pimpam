@@ -32,6 +32,7 @@ const AccountSettings = lazy(() => import("./pages/settings/AccountSettings"));
 const ProfileSettings = lazy(() => import("./pages/settings/ProfileSettings"));
 const NotificationSettings = lazy(() => import("./pages/settings/NotificationSettings"));
 const FriendGroupSettings = lazy(() => import("./pages/settings/FriendGroupSettings"));
+const PrivacySettings = lazy(() => import("./pages/settings/PrivacySettings"));
 const DataSettings = lazy(() => import("./pages/settings/DataSettings"));
 const Discover = lazy(() => import("./pages/Discover"));
 const Friends = lazy(() => import("./pages/Friends"));
@@ -94,6 +95,7 @@ export default function App() {
                       <Route path="profile" element={<ProfileSettings />} />
                       <Route path="notifications" element={<NotificationSettings />} />
                       <Route path="friend-groups" element={<FriendGroupSettings />} />
+                      <Route path="privacy" element={<PrivacySettings />} />
                       <Route path="data" element={<DataSettings />} />
                     </Route>
                   </Route>

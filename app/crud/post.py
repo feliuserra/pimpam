@@ -101,6 +101,18 @@ async def get_chronological_feed(
         FriendGroupMember.member_id == user_id
     )
 
+    # Authors whose close-friends group includes the viewer
+    from app.models.friend_group import FriendGroup
+
+    close_friend_author_ids = (
+        select(FriendGroup.owner_id)
+        .join(FriendGroupMember, FriendGroupMember.group_id == FriendGroup.id)
+        .where(
+            FriendGroup.is_close_friends == True,  # noqa: E712
+            FriendGroupMember.member_id == user_id,
+        )
+    )
+
     # Exclude blocked users (both directions) from the feed
     blocked_ids = await get_blocked_user_ids(db, user_id)
     blocker_ids = await get_blocker_ids(db, user_id)
@@ -117,6 +129,15 @@ async def get_chronological_feed(
             Post.is_removed == False,  # noqa: E712
             or_(
                 Post.visibility == "public",
+                Post.author_id == user_id,
+                and_(
+                    Post.visibility == "followers",
+                    Post.author_id.in_(followed_ids),
+                ),
+                and_(
+                    Post.visibility == "close_friends",
+                    Post.author_id.in_(close_friend_author_ids),
+                ),
                 and_(
                     Post.visibility == "group",
                     Post.friend_group_id.in_(viewer_group_ids),
@@ -168,18 +189,68 @@ async def get_user_posts(
     user_id: int,
     limit: int = 20,
     before_id: int | None = None,
+    viewer_id: int | None = None,
 ) -> list[Post]:
-    """Public, non-removed posts by user_id, newest-first, cursor-paginated."""
-    query = (
-        select(Post)
-        .where(
-            Post.author_id == user_id,
-            Post.is_removed == False,  # noqa: E712
-            Post.visibility == "public",
-        )
-        .order_by(Post.created_at.desc())
-        .limit(limit)
+    """Posts by user_id visible to viewer, newest-first, cursor-paginated.
+
+    - Own profile: show all non-removed posts
+    - Follower: public + followers + applicable group/close_friends
+    - Non-follower: public only
+    """
+    from app.models.friend_group import FriendGroup
+
+    base = select(Post).where(
+        Post.author_id == user_id,
+        Post.is_removed == False,  # noqa: E712
     )
+
+    if viewer_id is not None and viewer_id == user_id:
+        # Own profile — see everything
+        query = base
+    elif viewer_id is not None:
+        # Check if viewer follows this user
+        follows_author = (
+            select(Follow.id)
+            .where(
+                Follow.follower_id == viewer_id,
+                Follow.followed_id == user_id,
+                Follow.is_pending == False,  # noqa: E712
+            )
+            .exists()
+        )
+
+        viewer_group_ids = select(FriendGroupMember.group_id).where(
+            FriendGroupMember.member_id == viewer_id
+        )
+        close_friend_author_ids = (
+            select(FriendGroup.owner_id)
+            .join(FriendGroupMember, FriendGroupMember.group_id == FriendGroup.id)
+            .where(
+                FriendGroup.is_close_friends == True,  # noqa: E712
+                FriendGroupMember.member_id == viewer_id,
+                FriendGroup.owner_id == user_id,
+            )
+        )
+
+        query = base.where(
+            or_(
+                Post.visibility == "public",
+                and_(Post.visibility == "followers", follows_author),
+                and_(
+                    Post.visibility == "close_friends",
+                    Post.author_id.in_(close_friend_author_ids),
+                ),
+                and_(
+                    Post.visibility == "group",
+                    Post.friend_group_id.in_(viewer_group_ids),
+                ),
+            )
+        )
+    else:
+        # Anonymous — public only
+        query = base.where(Post.visibility == "public")
+
+    query = query.order_by(Post.created_at.desc()).limit(limit)
     if before_id is not None:
         subq = select(Post.created_at).where(Post.id == before_id).scalar_subquery()
         query = query.where(Post.created_at < subq)

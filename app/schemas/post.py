@@ -16,7 +16,7 @@ class PostCreate(BaseModel):
     ] = []  # multi-image; takes precedence over image_url when non-empty
     community_id: int | None = None
     label_id: int | None = None  # community label (must belong to target community)
-    visibility: Literal["public", "group"] = "public"
+    visibility: Literal["public", "followers", "close_friends", "group"] = "public"
     friend_group_id: int | None = None
 
     @model_validator(mode="after")
@@ -28,6 +28,13 @@ class PostCreate(BaseModel):
             raise ValueError("friend_group_id is required when visibility is 'group'")
         if self.community_id is not None and self.visibility != "public":
             raise ValueError("Community posts must have public visibility")
+        if (
+            self.visibility in ("followers", "close_friends")
+            and self.friend_group_id is not None
+        ):
+            raise ValueError(
+                "friend_group_id is not used with 'followers' or 'close_friends' visibility"
+            )
         return self
 
 

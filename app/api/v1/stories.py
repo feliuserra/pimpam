@@ -11,7 +11,7 @@ Design constraints (per CLAUDE.md):
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 
 from app.core.config import settings
 from app.core.dependencies import CurrentUser, DBSession
@@ -29,6 +29,7 @@ from app.crud.story import (
 )
 from app.models.community import CommunityMember
 from app.models.follow import Follow
+from app.models.friend_group import FriendGroup, FriendGroupMember
 from app.models.story import Story
 from app.models.user import User
 from app.schemas.story import StoryCreate, StoryPublic
@@ -52,6 +53,7 @@ def _story_to_public(
         image_url=story.image_url,
         caption=story.caption,
         link_preview=build_link_preview(story),
+        visibility=story.visibility,
         mentions=mentions or [],
         created_at=story.created_at,
     )
@@ -96,6 +98,7 @@ async def create_story_endpoint(
         link_title=link_title,
         link_description=link_description,
         link_image_url=link_image_url,
+        visibility=data.visibility,
     )
 
     # Process @mentions in caption
@@ -158,6 +161,16 @@ async def get_stories_feed(
         CommunityMember.community_id.in_(joined_community_ids)
     )
 
+    # Authors whose close-friends group includes the current viewer
+    close_friend_author_ids = (
+        select(FriendGroup.owner_id)
+        .join(FriendGroupMember, FriendGroupMember.group_id == FriendGroup.id)
+        .where(
+            FriendGroup.is_close_friends == True,  # noqa: E712
+            FriendGroupMember.member_id == current_user.id,
+        )
+    )
+
     result = await db.execute(
         select(Story, User)
         .join(User, User.id == Story.author_id)
@@ -169,6 +182,18 @@ async def get_stories_feed(
             Story.expires_at > now,
             Story.is_removed == False,  # noqa: E712
             Story.author_id != current_user.id,
+            # Visibility filter
+            or_(
+                Story.visibility == "public",
+                and_(
+                    Story.visibility == "followers",
+                    Story.author_id.in_(followed_ids),
+                ),
+                and_(
+                    Story.visibility == "close_friends",
+                    Story.author_id.in_(close_friend_author_ids),
+                ),
+            ),
         )
         .order_by(Story.created_at.desc())
         .limit(limit)

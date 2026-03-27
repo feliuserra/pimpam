@@ -203,6 +203,22 @@
   border-color: var(--accent);
 }
 
+/* Visibility info line */
+.visibilityInfo {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.manageLink {
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.manageLink:hover {
+  text-decoration: underline;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

@@ -3,11 +3,13 @@ import { create } from "../api/stories";
 import { upload } from "../api/media";
 import { autocompleteUsers } from "../api/users";
 import { getLinkPreview } from "../api/posts";
+import { getCloseFriends } from "../api/friendGroups";
 import { useToast } from "../contexts/ToastContext";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
 import ImageIcon from "./ui/icons/ImageIcon";
 import Avatar from "./ui/Avatar";
+import InfoTooltip from "./ui/InfoTooltip";
 import styles from "./StoryCompose.module.css";
 
 const DURATION_OPTIONS = [
@@ -23,6 +25,14 @@ const STORY_TYPES = [
   { key: "both", label: "Image + Link" },
 ];
 
+const VISIBILITY_OPTIONS = [
+  { key: "close_friends", label: "Close Friends" },
+  { key: "followers", label: "Followers" },
+  { key: "public", label: "Public" },
+];
+
+const DEFAULT_STORY_VISIBILITY_KEY = "pimpam_default_story_visibility";
+
 export default function StoryCompose({ open, onClose }) {
   const { addToast } = useToast();
   const fileRef = useRef(null);
@@ -36,6 +46,10 @@ export default function StoryCompose({ open, onClose }) {
   const [linkLoading, setLinkLoading] = useState(false);
   const [caption, setCaption] = useState("");
   const [duration, setDuration] = useState(24);
+  const [visibility, setVisibility] = useState(
+    () => localStorage.getItem(DEFAULT_STORY_VISIBILITY_KEY) || "close_friends"
+  );
+  const [closeFriendsCount, setCloseFriendsCount] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // @mention autocomplete state
@@ -62,10 +76,24 @@ export default function StoryCompose({ open, onClose }) {
     setLinkPreview(null);
     setCaption("");
     setDuration(24);
+    setVisibility(localStorage.getItem(DEFAULT_STORY_VISIBILITY_KEY) || "close_friends");
     setMentionQuery(null);
     setMentionResults([]);
     if (fileRef.current) fileRef.current.value = "";
   };
+
+  // Fetch close friends count when modal opens
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const { data } = await getCloseFriends();
+        setCloseFriendsCount(data.member_count);
+      } catch {
+        setCloseFriendsCount(0);
+      }
+    })();
+  }, [open]);
 
   // Fetch link preview on blur or after debounce
   const fetchPreview = useCallback(async (url) => {
@@ -165,7 +193,7 @@ export default function StoryCompose({ open, onClose }) {
     if (!canSubmit) return;
     setLoading(true);
     try {
-      const payload = { caption: caption || null, duration_hours: duration };
+      const payload = { caption: caption || null, duration_hours: duration, visibility };
       if (file) {
         const { data: media } = await upload(file, "post_image");
         payload.image_url = media.url;
@@ -336,6 +364,45 @@ export default function StoryCompose({ open, onClose }) {
               </button>
             ))}
           </div>
+
+          <label className={styles.label}>
+            Who can see this
+            <InfoTooltip>
+              Close friends is your inner circle. Only the people you&apos;ve added
+              to your close friends list will see this story. They won&apos;t know
+              they&apos;re on the list. &quot;Followers&quot; means anyone who follows you.
+              &quot;Public&quot; means everyone.
+            </InfoTooltip>
+          </label>
+          <div className={styles.durations}>
+            {VISIBILITY_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={`${styles.durBtn} ${visibility === opt.key ? styles.durActive : ""}`}
+                onClick={() => {
+                  setVisibility(opt.key);
+                  localStorage.setItem(DEFAULT_STORY_VISIBILITY_KEY, opt.key);
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <span className={styles.visibilityInfo}>
+            {visibility === "close_friends" && (
+              closeFriendsCount != null
+                ? closeFriendsCount > 0
+                  ? `Sharing with ${closeFriendsCount} close friend${closeFriendsCount !== 1 ? "s" : ""}`
+                  : "You haven't added anyone to close friends yet"
+                : "Loading..."
+            )}
+            {visibility === "followers" && "Visible to everyone who follows you"}
+            {visibility === "public" && "Visible to everyone"}
+          </span>
+          {visibility === "close_friends" && closeFriendsCount === 0 && (
+            <a href="/friends" className={styles.manageLink}>Manage close friends →</a>
+          )}
 
           <div className={styles.actions}>
             <Button variant="ghost" onClick={handleClose}>

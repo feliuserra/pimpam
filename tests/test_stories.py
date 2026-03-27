@@ -26,8 +26,9 @@ async def _make_story(
     caption=None,
     duration_hours=24,
     link_url=None,
+    visibility="public",
 ):
-    payload = {"duration_hours": duration_hours}
+    payload = {"duration_hours": duration_hours, "visibility": visibility}
     if image_url:
         payload["image_url"] = image_url
     if caption:
@@ -566,6 +567,102 @@ async def test_feed_returns_mentions(client):
 # ---------------------------------------------------------------------------
 # User autocomplete
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Visibility filtering
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_story_visibility_close_friends_only(client):
+    """Close-friends stories are only visible to users in the author's close friends group."""
+    alice_h = await setup_user(client, "alice")
+    bob_h = await setup_user(client, "bob")
+    carol_h = await setup_user(client, "carol")
+
+    # Both follow alice
+    await client.post("/api/v1/users/alice/follow", headers=bob_h)
+    await client.post("/api/v1/users/alice/follow", headers=carol_h)
+
+    # alice follows bob (required to add to friend group)
+    await client.post("/api/v1/users/bob/follow", headers=alice_h)
+
+    # Get/create alice's close friends group and add bob
+    cf_r = await client.get("/api/v1/friend-groups/close-friends", headers=alice_h)
+    cf_group = cf_r.json()
+
+    # Get bob's user ID
+    bob_profile = await client.get("/api/v1/users/bob")
+    bob_id = bob_profile.json()["id"]
+    await client.post(
+        f"/api/v1/friend-groups/{cf_group['id']}/members",
+        headers=alice_h,
+        json={"user_id": bob_id},
+    )
+
+    # alice creates a close-friends story
+    await _make_story(client, alice_h, visibility="close_friends")
+
+    # bob (in close friends) should see it
+    r = await client.get("/api/v1/stories/feed", headers=bob_h)
+    assert any(s["author_username"] == "alice" for s in r.json())
+
+    # carol (not in close friends) should NOT see it
+    r = await client.get("/api/v1/stories/feed", headers=carol_h)
+    assert not any(s["author_username"] == "alice" for s in r.json())
+
+
+@pytest.mark.asyncio
+async def test_story_visibility_followers_only(client):
+    """Followers-only stories are visible to followers but not non-followers."""
+    alice_h = await setup_user(client, "alice")
+    bob_h = await setup_user(client, "bob")
+    carol_h = await setup_user(client, "carol")
+
+    await client.post("/api/v1/users/alice/follow", headers=bob_h)
+    # carol does NOT follow alice
+
+    await _make_story(client, alice_h, visibility="followers")
+
+    # bob (follower) should see it
+    r = await client.get("/api/v1/stories/feed", headers=bob_h)
+    assert any(s["author_username"] == "alice" for s in r.json())
+
+    # carol (not follower, even via community) should not see it
+    # First make them share a community so carol would see public stories
+    await client.post(
+        "/api/v1/communities",
+        headers=alice_h,
+        json={"name": "test_vis", "description": "Test"},
+    )
+    await client.post("/api/v1/communities/test_vis/join", headers=carol_h)
+
+    r = await client.get("/api/v1/stories/feed", headers=carol_h)
+    assert not any(s["author_username"] == "alice" for s in r.json())
+
+
+@pytest.mark.asyncio
+async def test_story_create_returns_visibility(client):
+    """Story creation response includes the visibility field."""
+    hdrs = await setup_user(client, "alice")
+    r = await _make_story(client, hdrs, visibility="followers")
+    assert r.status_code == 201
+    assert r.json()["visibility"] == "followers"
+
+
+@pytest.mark.asyncio
+async def test_story_create_invalid_visibility_is_422(client):
+    hdrs = await setup_user(client, "alice")
+    r = await client.post(
+        "/api/v1/stories",
+        headers=hdrs,
+        json={
+            "image_url": "https://cdn.example.com/x.webp",
+            "visibility": "invalid",
+        },
+    )
+    assert r.status_code == 422
 
 
 @pytest.mark.asyncio

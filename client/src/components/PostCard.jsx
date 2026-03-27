@@ -293,6 +293,12 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
       </div>
 
       {/* Visibility indicator */}
+      {post.visibility === "followers" && (
+        <div className={styles.visibilityTag}>Followers</div>
+      )}
+      {post.visibility === "close_friends" && (
+        <div className={styles.visibilityTag}>Close Friends</div>
+      )}
       {post.visibility === "group" && (
         <div className={styles.visibilityTag}>Friends only</div>
       )}
@@ -300,6 +306,7 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         postId={post.shared_from_id || post.id}
+        post={post}
       />
     </article>
   );

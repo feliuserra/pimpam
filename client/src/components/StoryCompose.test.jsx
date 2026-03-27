@@ -53,6 +53,14 @@ vi.mock("./ui/Avatar", () => ({
   default: ({ username }) => <span data-testid={`avatar-${username}`} />,
 }));
 
+vi.mock("../api/friendGroups", () => ({
+  getCloseFriends: vi.fn(() => Promise.resolve({ data: { member_count: 3 } })),
+}));
+
+vi.mock("./ui/InfoTooltip", () => ({
+  default: ({ children }) => <span data-testid="info-tooltip">{children}</span>,
+}));
+
 import StoryCompose from "./StoryCompose";
 
 const CAPTION_PLACEHOLDER = "Add a caption... use @ to tag people";
@@ -138,6 +146,7 @@ describe("StoryCompose", () => {
         image_url: "/uploaded.webp",
         caption: "My caption",
         duration_hours: 24,
+        visibility: "close_friends",
       });
       expect(mockAddToast).toHaveBeenCalledWith("Story posted!", "success");
       expect(onClose).toHaveBeenCalled();
@@ -199,6 +208,7 @@ describe("StoryCompose", () => {
         link_url: "https://example.com",
         caption: null,
         duration_hours: 24,
+        visibility: "close_friends",
       });
     });
   });

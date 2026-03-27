@@ -7,7 +7,12 @@ from app.core.redis import publish_to_user
 from app.crud.user import get_user_by_id
 from app.models.message import Message
 from app.models.user import User
-from app.schemas.message import ConversationSummary, MessagePublic, MessageSend
+from app.schemas.message import (
+    ConversationSummary,
+    MessagePublic,
+    MessageSend,
+    SharedPostPreview,
+)
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -37,12 +42,25 @@ async def send_message(
             status.HTTP_403_FORBIDDEN, detail="Cannot message this user"
         )
 
+    # Validate shared post if provided
+    shared_post_id = None
+    if data.shared_post_id is not None:
+        from app.crud.post import get_post
+
+        post = await get_post(db, data.shared_post_id)
+        if post is None or post.is_removed:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, detail="Shared post not found"
+            )
+        shared_post_id = post.id
+
     message = Message(
         sender_id=current_user.id,
         recipient_id=data.recipient_id,
         ciphertext=data.ciphertext,
         encrypted_key=data.encrypted_key,
         sender_encrypted_key=data.sender_encrypted_key,
+        shared_post_id=shared_post_id,
     )
     db.add(message)
     await db.commit()
@@ -135,7 +153,68 @@ async def get_conversation(
         .order_by(Message.created_at.desc())
         .limit(50)
     )
-    return list(result.scalars().all())
+    messages = list(result.scalars().all())
+
+    # Enrich messages that contain shared posts
+    shared_ids = [m.shared_post_id for m in messages if m.shared_post_id]
+    post_previews: dict[int, SharedPostPreview] = {}
+    if shared_ids:
+        from app.models.post import Post
+
+        rows = await db.execute(select(Post).where(Post.id.in_(shared_ids)))
+        posts = list(rows.scalars().all())
+
+        # Batch-fetch author data
+        author_ids = {p.author_id for p in posts if p.author_id}
+        authors: dict[int, tuple[str | None, str | None]] = {}
+        if author_ids:
+            a_rows = await db.execute(
+                select(User.id, User.username, User.avatar_url).where(
+                    User.id.in_(author_ids)
+                )
+            )
+            for r in a_rows:
+                authors[r.id] = (r.username, r.avatar_url)
+
+        # Batch-fetch community names
+        community_ids = {p.community_id for p in posts if p.community_id}
+        communities: dict[int, str] = {}
+        if community_ids:
+            from app.models.community import Community
+
+            c_rows = await db.execute(
+                select(Community.id, Community.name).where(
+                    Community.id.in_(community_ids)
+                )
+            )
+            for r in c_rows:
+                communities[r.id] = r.name
+
+        for p in posts:
+            author_data = authors.get(p.author_id, (None, None))
+            post_previews[p.id] = SharedPostPreview(
+                id=p.id,
+                title=p.title,
+                content=(p.content[:200] + "...")
+                if p.content and len(p.content) > 200
+                else p.content,
+                image_url=p.image_url,
+                author_username=author_data[0],
+                author_avatar_url=author_data[1],
+                community_name=communities.get(p.community_id)
+                if p.community_id
+                else None,
+                karma=p.karma,
+            )
+
+    return [
+        MessagePublic.model_validate(m, from_attributes=True).model_copy(
+            update={"shared_post": post_previews.get(m.shared_post_id)}
+        )
+        if m.shared_post_id
+        else MessagePublic.model_validate(m, from_attributes=True)
+        for m in messages
+    ]
 
 
 @router.patch("/{other_user_id}/read", status_code=status.HTTP_204_NO_CONTENT)
