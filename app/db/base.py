@@ -19,7 +19,14 @@ from app.models.follow import Follow  # noqa: F401
 from app.models.friend_group import FriendGroup, FriendGroupMember  # noqa: F401
 from app.models.hashtag import Hashtag, PostHashtag  # noqa: F401
 from app.models.hashtag_subscription import HashtagSubscription  # noqa: F401
-from app.models.issue import Issue, IssueComment, IssueVote  # noqa: F401
+from app.models.issue import (  # noqa: F401
+    Issue,
+    IssueComment,
+    IssuePoll,
+    IssuePollOption,
+    IssuePollVote,
+    IssueVote,
+)
 from app.models.message import Message  # noqa: F401
 from app.models.notification import Notification, NotificationPreference  # noqa: F401
 from app.models.password_reset import PasswordResetToken  # noqa: F401
