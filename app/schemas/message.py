@@ -3,11 +3,25 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class SharedPostPreview(BaseModel):
+    """Minimal post data embedded in a DM for rich card rendering."""
+
+    id: int
+    title: str
+    content: str | None = None
+    image_url: str | None = None
+    author_username: str | None = None
+    author_avatar_url: str | None = None
+    community_name: str | None = None
+    karma: int = 0
+
+
 class MessageSend(BaseModel):
     recipient_id: int
     ciphertext: str  # encrypted client-side — server never sees plaintext
     encrypted_key: str  # AES key wrapped with recipient's public key
     sender_encrypted_key: str | None = None  # AES key wrapped with sender's own key
+    shared_post_id: int | None = None  # optional post shared via DM
 
 
 class MessagePublic(BaseModel):
@@ -17,6 +31,8 @@ class MessagePublic(BaseModel):
     ciphertext: str
     encrypted_key: str
     sender_encrypted_key: str | None = None
+    shared_post_id: int | None = None
+    shared_post: SharedPostPreview | None = None
     is_read: bool
     created_at: datetime
 

@@ -196,6 +196,19 @@ async def remove_member(db: AsyncSession, group: FriendGroup, user_id: int) -> N
         )
 
 
+async def get_close_friends_member_ids(db: AsyncSession, owner_id: int) -> list[int]:
+    """Return IDs of all members in the owner's Close Friends group."""
+    result = await db.execute(
+        select(FriendGroupMember.member_id)
+        .join(FriendGroup, FriendGroup.id == FriendGroupMember.group_id)
+        .where(
+            FriendGroup.owner_id == owner_id,
+            FriendGroup.is_close_friends == True,  # noqa: E712
+        )
+    )
+    return list(result.scalars().all())
+
+
 async def is_member(db: AsyncSession, group_id: int, user_id: int) -> bool:
     result = await db.execute(
         select(FriendGroupMember).where(

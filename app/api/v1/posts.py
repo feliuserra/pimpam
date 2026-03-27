@@ -116,6 +116,36 @@ async def create(
                     "Failed to deliver federation activity for post %s", post.id
                 )
 
+    elif post.visibility == "followers":
+        # Notify followers via WS (no search index, no federation)
+        follower_ids = await get_local_follower_ids(db, current_user.id)
+        for fid in follower_ids:
+            await publish_to_user(
+                fid,
+                "new_post",
+                {
+                    "id": post.id,
+                    "title": post.title,
+                    "author": current_user.username,
+                },
+            )
+
+    elif post.visibility == "close_friends":
+        # Notify only close friends via WS
+        from app.crud.friend_group import get_close_friends_member_ids
+
+        cf_ids = await get_close_friends_member_ids(db, current_user.id)
+        for fid in cf_ids:
+            await publish_to_user(
+                fid,
+                "new_post",
+                {
+                    "id": post.id,
+                    "title": post.title,
+                    "author": current_user.username,
+                },
+            )
+
     return await annotate_post_with_user_vote(db, post, current_user.id)
 
 
@@ -145,17 +175,44 @@ async def get(post_id: int, db: DBSession, current_user: OptionalUser = None):
     post = await get_post(db, post_id)
     if post is None or post.is_removed:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
-    if post.visibility == "group":
-        viewer_id = current_user.id if current_user else None
-        if viewer_id is None or (
-            post.author_id != viewer_id
-            and not await is_member(db, post.friend_group_id, viewer_id)
-        ):
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, detail="Not authorised to view this post"
-            )
-    user_id = current_user.id if current_user else None
-    return await annotate_post_with_user_vote(db, post, user_id)
+    viewer_id = current_user.id if current_user else None
+    if post.visibility != "public" and post.author_id != viewer_id:
+        if post.visibility == "group":
+            if viewer_id is None or not await is_member(
+                db, post.friend_group_id, viewer_id
+            ):
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    detail="Not authorised to view this post",
+                )
+        elif post.visibility == "followers":
+            if viewer_id is None:
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    detail="Not authorised to view this post",
+                )
+            from app.crud.user import check_is_following
+
+            if not await check_is_following(db, viewer_id, post.author_id):
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    detail="Not authorised to view this post",
+                )
+        elif post.visibility == "close_friends":
+            if viewer_id is None:
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    detail="Not authorised to view this post",
+                )
+            from app.crud.friend_group import get_close_friends_member_ids
+
+            cf_ids = await get_close_friends_member_ids(db, post.author_id)
+            if viewer_id not in cf_ids:
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    detail="Not authorised to view this post",
+                )
+    return await annotate_post_with_user_vote(db, post, viewer_id)
 
 
 @router.patch("/{post_id}", response_model=PostPublic)
@@ -382,7 +439,8 @@ async def share(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
     if original.visibility != "public":
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, detail="Cannot share a group post"
+            status.HTTP_400_BAD_REQUEST,
+            detail="Only public posts can be shared",
         )
     # Allow sharing your own post only when cross-posting to a community
     if original.author_id == current_user.id and not data.community_id:

@@ -28,6 +28,7 @@ async def create_story(
     link_title: str | None = None,
     link_description: str | None = None,
     link_image_url: str | None = None,
+    visibility: str = "close_friends",
 ) -> Story:
     """Create a story and return it (refreshed from DB)."""
     duration = duration_hours if duration_hours in ALLOWED_DURATIONS else 24
@@ -40,6 +41,7 @@ async def create_story(
         link_title=link_title,
         link_description=link_description,
         link_image_url=link_image_url,
+        visibility=visibility,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=duration),
     )
     db.add(story)

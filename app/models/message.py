@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.user import User  # noqa: F401
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -34,6 +34,11 @@ class Message(Base):
     encrypted_key: Mapped[str] = mapped_column(Text, nullable=False)
     # AES key encrypted with sender's own public key (so sender can re-read)
     sender_encrypted_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Optional: post shared as a DM (metadata — post content is public anyway)
+    shared_post_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("posts.id", ondelete="SET NULL"), nullable=True
+    )
 
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(

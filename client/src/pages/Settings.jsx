@@ -8,7 +8,8 @@ const NAV = [
   { to: "/settings/profile", label: "Profile" },
   { to: "/settings/notifications", label: "Notifications" },
   { to: "/settings/friend-groups", label: "Friend Groups" },
-  { to: "/settings/data", label: "Data & Privacy" },
+  { to: "/settings/privacy", label: "Privacy" },
+  { to: "/settings/data", label: "Data" },
 ];
 
 export default function Settings() {

@@ -47,3 +47,60 @@
 .read {
   font-size: 0.7rem;
 }
+
+/* Shared post card inside a message bubble */
+.sharedCard {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+}
+
+.sharedCardOwn {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sharedCard:hover {
+  opacity: 0.9;
+}
+
+.sharedImg {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.sharedBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sharedTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sharedMeta {
+  font-size: 0.68rem;
+  opacity: 0.7;
+}
+
+.sharedSnippet {
+  font-size: 0.72rem;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

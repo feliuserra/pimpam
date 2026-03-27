@@ -37,6 +37,12 @@ class Story(Base):
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
     )
+    visibility: Mapped[str] = mapped_column(
+        String(20),
+        default="close_friends",
+        server_default="close_friends",
+        nullable=False,
+    )
     is_removed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
