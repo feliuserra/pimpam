@@ -31,6 +31,64 @@ function StatusBadge({ status }) {
   return <span className={cls[status] || styles.statusOpen}>{STATUSES[status] || status}</span>;
 }
 
+function PollSection({ poll, issueId, user, onUpdate }) {
+  const { addToast } = useToast();
+  const [voting, setVoting] = useState(false);
+  const userVoted = poll.user_voted_option_ids.length > 0;
+
+  const handleVote = async (optionId) => {
+    if (!user || voting) return;
+    const alreadyVoted = poll.user_voted_option_ids.includes(optionId);
+    setVoting(true);
+    try {
+      if (alreadyVoted) {
+        await issuesApi.unvotePoll(issueId, optionId);
+      } else {
+        await issuesApi.votePoll(issueId, optionId);
+      }
+      // Reload issue to get updated poll data
+      const res = await issuesApi.get(issueId);
+      onUpdate(res.data.poll);
+    } catch {
+      addToast("Vote failed", "error");
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  return (
+    <div className={styles.pollSection}>
+      <p className={styles.pollQuestion}>{poll.question}</p>
+      {poll.allows_multiple && (
+        <span className={styles.pollMultipleHint}>Select all that apply</span>
+      )}
+      <div className={styles.pollOptions}>
+        {poll.options.map((opt) => {
+          const isSelected = poll.user_voted_option_ids.includes(opt.id);
+          const pct = poll.total_votes > 0 ? Math.round((opt.vote_count / poll.total_votes) * 100) : 0;
+          return (
+            <button
+              key={opt.id}
+              className={isSelected ? styles.pollOptionSelected : styles.pollOption}
+              onClick={() => handleVote(opt.id)}
+              disabled={!user || voting}
+            >
+              <div className={styles.pollBar} style={{ width: `${pct}%` }} />
+              <span className={styles.pollOptionText}>{opt.text}</span>
+              {userVoted && (
+                <span className={styles.pollOptionPct}>{pct}%</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <span className={styles.pollTotalVotes}>
+        {poll.total_votes} {poll.total_votes === 1 ? "vote" : "votes"}
+      </span>
+    </div>
+  );
+}
+
 export default function IssueDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -182,6 +240,14 @@ export default function IssueDetail() {
               <RelativeTime date={issue.created_at} className={styles.metaText} />
             </div>
             <p className={styles.description}>{issue.description}</p>
+            {issue.poll && (
+              <PollSection
+                poll={issue.poll}
+                issueId={issue.id}
+                user={user}
+                onUpdate={(updatedPoll) => setIssue((i) => ({ ...i, poll: updatedPoll }))}
+              />
+            )}
             {issue.device_info && (
               <details className={styles.deviceInfo}>
                 <summary>Device info</summary>

@@ -21,3 +21,11 @@ export const update = (id, data) => api.patch(`/issues/${id}`, data);
 export const close = (id) => api.post(`/issues/${id}/close`);
 
 export const reopen = (id) => api.post(`/issues/${id}/reopen`);
+
+export const votePoll = (issueId, optionId) =>
+  api.post(`/issues/${issueId}/poll/vote`, { option_id: optionId });
+
+export const unvotePoll = (issueId, optionId) =>
+  api.delete(`/issues/${issueId}/poll/vote`, {
+    data: { option_id: optionId },
+  });

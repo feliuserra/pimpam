@@ -114,6 +114,9 @@ function IssueItem({ issue, onVote, user, onClick }) {
               Security
             </span>
           )}
+          {issue.poll && (
+            <span className={styles.pollBadge}>Poll</span>
+          )}
           {issue.comment_count > 0 && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
               <CommentIcon size={12} /> {issue.comment_count}
@@ -140,6 +143,10 @@ export default function Issues() {
   const [category, setCategory] = useState("feature");
   const [includeDevice, setIncludeDevice] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [addPoll, setAddPoll] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [pollMultiple, setPollMultiple] = useState(false);
 
   // Pick a random example whenever category changes
   const example = useMemo(() => getRandomExample(category), [category]);
@@ -216,10 +223,24 @@ export default function Issues() {
       if (category === "bug" && includeDevice) {
         payload.device_info = collectDeviceInfo();
       }
+      if (addPoll && pollQuestion.trim()) {
+        const validOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
+        if (validOptions.length >= 2) {
+          payload.poll = {
+            question: pollQuestion.trim(),
+            options: validOptions.map((text) => ({ text })),
+            allows_multiple: pollMultiple,
+          };
+        }
+      }
       await issuesApi.create(payload);
       setTitle("");
       setDescription("");
       setCategory("feature");
+      setAddPoll(false);
+      setPollQuestion("");
+      setPollOptions(["", ""]);
+      setPollMultiple(false);
       setComposing(false);
       addToast("Issue submitted!", "success");
       fetchIssues();
@@ -346,6 +367,73 @@ export default function Issues() {
                 maxLength={5000}
                 required
               />
+              <div className={styles.pollToggle}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={addPoll}
+                    onChange={(e) => setAddPoll(e.target.checked)}
+                  />
+                  <span>Add a poll</span>
+                </label>
+              </div>
+
+              {addPoll && (
+                <div className={styles.pollCompose}>
+                  <input
+                    type="text"
+                    className={styles.pollQuestionInput}
+                    placeholder="Poll question"
+                    value={pollQuestion}
+                    onChange={(e) => setPollQuestion(e.target.value)}
+                    maxLength={300}
+                  />
+                  {pollOptions.map((opt, i) => (
+                    <div key={i} className={styles.pollOptionRow}>
+                      <input
+                        type="text"
+                        className={styles.pollOptionInput}
+                        placeholder={`Option ${i + 1}`}
+                        value={opt}
+                        onChange={(e) => {
+                          const next = [...pollOptions];
+                          next[i] = e.target.value;
+                          setPollOptions(next);
+                        }}
+                        maxLength={200}
+                      />
+                      {pollOptions.length > 2 && (
+                        <button
+                          type="button"
+                          className={styles.pollRemoveOption}
+                          onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
+                          aria-label={`Remove option ${i + 1}`}
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {pollOptions.length < 10 && (
+                    <button
+                      type="button"
+                      className={styles.pollAddOption}
+                      onClick={() => setPollOptions([...pollOptions, ""])}
+                    >
+                      + Add option
+                    </button>
+                  )}
+                  <label className={styles.pollMultipleLabel}>
+                    <input
+                      type="checkbox"
+                      checked={pollMultiple}
+                      onChange={(e) => setPollMultiple(e.target.checked)}
+                    />
+                    <span>Allow multiple selections</span>
+                  </label>
+                </div>
+              )}
+
               <div className={styles.composeActions}>
                 <button
                   type="button"

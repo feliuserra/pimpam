@@ -12,13 +12,17 @@ from app.core.limiter import limiter
 from app.crud.issue import (
     create_issue,
     create_issue_comment,
+    create_poll,
     get_issue,
+    get_poll_for_issue,
     has_voted,
     has_voted_batch,
     list_issue_comments,
     list_issues,
     unvote_issue,
+    unvote_poll,
     vote_issue,
+    vote_poll,
 )
 from app.crud.user import get_user_by_id
 from app.schemas.issue import (
@@ -27,17 +31,21 @@ from app.schemas.issue import (
     IssueCreate,
     IssuePublic,
     IssueUpdate,
+    PollPublic,
+    PollVoteRequest,
 )
 
 router = APIRouter(prefix="/issues", tags=["issues"])
 
 
 async def _enrich_issue(db, issue, user_id: int | None = None) -> IssuePublic:
-    """Convert an Issue model to IssuePublic with author username and vote status."""
+    """Convert an Issue model to IssuePublic with author username, vote status, and poll."""
     author = await get_user_by_id(db, issue.author_id)
     voted = False
     if user_id:
         voted = await has_voted(db, issue.id, user_id)
+    poll_data = await get_poll_for_issue(db, issue.id, user_id)
+    poll = PollPublic(**poll_data) if poll_data else None
     return IssuePublic(
         id=issue.id,
         author_id=issue.author_id,
@@ -53,6 +61,7 @@ async def _enrich_issue(db, issue, user_id: int | None = None) -> IssuePublic:
         is_closed=issue.is_closed,
         closed_at=issue.closed_at,
         has_voted=voted,
+        poll=poll,
         created_at=issue.created_at,
         updated_at=issue.updated_at,
     )
@@ -66,7 +75,7 @@ async def create(
     db: DBSession,
     current_user: CurrentUser,
 ):
-    """Submit a new issue or feature request."""
+    """Submit a new issue or feature request, optionally with a poll."""
     issue = await create_issue(
         db,
         current_user.id,
@@ -75,6 +84,8 @@ async def create(
         body.category,
         device_info=body.device_info,
     )
+    if body.poll:
+        await create_poll(db, issue.id, body.poll)
     return await _enrich_issue(db, issue, current_user.id)
 
 
@@ -113,6 +124,8 @@ async def list_all(
     result = []
     for issue in issues:
         author = await get_user_by_id(db, issue.author_id)
+        poll_data = await get_poll_for_issue(db, issue.id, user_id)
+        poll = PollPublic(**poll_data) if poll_data else None
         result.append(
             IssuePublic(
                 id=issue.id,
@@ -129,6 +142,7 @@ async def list_all(
                 is_closed=issue.is_closed,
                 closed_at=issue.closed_at,
                 has_voted=issue.id in voted_set,
+                poll=poll,
                 created_at=issue.created_at,
                 updated_at=issue.updated_at,
             )
@@ -177,6 +191,41 @@ async def unvote(
     if issue is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Issue not found")
     await unvote_issue(db, issue_id, current_user.id)
+
+
+# --- Poll voting ---
+
+
+@router.post("/{issue_id}/poll/vote", status_code=status.HTTP_204_NO_CONTENT)
+async def vote_on_poll(
+    issue_id: int,
+    body: PollVoteRequest,
+    db: DBSession,
+    current_user: CurrentUser,
+):
+    """Vote on a poll option attached to an issue."""
+    issue = await get_issue(db, issue_id)
+    if issue is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Issue not found")
+    added = await vote_poll(db, current_user.id, body.option_id)
+    if not added:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="Already voted on this option"
+        )
+
+
+@router.delete("/{issue_id}/poll/vote", status_code=status.HTTP_204_NO_CONTENT)
+async def unvote_on_poll(
+    issue_id: int,
+    body: PollVoteRequest,
+    db: DBSession,
+    current_user: CurrentUser,
+):
+    """Remove a poll vote."""
+    issue = await get_issue(db, issue_id)
+    if issue is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Issue not found")
+    await unvote_poll(db, current_user.id, body.option_id)
 
 
 # --- Comments ---
