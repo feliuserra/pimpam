@@ -7,6 +7,7 @@ Per-user ActivityPub endpoints:
   GET  /users/{username}/followers
   GET  /users/{username}/following
 """
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
@@ -50,10 +51,11 @@ async def get_actor(username: str, request: Request, db: DBSession):
     accept = request.headers.get("accept", "")
     if not any(ct in accept for ct in AP_CONTENT_TYPES) and "html" in accept:
         from fastapi.responses import RedirectResponse
+
         return RedirectResponse(url=f"https://{request.url.netloc}/@{username}")
 
     user = await _get_local_user_or_404(username, db)
-    return _ap_response(build_actor(user))
+    return _ap_response(await build_actor(user))
 
 
 @router.get("/users/{username}/inbox")
@@ -115,16 +117,21 @@ async def get_followers(username: str, db: DBSession):
     """Return the list of follower actor IDs."""
     user = await _get_local_user_or_404(username, db)
     from app.models.user import User as UserModel
+
     result = await db.execute(
-        select(UserModel.ap_id).join(Follow, Follow.follower_id == UserModel.id).where(
-            Follow.followed_id == user.id
-        )
+        select(UserModel.ap_id)
+        .join(Follow, Follow.follower_id == UserModel.id)
+        .where(Follow.followed_id == user.id)
     )
     follower_ids = [row[0] for row in result.all() if row[0]]
     count_result = await db.execute(
         select(func.count()).select_from(Follow).where(Follow.followed_id == user.id)
     )
-    return _ap_response(ordered_collection(f"{actor_id(username)}/followers", follower_ids, count_result.scalar_one()))
+    return _ap_response(
+        ordered_collection(
+            f"{actor_id(username)}/followers", follower_ids, count_result.scalar_one()
+        )
+    )
 
 
 @router.get("/users/{username}/following")
@@ -132,13 +139,18 @@ async def get_following(username: str, db: DBSession):
     """Return the list of followed actor IDs."""
     user = await _get_local_user_or_404(username, db)
     from app.models.user import User as UserModel
+
     result = await db.execute(
-        select(UserModel.ap_id).join(Follow, Follow.followed_id == UserModel.id).where(
-            Follow.follower_id == user.id
-        )
+        select(UserModel.ap_id)
+        .join(Follow, Follow.followed_id == UserModel.id)
+        .where(Follow.follower_id == user.id)
     )
     followed_ids = [row[0] for row in result.all() if row[0]]
     count_result = await db.execute(
         select(func.count()).select_from(Follow).where(Follow.follower_id == user.id)
     )
-    return _ap_response(ordered_collection(f"{actor_id(username)}/following", followed_ids, count_result.scalar_one()))
+    return _ap_response(
+        ordered_collection(
+            f"{actor_id(username)}/following", followed_ids, count_result.scalar_one()
+        )
+    )

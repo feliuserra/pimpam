@@ -100,6 +100,14 @@ function IssueItem({ issue, onVote, user, onClick }) {
       </div>
       <div className={styles.issueContent}>
         <p className={styles.issueTitle}>{issue.title}</p>
+        {issue.poll && (
+          <p className={styles.pollPreview}>
+            📊 {issue.poll.question}
+            <span className={styles.pollVoteCount}>
+              · {issue.poll.total_votes} {issue.poll.total_votes === 1 ? "vote" : "votes"}
+            </span>
+          </p>
+        )}
         <div className={styles.issueMeta}>
           <CategoryBadge category={issue.category} />
           <StatusBadge status={issue.status} />
@@ -138,6 +146,7 @@ export default function Issues() {
   const [closedFilter, setClosedFilter] = useState(false);
   const [search, setSearch] = useState("");
   const [composing, setComposing] = useState(false);
+  const [pollFilter, setPollFilter] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("feature");
@@ -206,13 +215,19 @@ export default function Issues() {
     [addToast],
   );
 
-  const filtered = search
-    ? issues.filter(
+  const filtered = useMemo(() => {
+    let result = issues;
+    if (pollFilter) result = result.filter((i) => i.poll);
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
         (i) =>
-          i.title.toLowerCase().includes(search.toLowerCase()) ||
-          i.description.toLowerCase().includes(search.toLowerCase())
-      )
-    : issues;
+          i.title.toLowerCase().includes(q) ||
+          i.description.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [issues, pollFilter, search]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -292,6 +307,13 @@ export default function Issues() {
               Closed
             </button>
           </div>
+          <span className={styles.filterSep} />
+          <button
+            className={pollFilter ? styles.filterBtnActive : styles.filterBtn}
+            onClick={() => setPollFilter((p) => !p)}
+          >
+            Polls
+          </button>
           <span className={styles.filterSep} />
           <button
             className={filter === null ? styles.filterBtnActive : styles.filterBtn}

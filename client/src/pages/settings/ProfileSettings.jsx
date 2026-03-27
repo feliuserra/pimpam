@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Avatar from "../../components/ui/Avatar";
 import { useAuth } from "../../contexts/AuthContext";
 import * as usersApi from "../../api/users";
@@ -13,6 +13,7 @@ export default function ProfileSettings() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+  const avatarKeyRef = useRef(null);
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
@@ -21,6 +22,7 @@ export default function ProfileSettings() {
     setStatus(null);
     try {
       const res = await mediaApi.upload(file, "avatar");
+      avatarKeyRef.current = res.data.key;
       setAvatarPreview(res.data.url);
     } catch {
       setStatus({ type: "error", msg: "Failed to upload image" });
@@ -38,7 +40,7 @@ export default function ProfileSettings() {
       const res = await usersApi.updateMe({
         display_name: displayName || null,
         bio: bio || null,
-        avatar_url: avatarPreview || null,
+        avatar_url: avatarKeyRef.current || avatarPreview || null,
       });
       updateUser(res.data);
       setStatus({ type: "success", msg: "Profile updated." });

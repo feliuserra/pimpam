@@ -37,20 +37,23 @@ from app.schemas.story import StoryCreate, StoryPublic
 router = APIRouter(prefix="/stories", tags=["stories"])
 
 
-def _story_to_public(
+async def _story_to_public(
     story: Story,
     username: str,
     avatar_url: str | None,
     mentions: list | None = None,
 ) -> StoryPublic:
     """Build a StoryPublic from a Story + author info."""
+    from app.core.media_urls import resolve_urls
+
+    resolved = await resolve_urls([avatar_url, story.image_url])
     return StoryPublic(
         id=story.id,
         author_id=story.author_id,
         author_username=username,
-        author_avatar_url=avatar_url,
+        author_avatar_url=resolved[0],
         media_type=story.media_type,
-        image_url=story.image_url,
+        image_url=resolved[1],
         caption=story.caption,
         link_preview=build_link_preview(story),
         visibility=story.visibility,
@@ -128,7 +131,7 @@ async def create_story_endpoint(
                     for u in users
                 ]
 
-    return _story_to_public(
+    return await _story_to_public(
         story, current_user.username, current_user.avatar_url, mention_list
     )
 
@@ -206,7 +209,7 @@ async def get_stories_feed(
     mentions_map = await get_story_mentions_batch(db, story_ids)
 
     return [
-        _story_to_public(
+        await _story_to_public(
             story,
             user.username,
             user.avatar_url,
@@ -240,7 +243,7 @@ async def get_my_stories(
     mentions_map = await get_story_mentions_batch(db, story_ids)
 
     return [
-        _story_to_public(
+        await _story_to_public(
             s,
             current_user.username,
             current_user.avatar_url,

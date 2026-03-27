@@ -109,7 +109,7 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
       let image_url = null;
       if (imageFile) {
         const { data: media } = await upload(imageFile, "post_image");
-        image_url = media.url;
+        image_url = media.key;
       }
       const effectiveVisibility = communityId ? "public" : visibility;
       const body = {

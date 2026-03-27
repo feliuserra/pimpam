@@ -90,8 +90,12 @@ export default function UserProfile() {
       .catch(() => setCommunityStats(null));
   }, [profile?.username, profile?.show_community_stats]);
 
+  // Track S3 keys from uploads (separate from signed URLs used for display)
+  const uploadedKeys = useRef({});
+
   // Enter edit mode
   const startEdit = () => {
+    uploadedKeys.current = {};
     setDraft({
       display_name: profile.display_name || "",
       bio: profile.bio || "",
@@ -116,8 +120,8 @@ export default function UserProfile() {
       const payload = {};
       if (draft.display_name !== (profile.display_name || "")) payload.display_name = draft.display_name || null;
       if (draft.bio !== (profile.bio || "")) payload.bio = draft.bio || null;
-      if (draft.avatar_url !== (profile.avatar_url || "")) payload.avatar_url = draft.avatar_url || null;
-      if (draft.cover_image_url !== (profile.cover_image_url || "")) payload.cover_image_url = draft.cover_image_url || "";
+      if (draft.avatar_url !== (profile.avatar_url || "")) payload.avatar_url = uploadedKeys.current.avatar_url || draft.avatar_url || null;
+      if (draft.cover_image_url !== (profile.cover_image_url || "")) payload.cover_image_url = uploadedKeys.current.cover_image_url || draft.cover_image_url || "";
       if (draft.accent_color !== (profile.accent_color || "")) payload.accent_color = draft.accent_color || "";
       if (draft.location !== (profile.location || "")) payload.location = draft.location || null;
       if (draft.website !== (profile.website || "")) payload.website = draft.website || "";
@@ -159,6 +163,7 @@ export default function UserProfile() {
       setCoverUploading(true);
       try {
         const res = await mediaApi.upload(file, "cover_image");
+        uploadedKeys.current.cover_image_url = res.data.key;
         setDraft((d) => ({ ...d, cover_image_url: res.data.url }));
       } catch {
         addToast("Failed to upload cover image", "error");
@@ -187,6 +192,7 @@ export default function UserProfile() {
     setUploading(true);
     try {
       const res = await mediaApi.upload(file, mediaType);
+      uploadedKeys.current[draftKey] = res.data.key;
       setDraft((d) => ({ ...d, [draftKey]: res.data.url }));
     } catch {
       addToast(`Failed to upload ${type === "cover" ? "cover image" : "avatar"}`, "error");

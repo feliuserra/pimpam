@@ -30,6 +30,7 @@ from app.models.issue import (  # noqa: F401
 from app.models.message import Message  # noqa: F401
 from app.models.notification import Notification, NotificationPreference  # noqa: F401
 from app.models.password_reset import PasswordResetToken  # noqa: F401
+from app.models.pending_deletion import PendingDeletion  # noqa: F401
 from app.models.post import Post  # noqa: F401
 from app.models.post_image import PostImage  # noqa: F401
 from app.models.remote_actor import RemoteActor  # noqa: F401

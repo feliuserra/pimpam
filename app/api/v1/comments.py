@@ -76,9 +76,10 @@ async def _batch_author_info(
     db,
     comments: list,
 ) -> dict[int, tuple[str | None, str | None]]:
-    """Batch-fetch (username, avatar_url) for all comment authors."""
+    """Batch-fetch (username, avatar_url) for all comment authors, with signed URLs."""
     from sqlalchemy import select
 
+    from app.core.media_urls import resolve_urls
     from app.models.user import User
 
     author_ids = {c.author_id for c in comments if c.author_id is not None}
@@ -87,7 +88,10 @@ async def _batch_author_info(
     rows = await db.execute(
         select(User.id, User.username, User.avatar_url).where(User.id.in_(author_ids))
     )
-    return {r.id: (r.username, r.avatar_url) for r in rows}
+    raw = list(rows)
+    avatar_keys = [r.avatar_url for r in raw]
+    resolved = await resolve_urls(avatar_keys)
+    return {r.id: (r.username, resolved[i]) for i, r in enumerate(raw)}
 
 
 @post_comments_router.post(
@@ -173,9 +177,10 @@ async def create(
             },
         )
 
-    return _comment_to_public(
-        comment, {}, 0, (current_user.username, current_user.avatar_url)
-    )
+    from app.core.media_urls import resolve_url
+
+    resolved_avatar = await resolve_url(current_user.avatar_url)
+    return _comment_to_public(comment, {}, 0, (current_user.username, resolved_avatar))
 
 
 @post_comments_router.get("/{post_id}/comments", response_model=list[CommentPublic])

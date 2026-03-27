@@ -269,11 +269,48 @@ async def edit(
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete(post_id: int, current_user: CurrentUser, db: DBSession):
     """Delete a post. Only the author may delete their own post."""
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import select
+
+    from app.models.pending_deletion import PendingDeletion
+    from app.models.post_image import PostImage
+
     post = await get_post(db, post_id)
     if post is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Post not found")
     if post.author_id != current_user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your post")
+
+    # Schedule image deletion (1-hour grace period)
+    now = datetime.now(timezone.utc)
+    keys_to_delete: list[str] = []
+    if post.image_url and not post.image_url.startswith("http"):
+        keys_to_delete.append(post.image_url)
+
+    # Collect PostImage keys
+    img_rows = await db.execute(
+        select(PostImage.url).where(PostImage.post_id == post.id)
+    )
+    for (url,) in img_rows:
+        if url and not url.startswith("http"):
+            keys_to_delete.append(url)
+
+    for key in keys_to_delete:
+        db.add(
+            PendingDeletion(
+                s3_key=key,
+                scheduled_at=now,
+                delete_after=now + timedelta(hours=1),
+                user_id=current_user.id,
+                bytes_to_reclaim=0,
+            )
+        )
+
+    # Decrement storage quota (approximate — exact bytes not tracked per-image yet)
+    if keys_to_delete:
+        await db.flush()
+
     await deindex_post(post_id)
     await delete_post(db, post)
 

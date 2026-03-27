@@ -3,6 +3,7 @@ Serialize local users and posts as ActivityPub JSON-LD documents.
 Returns plain dicts — not Pydantic models — because AP's @context array
 cannot be cleanly expressed in Pydantic without significant boilerplate.
 """
+
 from app.core.config import settings
 from app.federation.constants import AP_CONTEXT, PUBLIC_STREAM
 
@@ -11,7 +12,7 @@ def actor_id(username: str) -> str:
     return f"https://{settings.domain}/users/{username}"
 
 
-def build_actor(user) -> dict:
+async def build_actor(user) -> dict:
     """Build an AP Person actor document for a local user."""
     base = actor_id(user.username)
     doc = {
@@ -36,7 +37,10 @@ def build_actor(user) -> dict:
         },
     }
     if user.avatar_url:
-        doc["icon"] = {"type": "Image", "mediaType": "image/jpeg", "url": user.avatar_url}
+        from app.core.media_urls import resolve_url
+
+        resolved = await resolve_url(user.avatar_url)
+        doc["icon"] = {"type": "Image", "mediaType": "image/webp", "url": resolved}
     return doc
 
 

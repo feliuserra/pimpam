@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     media_max_upload_bytes: int = 10 * 1024 * 1024  # 10 MB
     media_avatar_max_px: int = 512  # avatars are capped at 512×512
     media_post_image_max_px: int = 2000  # post images capped at 2000px on longest side
+    media_thumb_max_px: int = 400  # thumbnail variant
+    media_medium_max_px: int = 1000  # medium variant (desktop feeds)
+
+    # Storage quotas & signed URLs
+    storage_signed_url_ttl: int = 3600  # 1-hour signed URLs
+    storage_user_quota_bytes: int = 500 * 1024 * 1024  # 500 MB per user
 
     # Content limits — change here to affect comments and share annotations everywhere
     comment_max_length: int = 300

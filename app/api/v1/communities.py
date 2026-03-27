@@ -24,6 +24,20 @@ from app.schemas.post import PostPublic
 router = APIRouter(prefix="/communities", tags=["communities"])
 
 
+async def _resolve_community_urls(
+    communities: list[CommunityPublic],
+) -> list[CommunityPublic]:
+    """Resolve avatar_url S3 keys to signed URLs for a list of communities."""
+    from app.core.media_urls import resolve_urls
+
+    keys = [c.avatar_url for c in communities]
+    resolved = await resolve_urls(keys)
+    return [
+        c.model_copy(update={"avatar_url": resolved[i]})
+        for i, c in enumerate(communities)
+    ]
+
+
 class SortBy(str, Enum):
     popular = "popular"  # most members first
     alphabetical = "alphabetical"
@@ -65,7 +79,11 @@ async def list_communities(
     query = query.order_by(order).offset(offset).limit(limit)
 
     result = await db.execute(query)
-    return result.scalars().all()
+    items = [
+        CommunityPublic.model_validate(c, from_attributes=True)
+        for c in result.scalars().all()
+    ]
+    return await _resolve_community_urls(items)
 
 
 @router.get("/joined", response_model=list[CommunityPublic])
@@ -86,7 +104,7 @@ async def list_joined(current_user: CurrentUser, db: DBSession):
         c = CommunityPublic.model_validate(community)
         c.user_role = role
         communities.append(c)
-    return communities
+    return await _resolve_community_urls(communities)
 
 
 @router.post("", response_model=CommunityPublic, status_code=status.HTTP_201_CREATED)
@@ -101,7 +119,9 @@ async def create(
         )
     community = await create_community(db, data, owner_id=current_user.id)
     await index_community(community)
-    return community
+    result_pub = CommunityPublic.model_validate(community, from_attributes=True)
+    resolved = await _resolve_community_urls([result_pub])
+    return resolved[0]
 
 
 @router.get("/{name}", response_model=CommunityPublic)
@@ -110,14 +130,15 @@ async def get(name: str, db: DBSession, current_user: OptionalUser = None):
     community = await get_community_by_name(db, name)
     if community is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Community not found")
-    result = CommunityPublic.model_validate(community)
+    result_pub = CommunityPublic.model_validate(community)
     if current_user:
         from app.crud.community import get_membership
 
         membership = await get_membership(db, community.id, current_user.id)
         if membership:
-            result.user_role = membership.role
-    return result
+            result_pub.user_role = membership.role
+    resolved = await _resolve_community_urls([result_pub])
+    return resolved[0]
 
 
 @router.patch("/{name}", response_model=CommunityPublic)
@@ -166,7 +187,9 @@ async def update_community(
 
     await db.commit()
     await db.refresh(community)
-    return community
+    result_pub = CommunityPublic.model_validate(community, from_attributes=True)
+    resolved = await _resolve_community_urls([result_pub])
+    return resolved[0]
 
 
 @router.get("/{name}/posts", response_model=list[PostPublic])

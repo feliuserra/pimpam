@@ -61,6 +61,8 @@ async def list_notifications(
         type_exclude=type_exclude,
     )
 
+    from app.core.media_urls import resolve_urls
+
     actor_ids = {n.actor_id for n in notifs if n.actor_id is not None}
     actors: dict[int, tuple[str, str | None]] = {}
     if actor_ids:
@@ -69,7 +71,10 @@ async def list_notifications(
                 User.id.in_(actor_ids)
             )
         )
-        actors = {r.id: (r.username, r.avatar_url) for r in rows}
+        raw = list(rows)
+        avatar_keys = [r.avatar_url for r in raw]
+        resolved = await resolve_urls(avatar_keys)
+        actors = {r.id: (r.username, resolved[i]) for i, r in enumerate(raw)}
 
     return [
         NotificationPublic.model_validate(n, from_attributes=True).model_copy(

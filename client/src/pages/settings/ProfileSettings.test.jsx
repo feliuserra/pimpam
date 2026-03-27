@@ -135,7 +135,7 @@ describe("ProfileSettings", () => {
 
   it("uploads avatar and updates preview", async () => {
     mediaApi.upload.mockResolvedValue({
-      data: { url: "https://example.com/new-avatar.jpg" },
+      data: { url: "https://example.com/new-avatar.jpg", key: "users/1/avatars/abc" },
     });
 
     render(<ProfileSettings />);

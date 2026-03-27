@@ -123,15 +123,20 @@ async def get_inbox(current_user: CurrentUser, db: DBSession):
         .order_by(subq.c.last_message_at.desc())
     )
 
+    from app.core.media_urls import resolve_urls
+
+    rows = result.all()
+    avatar_keys = [row.other_avatar_url for row in rows]
+    resolved = await resolve_urls(avatar_keys)
     return [
         ConversationSummary(
             other_user_id=row.other_user_id,
             other_username=row.other_username,
-            other_avatar_url=row.other_avatar_url,
+            other_avatar_url=resolved[i],
             last_message_at=row.last_message_at,
             unread_count=row.unread_count,
         )
-        for row in result.all()
+        for i, row in enumerate(rows)
     ]
 
 
@@ -190,7 +195,16 @@ async def get_conversation(
             for r in c_rows:
                 communities[r.id] = r.name
 
-        for p in posts:
+        from app.core.media_urls import resolve_urls as _resolve_urls
+
+        # Resolve all image keys in batch
+        _img_keys = [p.image_url for p in posts]
+        _avatar_keys = [authors.get(p.author_id, (None, None))[1] for p in posts]
+        _resolved = await _resolve_urls(_img_keys + _avatar_keys)
+        _resolved_imgs = _resolved[: len(posts)]
+        _resolved_avs = _resolved[len(posts) :]
+
+        for idx, p in enumerate(posts):
             author_data = authors.get(p.author_id, (None, None))
             post_previews[p.id] = SharedPostPreview(
                 id=p.id,
@@ -198,9 +212,9 @@ async def get_conversation(
                 content=(p.content[:200] + "...")
                 if p.content and len(p.content) > 200
                 else p.content,
-                image_url=p.image_url,
+                image_url=_resolved_imgs[idx],
                 author_username=author_data[0],
-                author_avatar_url=author_data[1],
+                author_avatar_url=_resolved_avs[idx],
                 community_name=communities.get(p.community_id)
                 if p.community_id
                 else None,

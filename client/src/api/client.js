@@ -2,7 +2,7 @@ import axios from "axios";
 
 const isNative = window.Capacitor?.isNativePlatform?.();
 const API_BASE = isNative
-  ? "http://192.168.1.34:8000/api/v1"
+  ? "http://localhost:8000/api/v1"
   : "/api/v1";
 
 const api = axios.create({

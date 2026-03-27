@@ -108,6 +108,24 @@ async def _account_cleanup_loop() -> None:
                         Story.is_removed == False,  # noqa: E712 — keep reported ones for mod review
                     )
                 )
+
+                # S3: process pending image deletions past their grace period
+                from sqlalchemy import select
+
+                from app.core.storage import delete_objects
+                from app.models.pending_deletion import PendingDeletion
+
+                now = _dt.now(timezone.utc)
+                pending = await db.execute(
+                    select(PendingDeletion).where(PendingDeletion.delete_after <= now)
+                )
+                pending_rows = list(pending.scalars().all())
+                if pending_rows:
+                    s3_keys = [r.s3_key for r in pending_rows]
+                    delete_objects(s3_keys)
+                    for r in pending_rows:
+                        await db.delete(r)
+
                 await db.commit()
         except Exception:
             logger.exception("Account cleanup loop failed")

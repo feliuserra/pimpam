@@ -80,6 +80,11 @@ class User(Base):
     show_community_stats: Mapped[bool] = mapped_column(Boolean, default=True)
     show_posts_on_profile: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    # Storage quota tracking (bytes)
+    storage_bytes_used: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )
+
     # Relationships
     posts: Mapped[list["Post"]] = relationship(
         foreign_keys="Post.author_id", back_populates="author", lazy="raise"
