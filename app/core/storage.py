@@ -274,13 +274,15 @@ def upload_image_v2(data: bytes, media_type: str, user_id: int) -> dict:
         else:
             key = f"{base_key}_{label}.{ext}"
 
-        client.put_object(
-            Bucket=settings.storage_bucket,
-            Key=key,
-            Body=blob,
-            ContentType=content_type,
-            ServerSideEncryption="AES256",
-        )
+        put_kwargs = {
+            "Bucket": settings.storage_bucket,
+            "Key": key,
+            "Body": blob,
+            "ContentType": content_type,
+        }
+        if settings.environment != "development":
+            put_kwargs["ServerSideEncryption"] = "AES256"
+        client.put_object(**put_kwargs)
         keys[label] = key
         total_bytes += len(blob)
 

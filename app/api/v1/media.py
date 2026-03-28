@@ -105,4 +105,4 @@ async def upload(
     full_key = result["keys"].get("full") or list(result["keys"].values())[0]
     signed_url = generate_signed_url(full_key)
 
-    return UploadResponse(url=signed_url, key=result["key"])
+    return UploadResponse(url=signed_url, key=full_key)
