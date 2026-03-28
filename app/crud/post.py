@@ -422,10 +422,36 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
         for p in posts
     ]
     image_keys = [p.image_url for p in posts]
-    all_keys = avatar_keys + image_keys
+
+    # Collect PostImage keys (multi-image posts)
+    post_image_map: list[tuple[int, int]] = []  # (post_index, image_count)
+    post_image_keys: list[str | None] = []
+    for i, p in enumerate(posts):
+        imgs = list(p.images) if p.images else []
+        post_image_map.append((i, len(imgs)))
+        for img in imgs:
+            post_image_keys.append(img.url)
+
+    all_keys = avatar_keys + image_keys + post_image_keys
     resolved = await resolve_urls(all_keys)
     resolved_avatars = resolved[: len(posts)]
-    resolved_images = resolved[len(posts) :]
+    resolved_images = resolved[len(posts) : len(posts) * 2]
+    resolved_post_images = resolved[len(posts) * 2 :]
+
+    # Map resolved PostImage URLs back per post
+    offset = 0
+    post_resolved_images: dict[int, list[dict]] = {}
+    for i, p in enumerate(posts):
+        _, count = post_image_map[i]
+        imgs = list(p.images) if p.images else []
+        post_resolved_images[p.id] = [
+            {
+                "url": resolved_post_images[offset + j] or imgs[j].url,
+                "display_order": imgs[j].display_order,
+            }
+            for j in range(count)
+        ]
+        offset += count
 
     extras: dict[int, dict] = {}
     for i, p in enumerate(posts):
@@ -443,6 +469,7 @@ async def _enrich_posts(db: AsyncSession, posts: list[Post]) -> dict[int, dict]:
             "label_id": p.label_id,
             "label": labels.get(p.label_id) if p.label_id else None,
             "image_url": resolved_images[i],
+            "images": post_resolved_images.get(p.id, []),
         }
     return extras
 

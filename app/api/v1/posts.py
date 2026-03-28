@@ -296,19 +296,22 @@ async def delete(post_id: int, current_user: CurrentUser, db: DBSession):
         if url and not url.startswith("http"):
             keys_to_delete.append(url)
 
-    for key in keys_to_delete:
-        db.add(
-            PendingDeletion(
-                s3_key=key,
-                scheduled_at=now,
-                delete_after=now + timedelta(hours=1),
-                user_id=current_user.id,
-                bytes_to_reclaim=0,
-            )
-        )
-
-    # Decrement storage quota (approximate — exact bytes not tracked per-image yet)
     if keys_to_delete:
+        from fastapi.concurrency import run_in_threadpool
+
+        from app.core.storage import get_object_size
+
+        for key in keys_to_delete:
+            size = await run_in_threadpool(get_object_size, key)
+            db.add(
+                PendingDeletion(
+                    s3_key=key,
+                    scheduled_at=now,
+                    delete_after=now + timedelta(hours=1),
+                    user_id=current_user.id,
+                    bytes_to_reclaim=size,
+                )
+            )
         await db.flush()
 
     await deindex_post(post_id)

@@ -67,8 +67,18 @@ async def upload(
 
     data = await file.read()
 
-    # Quota check (estimate = raw upload size; actual will be smaller after compression)
-    remaining = settings.storage_user_quota_bytes - current_user.storage_bytes_used
+    # Lock user row to prevent concurrent uploads from exceeding quota
+    from sqlalchemy import select
+
+    from app.models.user import User
+
+    locked_result = await db.execute(
+        select(User).where(User.id == current_user.id).with_for_update()
+    )
+    user = locked_result.scalar_one()
+
+    # Quota check against locked row
+    remaining = settings.storage_user_quota_bytes - user.storage_bytes_used
     if len(data) > remaining:
         raise HTTPException(
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -87,12 +97,12 @@ async def upload(
             detail="Upload failed — storage service unavailable",
         )
 
-    # Update user's storage quota
-    current_user.storage_bytes_used += result["total_bytes"]
+    # Update user's storage quota on the locked row
+    user.storage_bytes_used += result["total_bytes"]
     await db.commit()
 
     # Generate signed URL for the full variant (immediate preview)
     full_key = result["keys"].get("full") or list(result["keys"].values())[0]
     signed_url = generate_signed_url(full_key)
 
-    return UploadResponse(url=signed_url, key=result["key"])
+    return UploadResponse(url=signed_url, key=full_key)

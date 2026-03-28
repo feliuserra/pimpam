@@ -1,17 +1,17 @@
 """initial schema
 
-Revision ID: 98831a8e4968
+Revision ID: e3a298058dee
 Revises:
-Create Date: 2026-03-26 19:53:52.337366
+Create Date: 2026-03-28 10:54:50.636059
 """
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
-revision: str = "98831a8e4968"
+revision: str = "e3a298058dee"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -29,10 +29,6 @@ def upgrade() -> None:
         sa.Column("is_news", sa.Boolean(), nullable=False),
         sa.Column("avatar_url", sa.String(length=500), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["owner_id"],
-            ["users.id"],
-        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_communities_name"), "communities", ["name"], unique=True)
@@ -64,10 +60,6 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("is_close_friends", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["owner_id"],
-            ["users.id"],
-        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -104,10 +96,6 @@ def upgrade() -> None:
         sa.Column("shared_from_id", sa.Integer(), nullable=True),
         sa.Column("share_comment", sa.String(length=300), nullable=True),
         sa.ForeignKeyConstraint(
-            ["author_id"],
-            ["users.id"],
-        ),
-        sa.ForeignKeyConstraint(
             ["community_id"],
             ["communities.id"],
         ),
@@ -117,10 +105,6 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(
             ["label_id"], ["community_labels.id"], ondelete="SET NULL"
-        ),
-        sa.ForeignKeyConstraint(
-            ["removed_by_id"],
-            ["users.id"],
         ),
         sa.ForeignKeyConstraint(
             ["shared_from_id"],
@@ -184,12 +168,39 @@ def upgrade() -> None:
         sa.Column("profile_layout", sa.Text(), nullable=True),
         sa.Column("show_community_stats", sa.Boolean(), nullable=False),
         sa.Column("show_posts_on_profile", sa.Boolean(), nullable=False),
-        sa.ForeignKeyConstraint(["pinned_post_id"], ["posts.id"], ondelete="SET NULL"),
+        sa.Column(
+            "storage_bytes_used", sa.Integer(), server_default="0", nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("ap_id"),
     )
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
     op.create_index(op.f("ix_users_username"), "users", ["username"], unique=True)
+    # Deferred FK constraints — resolve circular dependency (alphabetical table order)
+    op.create_foreign_key(
+        "fk_communities_owner_id_users", "communities", "users", ["owner_id"], ["id"]
+    )
+    op.create_foreign_key(
+        "fk_friend_groups_owner_id_users",
+        "friend_groups",
+        "users",
+        ["owner_id"],
+        ["id"],
+    )
+    op.create_foreign_key(
+        "fk_posts_author_id_users", "posts", "users", ["author_id"], ["id"]
+    )
+    op.create_foreign_key(
+        "fk_posts_removed_by_id_users", "posts", "users", ["removed_by_id"], ["id"]
+    )
+    op.create_foreign_key(
+        "fk_users_pinned_post_id_posts",
+        "users",
+        "posts",
+        ["pinned_post_id"],
+        ["id"],
+        ondelete="SET NULL",
+    )
     op.create_table(
         "admin_content_removals",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -500,6 +511,7 @@ def upgrade() -> None:
         sa.Column("ciphertext", sa.Text(), nullable=False),
         sa.Column("encrypted_key", sa.Text(), nullable=False),
         sa.Column("sender_encrypted_key", sa.Text(), nullable=True),
+        sa.Column("shared_post_id", sa.Integer(), nullable=True),
         sa.Column("is_read", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
@@ -510,6 +522,7 @@ def upgrade() -> None:
             ["sender_id"],
             ["users.id"],
         ),
+        sa.ForeignKeyConstraint(["shared_post_id"], ["posts.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -553,6 +566,23 @@ def upgrade() -> None:
         op.f("ix_password_reset_tokens_user_id"),
         "password_reset_tokens",
         ["user_id"],
+        unique=False,
+    )
+    op.create_table(
+        "pending_deletions",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("s3_key", sa.String(length=2048), nullable=False),
+        sa.Column("scheduled_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("delete_after", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=True),
+        sa.Column("bytes_to_reclaim", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(
+        op.f("ix_pending_deletions_delete_after"),
+        "pending_deletions",
+        ["delete_after"],
         unique=False,
     )
     op.create_table(
@@ -623,6 +653,12 @@ def upgrade() -> None:
         sa.Column("link_description", sa.String(length=500), nullable=True),
         sa.Column("link_image_url", sa.String(length=2048), nullable=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "visibility",
+            sa.String(length=20),
+            server_default="close_friends",
+            nullable=False,
+        ),
         sa.Column("is_removed", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["author_id"], ["users.id"], ondelete="CASCADE"),
@@ -728,6 +764,17 @@ def upgrade() -> None:
         op.f("ix_issue_comments_issue_id"), "issue_comments", ["issue_id"], unique=False
     )
     op.create_table(
+        "issue_polls",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("issue_id", sa.Integer(), nullable=False),
+        sa.Column("question", sa.String(length=300), nullable=False),
+        sa.Column("allows_multiple", sa.Boolean(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(["issue_id"], ["issues.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("issue_id"),
+    )
+    op.create_table(
         "issue_votes",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("issue_id", sa.Integer(), nullable=False),
@@ -809,11 +856,65 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_story_mentions_user_id"), "story_mentions", ["user_id"], unique=False
     )
+    op.create_table(
+        "issue_poll_options",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("poll_id", sa.Integer(), nullable=False),
+        sa.Column("text", sa.String(length=200), nullable=False),
+        sa.Column("vote_count", sa.Integer(), nullable=False),
+        sa.Column("display_order", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(["poll_id"], ["issue_polls.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(
+        op.f("ix_issue_poll_options_poll_id"),
+        "issue_poll_options",
+        ["poll_id"],
+        unique=False,
+    )
+    op.create_table(
+        "issue_poll_votes",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("option_id", sa.Integer(), nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["option_id"], ["issue_poll_options.id"], ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("option_id", "user_id"),
+    )
+    op.create_index(
+        op.f("ix_issue_poll_votes_option_id"),
+        "issue_poll_votes",
+        ["option_id"],
+        unique=False,
+    )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    # Drop deferred FK constraints first
+    op.drop_constraint("fk_users_pinned_post_id_posts", "users", type_="foreignkey")
+    op.drop_constraint("fk_posts_removed_by_id_users", "posts", type_="foreignkey")
+    op.drop_constraint("fk_posts_author_id_users", "posts", type_="foreignkey")
+    op.drop_constraint(
+        "fk_friend_groups_owner_id_users", "friend_groups", type_="foreignkey"
+    )
+    op.drop_constraint(
+        "fk_communities_owner_id_users", "communities", type_="foreignkey"
+    )
+    op.drop_index(op.f("ix_issue_poll_votes_option_id"), table_name="issue_poll_votes")
+    op.drop_table("issue_poll_votes")
+    op.drop_index(
+        op.f("ix_issue_poll_options_poll_id"), table_name="issue_poll_options"
+    )
+    op.drop_table("issue_poll_options")
     op.drop_index(op.f("ix_story_mentions_user_id"), table_name="story_mentions")
     op.drop_index(op.f("ix_story_mentions_story_id"), table_name="story_mentions")
     op.drop_table("story_mentions")
@@ -823,6 +924,7 @@ def downgrade() -> None:
     op.drop_table("notifications")
     op.drop_index(op.f("ix_issue_votes_issue_id"), table_name="issue_votes")
     op.drop_table("issue_votes")
+    op.drop_table("issue_polls")
     op.drop_index(op.f("ix_issue_comments_issue_id"), table_name="issue_comments")
     op.drop_table("issue_comments")
     op.drop_index(
@@ -844,6 +946,10 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_post_hashtags_post_id"), table_name="post_hashtags")
     op.drop_index(op.f("ix_post_hashtags_hashtag_id"), table_name="post_hashtags")
     op.drop_table("post_hashtags")
+    op.drop_index(
+        op.f("ix_pending_deletions_delete_after"), table_name="pending_deletions"
+    )
+    op.drop_table("pending_deletions")
     op.drop_index(
         op.f("ix_password_reset_tokens_user_id"), table_name="password_reset_tokens"
     )

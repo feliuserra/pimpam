@@ -116,6 +116,11 @@ async def update_me(
         ):
             old_key = getattr(current_user, img_field)
             if old_key and not old_key.startswith("http"):
+                from fastapi.concurrency import run_in_threadpool
+
+                from app.core.storage import get_object_size
+
+                size = await run_in_threadpool(get_object_size, old_key)
                 now = datetime.now(timezone.utc)
                 db.add(
                     PendingDeletion(
@@ -123,7 +128,7 @@ async def update_me(
                         scheduled_at=now,
                         delete_after=now + timedelta(hours=1),
                         user_id=current_user.id,
-                        bytes_to_reclaim=0,
+                        bytes_to_reclaim=size,
                     )
                 )
 

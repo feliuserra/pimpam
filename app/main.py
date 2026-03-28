@@ -90,16 +90,29 @@ async def _account_cleanup_loop() -> None:
 
     while True:
         await asyncio.sleep(3600)
-        try:
-            async with AsyncSessionLocal() as db:
+        async with AsyncSessionLocal() as db:
+            # Phase 1: account deletions
+            try:
                 await process_pending_deletions(db)
                 await process_expired_unverified(db)
-                # GDPR: purge consent log entries older than 30 days
+                await db.commit()
+            except Exception:
+                await db.rollback()
+                logger.exception("Cleanup phase failed: account deletions")
+
+            # Phase 2: GDPR consent log purge
+            try:
                 cutoff = _dt.now(timezone.utc) - timedelta(days=30)
                 await db.execute(
                     delete(ConsentLog).where(ConsentLog.created_at < cutoff)
                 )
-                # Stories: hard-delete expired non-reported stories
+                await db.commit()
+            except Exception:
+                await db.rollback()
+                logger.exception("Cleanup phase failed: consent log purge")
+
+            # Phase 3: expired stories
+            try:
                 from app.models.story import Story
 
                 await db.execute(
@@ -108,12 +121,18 @@ async def _account_cleanup_loop() -> None:
                         Story.is_removed == False,  # noqa: E712 — keep reported ones for mod review
                     )
                 )
+                await db.commit()
+            except Exception:
+                await db.rollback()
+                logger.exception("Cleanup phase failed: expired stories")
 
-                # S3: process pending image deletions past their grace period
+            # Phase 4: S3 pending image deletions + quota decrement
+            try:
                 from sqlalchemy import select
 
                 from app.core.storage import delete_objects
                 from app.models.pending_deletion import PendingDeletion
+                from app.models.user import User
 
                 now = _dt.now(timezone.utc)
                 pending = await db.execute(
@@ -122,13 +141,26 @@ async def _account_cleanup_loop() -> None:
                 pending_rows = list(pending.scalars().all())
                 if pending_rows:
                     s3_keys = [r.s3_key for r in pending_rows]
-                    delete_objects(s3_keys)
+                    failed_keys = delete_objects(s3_keys)
+                    failed_set = set(failed_keys)
+
                     for r in pending_rows:
+                        if r.s3_key in failed_set:
+                            continue  # retry next cycle
+                        # Decrement user quota
+                        if r.user_id and r.bytes_to_reclaim > 0:
+                            user = await db.get(User, r.user_id)
+                            if user:
+                                user.storage_bytes_used = max(
+                                    0,
+                                    user.storage_bytes_used - r.bytes_to_reclaim,
+                                )
                         await db.delete(r)
 
-                await db.commit()
-        except Exception:
-            logger.exception("Account cleanup loop failed")
+                    await db.commit()
+            except Exception:
+                await db.rollback()
+                logger.exception("Cleanup phase failed: S3 pending deletions")
 
 
 app = FastAPI(
