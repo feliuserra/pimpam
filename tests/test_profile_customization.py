@@ -340,3 +340,39 @@ async def test_gdpr_export_includes_new_fields(client):
     assert profile["pronouns"] == "he/him"
     assert "cover_image_url" in profile
     assert "accent_color" in profile
+    assert "cover_gradient" in profile
+
+
+# ---------------------------------------------------------------------------
+# Cover gradient toggle
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_cover_gradient_false(client):
+    hdrs = await setup_user(client, "alice")
+    r = await client.patch(
+        "/api/v1/users/me", json={"cover_gradient": False}, headers=hdrs
+    )
+    assert r.status_code == 200
+    assert r.json()["cover_gradient"] is False
+
+
+@pytest.mark.asyncio
+async def test_update_cover_gradient_true(client):
+    hdrs = await setup_user(client, "alice")
+    # Disable then re-enable
+    await client.patch("/api/v1/users/me", json={"cover_gradient": False}, headers=hdrs)
+    r = await client.patch(
+        "/api/v1/users/me", json={"cover_gradient": True}, headers=hdrs
+    )
+    assert r.status_code == 200
+    assert r.json()["cover_gradient"] is True
+
+
+@pytest.mark.asyncio
+async def test_cover_gradient_default_in_profile(client):
+    hdrs = await setup_user(client, "alice")
+    r = await client.get("/api/v1/users/me", headers=hdrs)
+    assert r.status_code == 200
+    assert r.json()["cover_gradient"] is True
