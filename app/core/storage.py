@@ -306,16 +306,38 @@ def generate_signed_url(key: str, expires_in: int | None = None) -> str:
     )
 
 
-def delete_objects(keys: list[str]) -> None:
-    """Batch-delete S3 objects. Logs failures but does not raise."""
+def delete_objects(keys: list[str]) -> list[str]:
+    """Batch-delete S3 objects. Returns list of keys that failed to delete."""
     if not keys:
-        return
+        return []
 
     objects = [{"Key": k} for k in keys]
     try:
-        _s3().delete_objects(
+        resp = _s3().delete_objects(
             Bucket=settings.storage_bucket,
-            Delete={"Objects": objects, "Quiet": True},
+            Delete={"Objects": objects, "Quiet": False},
         )
+        errors = resp.get("Errors", [])
+        if errors:
+            failed = [e["Key"] for e in errors]
+            logger.warning(
+                "Failed to delete %d/%d S3 objects: %s",
+                len(failed),
+                len(keys),
+                failed,
+            )
+            return failed
+        return []
     except Exception:
         logger.exception("Failed to delete %d S3 objects", len(keys))
+        return list(keys)
+
+
+def get_object_size(key: str) -> int:
+    """Return the size in bytes of an S3 object, or 0 on error."""
+    try:
+        resp = _s3().head_object(Bucket=settings.storage_bucket, Key=key)
+        return resp.get("ContentLength", 0)
+    except Exception:
+        logger.debug("head_object failed for %s", key)
+        return 0
