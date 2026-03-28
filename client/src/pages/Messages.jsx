@@ -65,20 +65,11 @@ export default function Messages() {
       .catch(() => {});
   }, [me?.username]);
 
-  // Bump conversation to top on new message
+  // Reload inbox on new message — bumps conversation to top with fresh preview
   useWS(
     "new_message",
-    useCallback((data) => {
-      setConversations((prev) => {
-        const idx = prev.findIndex((c) => c.other_user_id === data.sender_id);
-        if (idx >= 0) {
-          const updated = { ...prev[idx], unread_count: prev[idx].unread_count + 1, last_message_at: new Date().toISOString() };
-          return [updated, ...prev.filter((_, i) => i !== idx)];
-        }
-        // New conversation — reload
-        loadInbox();
-        return prev;
-      });
+    useCallback(() => {
+      loadInbox();
     }, [loadInbox]),
   );
 

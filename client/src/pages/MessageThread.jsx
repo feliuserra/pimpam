@@ -7,6 +7,7 @@ import Avatar from "../components/ui/Avatar";
 import Spinner from "../components/ui/Spinner";
 import SendIcon from "../components/ui/icons/SendIcon";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { useWS } from "../contexts/WSContext";
 import { useWSSend } from "../contexts/WSContext";
 import * as messagesApi from "../api/messages";
@@ -19,6 +20,7 @@ export default function MessageThread() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user: me, isNewDevice, dismissNewDevice } = useAuth();
+  const toast = useToast();
   const wsSend = useWSSend();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +37,10 @@ export default function MessageThread() {
   const typingTimeout = useRef(null);
   const lastTypingSent = useRef(0);
   const initialScrollDone = useRef(false);
+  const hasMoreRef = useRef(true);
+  const loadingMoreRef = useRef(false);
+  const messagesRef = useRef([]);
+  const newMessageIds = useRef(new Set());
 
   const otherUserId = parseInt(userId, 10);
 
@@ -93,6 +99,7 @@ export default function MessageThread() {
         try {
           const res = await messagesApi.getSingleMessage(data.message_id);
           const decrypted = await tryDecrypt(res.data, me?.id);
+          newMessageIds.current.add(decrypted.id);
           setMessages((prev) => [...prev, decrypted]);
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
         } catch {
@@ -118,6 +125,19 @@ export default function MessageThread() {
     }, []),
   );
 
+  // Read receipt from WS — sender sees blue ✓✓
+  useWS(
+    "messages_read",
+    useCallback((data) => {
+      if (data.reader_id === otherUserId && data.message_ids) {
+        const readSet = new Set(data.message_ids);
+        setMessages((prev) =>
+          prev.map((m) => (readSet.has(m.id) ? { ...m, is_read: true } : m)),
+        );
+      }
+    }, [otherUserId]),
+  );
+
   // Typing indicator from WS
   useWS(
     "typing",
@@ -141,18 +161,25 @@ export default function MessageThread() {
     }, [otherUserId]),
   );
 
+  // Keep refs in sync with state for the observer callback
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
+  useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
+
   // Infinite scroll — load older messages when top sentinel is visible
   useEffect(() => {
-    if (!topSentinelRef.current) return;
+    const sentinel = topSentinelRef.current;
+    if (!sentinel) return;
     const observer = new IntersectionObserver(
       async ([entry]) => {
-        if (!entry.isIntersecting || loadingMore || !hasMore || messages.length === 0) return;
+        if (!entry.isIntersecting || loadingMoreRef.current || !hasMoreRef.current || messagesRef.current.length === 0) return;
         setLoadingMore(true);
-        const oldestId = messages[0]?.id;
+        loadingMoreRef.current = true;
+        const oldestId = messagesRef.current[0]?.id;
         try {
           const res = await messagesApi.getConversation(otherUserId, oldestId);
           const older = [...res.data].reverse();
-          if (older.length < 50) setHasMore(false);
+          if (older.length < 50) { setHasMore(false); hasMoreRef.current = false; }
           if (older.length > 0) {
             const decrypted = await Promise.all(older.map((m) => tryDecrypt(m, me?.id)));
             const listEl = messageListRef.current;
@@ -167,13 +194,14 @@ export default function MessageThread() {
           // silent
         } finally {
           setLoadingMore(false);
+          loadingMoreRef.current = false;
         }
       },
       { threshold: 0.1 },
     );
-    observer.observe(topSentinelRef.current);
+    observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [messages, loadingMore, hasMore, otherUserId, me?.id]);
+  }, [otherUserId, me?.id]);
 
   // Send typing_stop on unmount
   useEffect(() => {
@@ -192,8 +220,9 @@ export default function MessageThread() {
             : m,
         ),
       );
-    } catch {
-      // silent — deletion may fail if > 1 hour
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      toast(detail || "Could not delete message", "error");
     }
   };
 
@@ -227,6 +256,7 @@ export default function MessageThread() {
       setText("");
       // Append own sent message locally instead of full reload
       const decrypted = await tryDecrypt(res.data, me?.id);
+      newMessageIds.current.add(decrypted.id);
       setMessages((prev) => [...prev, decrypted]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     } catch {
@@ -299,8 +329,9 @@ export default function MessageThread() {
                 const prevSameSender = i > 0 && messages[i - 1].sender_id === msg.sender_id && !showSeparator;
                 const nextSameSender = i < messages.length - 1 && messages[i + 1].sender_id === msg.sender_id
                   && new Date(messages[i + 1].created_at).toDateString() === curDate;
+                const isNew = newMessageIds.current.has(msg.id);
                 return (
-                  <div key={msg.id} style={prevSameSender ? { marginTop: -4 } : undefined}>
+                  <div key={msg.id} style={prevSameSender ? { marginTop: -4 } : undefined} className={isNew ? styles.slideIn : undefined}>
                     {showSeparator && <DateSeparator date={msg.created_at} />}
                     <MessageBubble
                       message={{ ...msg, ciphertext: msg.decryptedText ?? msg.ciphertext }}

@@ -146,6 +146,8 @@
 .contextMenu {
   position: absolute;
   z-index: 10;
+  top: 0;
+  right: 8px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;

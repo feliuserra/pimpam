@@ -396,8 +396,9 @@ async def mark_as_read(other_user_id: int, current_user: CurrentUser, db: DBSess
     """
     Mark all messages from other_user_id to the current user as read.
     Call this when the user opens a conversation.
+    Publishes a ``messages_read`` WS event so the sender sees blue checkmarks.
     """
-    await db.execute(
+    result = await db.execute(
         update(Message)
         .where(
             Message.sender_id == other_user_id,
@@ -405,5 +406,15 @@ async def mark_as_read(other_user_id: int, current_user: CurrentUser, db: DBSess
             Message.is_read == False,  # noqa: E712
         )
         .values(is_read=True)
+        .returning(Message.id)
     )
+    read_ids = [row[0] for row in result.all()]
     await db.commit()
+
+    # Notify the sender so they see blue ✓✓ in real time
+    if read_ids:
+        await publish_to_user(
+            other_user_id,
+            "messages_read",
+            {"reader_id": current_user.id, "message_ids": read_ids},
+        )

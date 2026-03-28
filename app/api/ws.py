@@ -10,6 +10,7 @@ Events pushed **to** the client:
   {"type": "typing",       "data": {"sender_id": 2, "sender_username": "bob"}}
   {"type": "typing_stop",  "data": {"sender_id": 2, "sender_username": "bob"}}
   {"type": "message_deleted", "data": {"message_id": 42}}
+  {"type": "messages_read",   "data": {"reader_id": 2, "message_ids": [41, 42]}}
 
 Events sent **from** the client:
   {"type": "typing", "recipient_id": <int>}        — forward a typing indicator to the recipient

@@ -132,7 +132,7 @@
   cursor: not-allowed;
 }
 
-/* Send animation */
+/* Send animation — applied only to freshly appended messages */
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -145,7 +145,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .messageList > div:last-of-type {
+  .slideIn {
     animation: slideIn 0.2s ease-out;
   }
 }
