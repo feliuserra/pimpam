@@ -8,13 +8,17 @@ Events pushed **to** the client:
   {"type": "new_message",  "data": {"sender_id": 2, "sender_username": "bob"}}
   {"type": "karma_update", "data": {"post_id": 1, "post_karma": 5, "user_karma": 12}}
   {"type": "typing",       "data": {"sender_id": 2, "sender_username": "bob"}}
+  {"type": "typing_stop",  "data": {"sender_id": 2, "sender_username": "bob"}}
+  {"type": "message_deleted", "data": {"message_id": 42}}
 
 Events sent **from** the client:
-  {"type": "typing", "recipient_id": <int>}   — forward a typing indicator to the recipient
+  {"type": "typing", "recipient_id": <int>}        — forward a typing indicator to the recipient
+  {"type": "typing_stop", "recipient_id": <int>}   — stop typing indicator
 
 The connection is closed after 60 seconds of client silence. Clients should reconnect
 and will receive only events published after reconnection (no catch-up / replay).
 """
+
 import asyncio
 import json
 import logging
@@ -38,17 +42,33 @@ async def process_client_frame(raw: str, sender_id: int, sender_username: str) -
 
     Currently handles:
     - ``{"type": "typing", "recipient_id": <int>}`` — forward typing indicator to recipient.
+    - ``{"type": "typing_stop", "recipient_id": <int>}`` — stop typing indicator.
 
+    Both events are blocked if either user has blocked the other.
     All other frames are silently ignored.
     Extracted as a module-level function so it can be unit-tested independently.
     """
     msg = json.loads(raw)
-    if msg.get("type") == "typing":
+    event_type = msg.get("type")
+    if event_type in ("typing", "typing_stop"):
         recipient_id = int(msg["recipient_id"])
-        await publish_to_user(recipient_id, "typing", {
-            "sender_id": sender_id,
-            "sender_username": sender_username,
-        })
+
+        # Don't forward typing events if either party blocked the other
+        from app.crud.block import is_blocked_either_direction
+        from app.db.session import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as db:
+            if await is_blocked_either_direction(db, sender_id, recipient_id):
+                return
+
+        await publish_to_user(
+            recipient_id,
+            event_type,
+            {
+                "sender_id": sender_id,
+                "sender_username": sender_username,
+            },
+        )
 
 
 @router.websocket("/ws")
@@ -74,6 +94,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
     try:
         from app.crud.user import get_user_by_id
         from app.db.session import AsyncSessionLocal
+
         async with AsyncSessionLocal() as db:
             user = await get_user_by_id(db, user_id)
             if user:
@@ -100,11 +121,15 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
         """
         try:
             while True:
-                raw = await asyncio.wait_for(websocket.receive_text(), timeout=IDLE_TIMEOUT)
+                raw = await asyncio.wait_for(
+                    websocket.receive_text(), timeout=IDLE_TIMEOUT
+                )
                 try:
                     await process_client_frame(raw, user_id, username)
                 except Exception:
-                    logger.warning("Malformed WebSocket frame from user %s", user_id, exc_info=True)
+                    logger.warning(
+                        "Malformed WebSocket frame from user %s", user_id, exc_info=True
+                    )
         except (asyncio.TimeoutError, WebSocketDisconnect):
             pass
 

@@ -34,6 +34,7 @@ class MessagePublic(BaseModel):
     shared_post_id: int | None = None
     shared_post: SharedPostPreview | None = None
     is_read: bool
+    is_deleted: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -47,3 +48,9 @@ class ConversationSummary(BaseModel):
     other_avatar_url: str | None = None
     last_message_at: datetime
     unread_count: int
+    last_message_id: int | None = None
+    last_message_ciphertext: str | None = None
+    last_message_encrypted_key: str | None = None
+    last_message_sender_encrypted_key: str | None = None
+    last_message_sender_id: int | None = None
+    last_message_is_deleted: bool = False

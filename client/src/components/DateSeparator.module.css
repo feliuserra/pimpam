@@ -1,0 +1,21 @@
+.separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+
+.separator::before,
+.separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.label {
+  font-size: 0.72rem;
+  color: var(--color-text-secondary, #888);
+  white-space: nowrap;
+  font-weight: 500;
+}

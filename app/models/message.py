@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.user import User  # noqa: F401
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -41,6 +41,10 @@ class Message(Base):
     )
 
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Deletion — tombstone visible to both parties
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -50,3 +54,8 @@ class Message(Base):
     # Relationships
     sender: Mapped["User"] = relationship(foreign_keys=[sender_id], lazy="raise")
     recipient: Mapped["User"] = relationship(foreign_keys=[recipient_id], lazy="raise")
+
+    __table_args__ = (
+        Index("ix_messages_sender_created", "sender_id", "created_at"),
+        Index("ix_messages_recipient_created", "recipient_id", "created_at"),
+    )

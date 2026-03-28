@@ -55,6 +55,14 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  background: var(--color-surface);
+}
+
+.topSentinel {
+  display: flex;
+  justify-content: center;
+  min-height: 1px;
+  padding: 4px 0;
 }
 
 .loader {
@@ -82,14 +90,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 1rem;
-  border-top: 1px solid var(--color-border);
+  padding: 10px 1rem;
   background: var(--color-bg);
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .input {
   flex: 1;
-  padding: 8px 14px;
+  padding: 10px 16px;
   border: 1px solid var(--color-border);
   border-radius: 20px;
   background: var(--color-surface);
@@ -112,9 +120,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.15s;
+}
+
+.sendBtn:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
 .sendBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Send animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .messageList > div:last-of-type {
+    animation: slideIn 0.2s ease-out;
+  }
 }

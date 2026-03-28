@@ -11,6 +11,7 @@ import { useWS } from "../contexts/WSContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import * as messagesApi from "../api/messages";
 import * as usersApi from "../api/users";
+import { tryDecrypt } from "../crypto/tryDecrypt";
 import styles from "./Messages.module.css";
 
 export default function Messages() {
@@ -24,13 +25,35 @@ export default function Messages() {
   const loadInbox = useCallback(async () => {
     try {
       const res = await messagesApi.getInbox();
-      setConversations(res.data);
+      // Decrypt last message preview for each conversation
+      const withPreviews = await Promise.all(
+        res.data.map(async (c) => {
+          if (c.last_message_is_deleted) {
+            return { ...c, preview: "This message was deleted" };
+          }
+          if (!c.last_message_ciphertext) return c;
+          try {
+            const fakeMsg = {
+              sender_id: c.last_message_sender_id,
+              ciphertext: c.last_message_ciphertext,
+              encrypted_key: c.last_message_encrypted_key,
+              sender_encrypted_key: c.last_message_sender_encrypted_key,
+            };
+            const decrypted = await tryDecrypt(fakeMsg, me?.id);
+            const text = decrypted.decryptedText || "";
+            return { ...c, preview: text.length > 50 ? text.slice(0, 50) + "..." : text };
+          } catch {
+            return c;
+          }
+        }),
+      );
+      setConversations(withPreviews);
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [me?.id]);
 
   useEffect(() => { loadInbox(); refetch(); }, [loadInbox, refetch]);
 
@@ -125,10 +148,15 @@ export default function Messages() {
                           <RelativeTime date={c.last_message_at} />
                         </span>
                       </div>
-                      {c.unread_count > 0 && (
-                        <span className={styles.unread}>{c.unread_count} unread</span>
+                      {c.preview && (
+                        <span className={`${styles.convPreview} ${c.last_message_is_deleted ? styles.convPreviewDeleted : ""}`}>
+                          {c.preview}
+                        </span>
                       )}
                     </div>
+                    {c.unread_count > 0 && (
+                      <span className={styles.unreadBadge}>{c.unread_count}</span>
+                    )}
                   </Link>
                 ))}
               </div>

@@ -1,5 +1,6 @@
 .row {
   display: flex;
+  position: relative;
 }
 
 .own {
@@ -30,6 +31,23 @@
   border-bottom-left-radius: 4px;
 }
 
+/* Message grouping — remove tail on intermediate bubbles */
+.ownBubble.grouped {
+  border-top-right-radius: 4px;
+}
+
+.theirBubble.grouped {
+  border-top-left-radius: 4px;
+}
+
+.ownBubble.hasNext {
+  border-bottom-right-radius: 4px;
+}
+
+.theirBubble.hasNext {
+  border-bottom-left-radius: 4px;
+}
+
 .text {
   margin: 0;
   font-size: 0.88rem;
@@ -44,8 +62,27 @@
   text-align: right;
 }
 
-.read {
+.sentCheck {
   font-size: 0.7rem;
+}
+
+.readCheck {
+  font-size: 0.7rem;
+  color: #4fc3f7;
+}
+
+/* Tombstone for deleted messages */
+.tombstone {
+  max-width: 75%;
+  padding: 6px 12px;
+  border-radius: 16px;
+}
+
+.tombstoneText {
+  margin: 0;
+  font-size: 0.84rem;
+  font-style: italic;
+  color: var(--color-text-secondary, #888);
 }
 
 /* Shared post card inside a message bubble */
@@ -103,4 +140,31 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Context menu for message actions */
+.contextMenu {
+  position: absolute;
+  z-index: 10;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.contextMenuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  font-size: 0.84rem;
+  color: #e53935;
+  cursor: pointer;
+  text-align: left;
+}
+
+.contextMenuItem:hover {
+  background: var(--color-hover, #f5f5f5);
 }
