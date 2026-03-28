@@ -79,6 +79,7 @@ class User(Base):
     profile_layout: Mapped[str | None] = mapped_column(Text)  # JSON list
     show_community_stats: Mapped[bool] = mapped_column(Boolean, default=True)
     show_posts_on_profile: Mapped[bool] = mapped_column(Boolean, default=True)
+    cover_gradient: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Storage quota tracking (bytes)
     storage_bytes_used: Mapped[int] = mapped_column(

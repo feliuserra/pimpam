@@ -303,6 +303,7 @@ async def get_user_data_export(db: AsyncSession, user_id: int) -> dict:
             "avatar_url": user.avatar_url,
             "cover_image_url": user.cover_image_url,
             "accent_color": user.accent_color,
+            "cover_gradient": user.cover_gradient,
             "location": user.location,
             "website": user.website,
             "pronouns": user.pronouns,

@@ -1,3 +1,9 @@
+/* Full-page wrapper — accent tint + contains full-bleed cover */
+.profilePage {
+  background-color: color-mix(in srgb, var(--accent, var(--color-accent)) 5%, var(--color-bg));
+  min-height: 100vh;
+}
+
 .container {
   max-width: 600px;
   margin: 0 auto;
@@ -31,14 +37,64 @@
   padding: 4px;
 }
 
+/* Full-bleed cover wrapper */
+.coverWrap {
+  width: 100%;
+}
+
 /* Cover image */
 .cover {
   width: 100%;
-  height: 200px;
-  background: #fff;
+  height: 240px;
+  background: var(--color-surface, #fff);
   background-size: cover;
   background-position: center;
   position: relative;
+  overflow: hidden;
+}
+
+/* Bottom gradient overlay on cover */
+.coverGradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 55%;
+  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+/* Display name overlaid on cover bottom */
+.coverNameOverlay {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.coverDisplayName {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  line-height: 1.2;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.coverUsername {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 2px 0 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Avatar white ring (profile-scoped) */
+.profileAvatar {
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
 }
 
 .coverOverlay {
@@ -69,7 +125,7 @@
   gap: 16px;
   align-items: flex-start;
   padding: 16px 1rem 0;
-  margin-top: -40px;
+  margin-top: -48px;
   position: relative;
 }
 
@@ -101,7 +157,7 @@
 .headerInfo {
   min-width: 0;
   flex: 1;
-  padding-top: 44px;
+  padding-top: 52px;
 }
 
 .displayName {
@@ -495,4 +551,15 @@ span.stat:hover {
   display: flex;
   justify-content: center;
   padding: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .cover {
+    height: 200px;
+  }
+
+  .coverDisplayName {
+    font-size: 1.25rem;
+  }
 }

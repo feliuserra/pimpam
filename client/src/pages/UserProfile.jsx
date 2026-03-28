@@ -108,6 +108,7 @@ export default function UserProfile() {
       profile_layout: profile.profile_layout || DEFAULT_LAYOUT,
       show_community_stats: profile.show_community_stats !== false,
       show_posts_on_profile: profile.show_posts_on_profile !== false,
+      cover_gradient: profile.cover_gradient !== false,
     });
     setEditMode(true);
   };
@@ -131,6 +132,9 @@ export default function UserProfile() {
       }
       if (draft.show_community_stats !== (profile.show_community_stats !== false)) {
         payload.show_community_stats = draft.show_community_stats;
+      }
+      if (draft.cover_gradient !== (profile.cover_gradient !== false)) {
+        payload.cover_gradient = draft.cover_gradient;
       }
 
       if (Object.keys(payload).length > 0) {
@@ -353,6 +357,11 @@ export default function UserProfile() {
     </div>
   );
 
+  const coverUrl = editMode ? draft.cover_image_url : profile.cover_image_url;
+  const showGradient = editMode
+    ? (draft.cover_gradient ?? true)
+    : (profile.cover_gradient !== false);
+
   return (
     <>
       <Header
@@ -370,242 +379,281 @@ export default function UserProfile() {
         }
       />
 
-      <div className={styles.container} style={accentStyle}>
-        {/* Cover image */}
-        <div
-          className={styles.cover}
-          style={
-            (editMode ? draft.cover_image_url : profile.cover_image_url)
-              ? { backgroundImage: `url(${editMode ? draft.cover_image_url : profile.cover_image_url})` }
-              : {}
-          }
-        >
-          {editMode && (
-            <label className={styles.coverOverlay}>
-              {coverUploading ? "Uploading..." : "Change cover"}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                onChange={(e) => handleFileSelect(e, "cover")}
-                className={styles.fileInput}
-                disabled={coverUploading}
-              />
-            </label>
-          )}
-        </div>
+      <div className={styles.profilePage} style={accentStyle}>
+        {/* Full-bleed cover */}
+        <div className={styles.coverWrap}>
+          <div
+            className={styles.cover}
+            style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : {}}
+          >
+            {/* Gradient overlay (view mode only, when enabled) */}
+            {!editMode && coverUrl && showGradient && (
+              <div className={styles.coverGradient} />
+            )}
 
-        {/* Profile header */}
-        <div className={styles.header}>
-          <div className={styles.avatarWrap}>
-            <Avatar
-              src={editMode ? draft.avatar_url : profile.avatar_url}
-              alt={`@${profile.username}`}
-              size={80}
-            />
+            {/* Display name overlaid on cover (view mode + has cover image) */}
+            {!editMode && coverUrl && (
+              <div className={styles.coverNameOverlay}>
+                <h1 className={styles.coverDisplayName}>
+                  {profile.display_name || `@${profile.username}`}
+                </h1>
+                <p className={styles.coverUsername}>@{profile.username}</p>
+              </div>
+            )}
+
             {editMode && (
-              <label className={styles.avatarOverlay}>
-                {avatarUploading ? "..." : "Edit"}
+              <label className={styles.coverOverlay}>
+                {coverUploading ? "Uploading..." : "Change cover"}
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => handleFileSelect(e, "avatar")}
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={(e) => handleFileSelect(e, "cover")}
                   className={styles.fileInput}
-                  disabled={avatarUploading}
+                  disabled={coverUploading}
                 />
               </label>
             )}
           </div>
-          <div className={styles.headerInfo}>
-            {editMode ? (
-              <input
-                className={styles.editInput}
-                value={draft.display_name}
-                onChange={(e) => setDraft((d) => ({ ...d, display_name: e.target.value }))}
-                maxLength={100}
-                placeholder="Display name"
+        </div>
+
+        {/* Content container (600px max-width) */}
+        <div className={styles.container}>
+          {/* Profile header */}
+          <div className={styles.header}>
+            <div className={styles.avatarWrap}>
+              <Avatar
+                src={editMode ? draft.avatar_url : profile.avatar_url}
+                alt={`@${profile.username}`}
+                size={96}
+                className={styles.profileAvatar}
               />
-            ) : (
-              <h1 className={styles.displayName}>
-                {profile.display_name || `@${profile.username}`}
-              </h1>
-            )}
-            <p className={styles.username}>
-              @{profile.username}
-              {!editMode && profile.pronouns && (
-                <span className={styles.pronouns}> ({profile.pronouns})</span>
+              {editMode && (
+                <label className={styles.avatarOverlay}>
+                  {avatarUploading ? "..." : "Edit"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => handleFileSelect(e, "avatar")}
+                    className={styles.fileInput}
+                    disabled={avatarUploading}
+                  />
+                </label>
               )}
-            </p>
-            {editMode && (
-              <input
-                className={styles.editInput}
-                value={draft.pronouns}
-                onChange={(e) => setDraft((d) => ({ ...d, pronouns: e.target.value }))}
-                maxLength={50}
-                placeholder="she/her"
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className={styles.stats}>
-          <button className={styles.stat} onClick={() => setTab("Followers")}>
-            <strong>{profile.follower_count}</strong> followers
-          </button>
-          <button className={styles.stat} onClick={() => setTab("Following")}>
-            <strong>{profile.following_count}</strong> following
-          </button>
-          <span className={styles.stat}>
-            <strong>{profile.karma}</strong> karma
-          </span>
-        </div>
-
-        {/* Follow / Edit / Save-Cancel buttons */}
-        {me && !isSelf && (
-          <button
-            className={`${styles.followBtn} ${following ? styles.following : ""}`}
-            onClick={toggleFollow}
-            disabled={followBusy}
-          >
-            {following ? "Following" : "Follow"}
-          </button>
-        )}
-        {isSelf && !editMode && (
-          <button className={styles.editBtn} onClick={startEdit}>
-            Edit profile
-          </button>
-        )}
-        {isSelf && editMode && (
-          <div className={styles.editActions}>
-            <button className={styles.cancelBtn} onClick={cancelEdit} disabled={saving}>
-              Cancel
-            </button>
-            <button className={styles.saveBtn} onClick={saveEdit} disabled={saving || coverUploading || avatarUploading}>
-              {saving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        )}
-
-        {/* Edit mode: bio, extra fields, accent color, layout */}
-        {editMode && (
-          <div className={styles.editSection}>
-            <label className={styles.editLabel}>
-              Bio
-              <textarea
-                className={styles.editTextarea}
-                value={draft.bio}
-                onChange={(e) => setDraft((d) => ({ ...d, bio: e.target.value }))}
-                maxLength={500}
-                placeholder="Tell people about yourself"
-                rows={3}
-              />
-            </label>
-            <label className={styles.editLabel}>
-              Location
-              <input
-                className={styles.editInput}
-                value={draft.location}
-                onChange={(e) => setDraft((d) => ({ ...d, location: e.target.value }))}
-                maxLength={100}
-                placeholder="Where are you based?"
-              />
-            </label>
-            <label className={styles.editLabel}>
-              Website
-              <input
-                className={styles.editInput}
-                value={draft.website}
-                onChange={(e) => setDraft((d) => ({ ...d, website: e.target.value }))}
-                maxLength={500}
-                placeholder="https://..."
-              />
-            </label>
-            <div className={styles.editLabel}>
-              Accent color
-              <div className={styles.colorRow}>
+            </div>
+            <div className={styles.headerInfo}>
+              {editMode ? (
                 <input
-                  type="color"
-                  value={draft.accent_color || "#6366f1"}
-                  onChange={(e) => setDraft((d) => ({ ...d, accent_color: e.target.value }))}
-                  className={styles.colorPicker}
+                  className={styles.editInput}
+                  value={draft.display_name}
+                  onChange={(e) => setDraft((d) => ({ ...d, display_name: e.target.value }))}
+                  maxLength={100}
+                  placeholder="Display name"
                 />
-                <span className={styles.colorHex}>{draft.accent_color || "default"}</span>
-                {draft.accent_color && (
-                  <button
-                    type="button"
-                    className={styles.resetLink}
-                    onClick={() => setDraft((d) => ({ ...d, accent_color: "" }))}
-                  >
-                    Reset
-                  </button>
+              ) : !coverUrl ? (
+                <h1 className={styles.displayName}>
+                  {profile.display_name || `@${profile.username}`}
+                </h1>
+              ) : null}
+              <p className={styles.username}>
+                {/* Show @username in headerInfo when name is on cover */}
+                {!editMode && coverUrl ? (
+                  <>
+                    {profile.display_name || `@${profile.username}`}
+                    {profile.pronouns && (
+                      <span className={styles.pronouns}> ({profile.pronouns})</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    @{profile.username}
+                    {!editMode && profile.pronouns && (
+                      <span className={styles.pronouns}> ({profile.pronouns})</span>
+                    )}
+                  </>
                 )}
-              </div>
-            </div>
-            <label className={styles.editLabel}>
-              <span className={styles.toggleRow}>
-                Show community stats
+              </p>
+              {editMode && (
                 <input
-                  type="checkbox"
-                  checked={draft.show_community_stats}
-                  onChange={(e) => setDraft((d) => ({ ...d, show_community_stats: e.target.checked }))}
+                  className={styles.editInput}
+                  value={draft.pronouns}
+                  onChange={(e) => setDraft((d) => ({ ...d, pronouns: e.target.value }))}
+                  maxLength={50}
+                  placeholder="she/her"
                 />
-              </span>
-            </label>
-            <label className={styles.editLabel}>
-              <span className={styles.toggleRow}>
-                Show posts on profile
-                <input
-                  type="checkbox"
-                  checked={draft.show_posts_on_profile ?? true}
-                  onChange={(e) => setDraft((d) => ({ ...d, show_posts_on_profile: e.target.checked }))}
-                />
-              </span>
-            </label>
-            <div className={styles.editLabel}>
-              Layout order
-              <p className={styles.editHint}>Drag to reorder profile sections</p>
-              <div className={styles.dragList}>
-                {editLayout.map((key, idx) => renderEditSection(key, idx))}
-              </div>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Profile sections (view mode) */}
-        {!editMode && layout.map(renderSection)}
-
-        {/* Tabs */}
-        <nav className={styles.tabs} aria-label="Profile tabs">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              className={`${styles.tab} ${tab === t ? styles.activeTab : ""}`}
-              onClick={() => setTab(t)}
-              aria-selected={tab === t}
-              role="tab"
-            >
-              {t}
+          {/* Stats */}
+          <div className={styles.stats}>
+            <button className={styles.stat} onClick={() => setTab("Followers")}>
+              <strong>{profile.follower_count}</strong> followers
             </button>
-          ))}
-        </nav>
+            <button className={styles.stat} onClick={() => setTab("Following")}>
+              <strong>{profile.following_count}</strong> following
+            </button>
+            <span className={styles.stat}>
+              <strong>{profile.karma}</strong> karma
+            </span>
+          </div>
 
-        {/* Tab content */}
-        {tab === "Posts" && (
-          !isSelf && profile.show_posts_on_profile === false ? (
-            <p className={styles.empty}>This user has hidden their posts.</p>
-          ) : (
-            <PostsTab
-              username={profile.username}
-              isSelf={isSelf}
-              pinnedPostId={profile.pinned_post_id}
-              onPin={handlePin}
-              onUnpin={handleUnpin}
-              isCloseFriend={isCloseFriend}
-            />
-          )
-        )}
-        {tab === "Followers" && <UserListTab username={profile.username} type="followers" isCloseFriend={isCloseFriend} />}
-        {tab === "Following" && <UserListTab username={profile.username} type="following" isCloseFriend={isCloseFriend} />}
+          {/* Follow / Edit / Save-Cancel buttons */}
+          {me && !isSelf && (
+            <button
+              className={`${styles.followBtn} ${following ? styles.following : ""}`}
+              onClick={toggleFollow}
+              disabled={followBusy}
+            >
+              {following ? "Following" : "Follow"}
+            </button>
+          )}
+          {isSelf && !editMode && (
+            <button className={styles.editBtn} onClick={startEdit}>
+              Edit profile
+            </button>
+          )}
+          {isSelf && editMode && (
+            <div className={styles.editActions}>
+              <button className={styles.cancelBtn} onClick={cancelEdit} disabled={saving}>
+                Cancel
+              </button>
+              <button className={styles.saveBtn} onClick={saveEdit} disabled={saving || coverUploading || avatarUploading}>
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          )}
+
+          {/* Edit mode: bio, extra fields, accent color, layout */}
+          {editMode && (
+            <div className={styles.editSection}>
+              <label className={styles.editLabel}>
+                Bio
+                <textarea
+                  className={styles.editTextarea}
+                  value={draft.bio}
+                  onChange={(e) => setDraft((d) => ({ ...d, bio: e.target.value }))}
+                  maxLength={500}
+                  placeholder="Tell people about yourself"
+                  rows={3}
+                />
+              </label>
+              <label className={styles.editLabel}>
+                Location
+                <input
+                  className={styles.editInput}
+                  value={draft.location}
+                  onChange={(e) => setDraft((d) => ({ ...d, location: e.target.value }))}
+                  maxLength={100}
+                  placeholder="Where are you based?"
+                />
+              </label>
+              <label className={styles.editLabel}>
+                Website
+                <input
+                  className={styles.editInput}
+                  value={draft.website}
+                  onChange={(e) => setDraft((d) => ({ ...d, website: e.target.value }))}
+                  maxLength={500}
+                  placeholder="https://..."
+                />
+              </label>
+              <div className={styles.editLabel}>
+                Accent color
+                <div className={styles.colorRow}>
+                  <input
+                    type="color"
+                    value={draft.accent_color || "#6366f1"}
+                    onChange={(e) => setDraft((d) => ({ ...d, accent_color: e.target.value }))}
+                    className={styles.colorPicker}
+                  />
+                  <span className={styles.colorHex}>{draft.accent_color || "default"}</span>
+                  {draft.accent_color && (
+                    <button
+                      type="button"
+                      className={styles.resetLink}
+                      onClick={() => setDraft((d) => ({ ...d, accent_color: "" }))}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <label className={styles.editLabel}>
+                <span className={styles.toggleRow}>
+                  Cover gradient
+                  <input
+                    type="checkbox"
+                    checked={draft.cover_gradient}
+                    onChange={(e) => setDraft((d) => ({ ...d, cover_gradient: e.target.checked }))}
+                  />
+                </span>
+              </label>
+              <label className={styles.editLabel}>
+                <span className={styles.toggleRow}>
+                  Show community stats
+                  <input
+                    type="checkbox"
+                    checked={draft.show_community_stats}
+                    onChange={(e) => setDraft((d) => ({ ...d, show_community_stats: e.target.checked }))}
+                  />
+                </span>
+              </label>
+              <label className={styles.editLabel}>
+                <span className={styles.toggleRow}>
+                  Show posts on profile
+                  <input
+                    type="checkbox"
+                    checked={draft.show_posts_on_profile ?? true}
+                    onChange={(e) => setDraft((d) => ({ ...d, show_posts_on_profile: e.target.checked }))}
+                  />
+                </span>
+              </label>
+              <div className={styles.editLabel}>
+                Layout order
+                <p className={styles.editHint}>Drag to reorder profile sections</p>
+                <div className={styles.dragList}>
+                  {editLayout.map((key, idx) => renderEditSection(key, idx))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Profile sections (view mode) */}
+          {!editMode && layout.map(renderSection)}
+
+          {/* Tabs */}
+          <nav className={styles.tabs} aria-label="Profile tabs">
+            {TABS.map((t) => (
+              <button
+                key={t}
+                className={`${styles.tab} ${tab === t ? styles.activeTab : ""}`}
+                onClick={() => setTab(t)}
+                aria-selected={tab === t}
+                role="tab"
+              >
+                {t}
+              </button>
+            ))}
+          </nav>
+
+          {/* Tab content */}
+          {tab === "Posts" && (
+            !isSelf && profile.show_posts_on_profile === false ? (
+              <p className={styles.empty}>This user has hidden their posts.</p>
+            ) : (
+              <PostsTab
+                username={profile.username}
+                isSelf={isSelf}
+                pinnedPostId={profile.pinned_post_id}
+                onPin={handlePin}
+                onUnpin={handleUnpin}
+                isCloseFriend={isCloseFriend}
+              />
+            )
+          )}
+          {tab === "Followers" && <UserListTab username={profile.username} type="followers" isCloseFriend={isCloseFriend} />}
+          {tab === "Following" && <UserListTab username={profile.username} type="following" isCloseFriend={isCloseFriend} />}
+        </div>
       </div>
 
       {/* Crop modal */}
