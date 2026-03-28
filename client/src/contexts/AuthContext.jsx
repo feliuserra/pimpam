@@ -42,9 +42,13 @@ export function AuthProvider({ children }) {
     localStorage.setItem("refresh_token", data.refresh_token);
     const { data: profile } = await getMe();
     setUser(profile);
-    // Ensure E2EE keys exist on this device
-    const newKeys = await ensureKeysExist();
-    if (newKeys) setIsNewDevice(true);
+    // Ensure E2EE keys exist on this device — fire-and-forget so the login
+    // button doesn't block on RSA key generation (2-5 s) or the PATCH call.
+    ensureKeysExist()
+      .then((n) => {
+        if (n) setIsNewDevice(true);
+      })
+      .catch(() => {});
     return data;
   }, []);
 

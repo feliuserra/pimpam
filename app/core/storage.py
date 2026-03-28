@@ -176,8 +176,24 @@ def ensure_bucket_exists() -> None:
     """
     Create the storage bucket if it does not already exist.
     Called once at startup — safe to call repeatedly.
+
+    Uses a dedicated short-timeout client so a missing MinIO doesn't
+    block app startup for minutes.  The normal ``_s3()`` client (used by
+    uploads) keeps the default longer timeout.
     """
-    client = _s3()
+    client = boto3.client(
+        "s3",
+        endpoint_url=settings.storage_endpoint_url,
+        aws_access_key_id=settings.storage_access_key,
+        aws_secret_access_key=settings.storage_secret_key,
+        region_name=settings.storage_region,
+        config=Config(
+            signature_version="s3v4",
+            connect_timeout=5,
+            read_timeout=5,
+            retries={"max_attempts": 0},
+        ),
+    )
     try:
         client.head_bucket(Bucket=settings.storage_bucket)
     except Exception:

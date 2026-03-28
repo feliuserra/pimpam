@@ -9,6 +9,7 @@ All indexing is fire-and-forget: if Meilisearch is unavailable, create/edit/
 delete operations succeed normally and the search index is simply out of sync
 until the service recovers.
 """
+
 import asyncio
 import logging
 
@@ -33,7 +34,9 @@ def configure_index() -> None:
     Safe to call repeatedly (idempotent). Raises on connection failure;
     caller wraps in try/except.
     """
-    client = get_client()
+    client = meilisearch.Client(
+        settings.search_url, settings.search_api_key or None, timeout=5
+    )
 
     posts = client.index(_POSTS_INDEX)
     posts.update_searchable_attributes(["title", "content", "url"])
@@ -52,6 +55,7 @@ def configure_index() -> None:
 # ---------------------------------------------------------------------------
 # Posts — sync operations (called via asyncio.to_thread)
 # ---------------------------------------------------------------------------
+
 
 def _index_post(post) -> None:
     doc = {
@@ -83,14 +87,17 @@ def search_posts(
     filters = ["is_removed = false"]
     if community_id is not None:
         filters.append(f"community_id = {community_id}")
-    return get_client().index(_POSTS_INDEX).search(
-        q, {"filter": " AND ".join(filters), "limit": limit, "offset": offset}
+    return (
+        get_client()
+        .index(_POSTS_INDEX)
+        .search(q, {"filter": " AND ".join(filters), "limit": limit, "offset": offset})
     )
 
 
 # ---------------------------------------------------------------------------
 # Users — sync operations
 # ---------------------------------------------------------------------------
+
 
 def _index_user(user) -> None:
     doc = {
@@ -112,13 +119,17 @@ def _deindex_user(user_id: int) -> None:
 
 def search_users(q: str, limit: int = 20, offset: int = 0) -> dict:
     """Search local, active users by username, display name, or bio."""
-    return get_client().index(_USERS_INDEX).search(
-        q,
-        {
-            "filter": "is_active = true AND is_remote = false",
-            "limit": limit,
-            "offset": offset,
-        },
+    return (
+        get_client()
+        .index(_USERS_INDEX)
+        .search(
+            q,
+            {
+                "filter": "is_active = true AND is_remote = false",
+                "limit": limit,
+                "offset": offset,
+            },
+        )
     )
 
 
@@ -126,13 +137,16 @@ def search_users(q: str, limit: int = 20, offset: int = 0) -> dict:
 # Communities — sync operations
 # ---------------------------------------------------------------------------
 
+
 def _index_community(community) -> None:
     doc = {
         "id": community.id,
         "name": community.name,
         "description": community.description,
         "member_count": community.member_count,
-        "created_at": community.created_at.isoformat() if community.created_at else None,
+        "created_at": community.created_at.isoformat()
+        if community.created_at
+        else None,
     }
     get_client().index(_COMMUNITIES_INDEX).add_documents([doc])
 
@@ -143,14 +157,17 @@ def _deindex_community(community_id: int) -> None:
 
 def search_communities(q: str, limit: int = 20, offset: int = 0) -> dict:
     """Search communities by name or description."""
-    return get_client().index(_COMMUNITIES_INDEX).search(
-        q, {"limit": limit, "offset": offset}
+    return (
+        get_client()
+        .index(_COMMUNITIES_INDEX)
+        .search(q, {"limit": limit, "offset": offset})
     )
 
 
 # ---------------------------------------------------------------------------
 # Async wrappers — safe to await from route handlers
 # ---------------------------------------------------------------------------
+
 
 async def index_post(post) -> None:
     if not settings.search_enabled:

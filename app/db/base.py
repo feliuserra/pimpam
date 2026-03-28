@@ -27,6 +27,7 @@ from app.models.issue import (  # noqa: F401
     IssuePollVote,
     IssueVote,
 )
+from app.models.login_attempt import LoginAttempt  # noqa: F401
 from app.models.message import Message  # noqa: F401
 from app.models.notification import Notification, NotificationPreference  # noqa: F401
 from app.models.password_reset import PasswordResetToken  # noqa: F401

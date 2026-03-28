@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.db.session import get_session
@@ -25,7 +26,11 @@ async def client():
     original_enabled = shared_limiter.enabled
     shared_limiter.enabled = False
 
-    engine = create_async_engine(TEST_DATABASE_URL)
+    engine = create_async_engine(
+        TEST_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -39,9 +44,11 @@ async def client():
     app.dependency_overrides[get_session] = override_get_session
     # Flush any cached data from previous test runs so tests see fresh DB state
     try:
+        import asyncio as _aio
+
         from app.core.cache import cache_delete_pattern
 
-        await cache_delete_pattern("*")
+        await _aio.wait_for(cache_delete_pattern("*"), timeout=3)
     except Exception:
         pass  # Redis may not be running in CI
     async with AsyncClient(

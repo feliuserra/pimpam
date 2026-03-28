@@ -24,10 +24,14 @@ from app.crud.admin import (
     unsuspend_user,
 )
 from app.crud.analytics import (
+    get_granular_timeseries,
     get_moderation_summary,
     get_overview,
+    get_security_alerts,
+    get_security_metrics,
     get_timeseries,
     get_top_communities,
+    get_window_overview,
 )
 from app.crud.comment import get_comment
 from app.crud.post import get_post
@@ -43,10 +47,15 @@ from app.schemas.admin import (
     SuspensionPublic,
 )
 from app.schemas.analytics import (
+    GranularTimeseriesPoint,
     ModerationSummary,
     OverviewStats,
+    SecurityAlertList,
+    SecurityMetrics,
     TimeseriesPoint,
+    TimeWindow,
     TopCommunity,
+    WindowOverviewStats,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -347,7 +356,7 @@ async def list_removals_endpoint(
     return await list_content_removals(db, limit=limit)
 
 
-# --- Analytics ---
+# --- Analytics (existing) ---
 
 
 @router.get("/analytics/overview", response_model=OverviewStats)
@@ -388,3 +397,75 @@ async def analytics_moderation(
 ):
     """Moderation activity summary: pending reports, bans, removals, suspensions."""
     return await get_moderation_summary(db, days)
+
+
+# --- Analytics (new) ---
+
+
+@router.get("/analytics/window-overview", response_model=WindowOverviewStats)
+async def analytics_window_overview(
+    db: DBSession,
+    admin: CurrentAdmin,
+    window: TimeWindow = Query(default=TimeWindow.DAY),
+):
+    """
+    Active users, new users, new posts, and new messages within the selected time window.
+
+    Window options:
+      1h  — last 60 minutes
+      24h — last 24 hours
+      7d  — last 7 days
+      30d — last 30 days
+    """
+    return await get_window_overview(db, window.value)
+
+
+@router.get(
+    "/analytics/granular-timeseries", response_model=list[GranularTimeseriesPoint]
+)
+async def analytics_granular_timeseries(
+    db: DBSession,
+    admin: CurrentAdmin,
+    metric: str = Query(
+        default="posts", description="signups|posts|comments|messages|stories"
+    ),
+    window: TimeWindow = Query(default=TimeWindow.DAY),
+):
+    """
+    Time-bucketed counts with auto-granularity:
+      1h  → 5-minute buckets
+      24h → 1-hour buckets
+      7d / 30d → 1-day buckets
+    """
+    return await get_granular_timeseries(db, metric, window.value)
+
+
+@router.get("/analytics/security", response_model=SecurityMetrics)
+async def analytics_security(
+    db: DBSession,
+    admin: CurrentAdmin,
+    window: TimeWindow = Query(default=TimeWindow.HOUR),
+):
+    """
+    Login attempt counts (success/failure), failure rate, password reset requests,
+    new registrations, and suspicious IP hashes within the selected time window.
+
+    Always returns near-real-time data (30-second server cache maximum).
+    IP addresses are never stored in plaintext — only SHA-256 hashes are shown.
+    """
+    return await get_security_metrics(db, window.value)
+
+
+@router.get("/analytics/security-alerts", response_model=SecurityAlertList)
+async def analytics_security_alerts(db: DBSession, admin: CurrentAdmin):
+    """
+    Evaluate threshold rules against the last hour and return any active alerts.
+
+    Rules evaluated:
+      - high_failure_rate   — > 50 failed logins in the last hour
+      - login_failure_ratio — failure rate > 30% (minimum 10 total attempts)
+      - registration_spike  — hourly registrations > 5× 30-day rolling average
+
+    This endpoint is never cached — always evaluated fresh.
+    """
+    return await get_security_alerts(db)

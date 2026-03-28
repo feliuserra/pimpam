@@ -6,6 +6,7 @@ Message shape: ``{"type": "new_post"|"new_message"|"karma_update", "data": {...}
 
 All publish calls are fire-and-forget — Redis being down never breaks a primary operation.
 """
+
 import json
 import logging
 
@@ -22,7 +23,12 @@ def get_redis() -> aioredis.Redis:
     """Return (or lazily create) the shared async Redis client."""
     global _client
     if _client is None:
-        _client = aioredis.from_url(settings.redis_url, decode_responses=True)
+        _client = aioredis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+            socket_timeout=5,
+            socket_connect_timeout=5,
+        )
     return _client
 
 

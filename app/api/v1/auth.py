@@ -90,14 +90,20 @@ async def login(request: Request, data: UserLogin, db: DBSession):
     Without it the server returns ``401`` with ``detail: "totp_required"`` so the
     client knows to prompt the user for their authenticator code.
     """
+    import asyncio
+
+    client_ip = request.client.host if request.client else None
+
     user = await authenticate_user(db, data.username, data.password)
     if user is None:
+        asyncio.create_task(_log_attempt(client_ip, success=False))
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
         )
 
     if not user.is_active:
+        asyncio.create_task(_log_attempt(client_ip, success=False))
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
             detail="Account is deactivated",
@@ -121,6 +127,7 @@ async def login(request: Request, data: UserLogin, db: DBSession):
             suspension.is_active = False
             await db.commit()
         else:
+            asyncio.create_task(_log_attempt(client_ip, success=False))
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 detail="Account is suspended",
@@ -128,17 +135,39 @@ async def login(request: Request, data: UserLogin, db: DBSession):
 
     if user.totp_enabled:
         if not data.totp_code:
+            asyncio.create_task(_log_attempt(client_ip, success=False))
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="totp_required")
         secret = decrypt_totp_secret(user.totp_secret)
         if not verify_totp_code(secret, data.totp_code):
+            asyncio.create_task(_log_attempt(client_ip, success=False))
             raise HTTPException(
                 status.HTTP_401_UNAUTHORIZED, detail="Incorrect TOTP code"
             )
 
+    asyncio.create_task(_log_attempt(client_ip, success=True))
     return TokenPair(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id, user.token_version),
     )
+
+
+async def _log_attempt(ip: str | None, success: bool) -> None:
+    """Fire-and-forget: write one LoginAttempt row in its own DB session.
+
+    Opens a fresh AsyncSessionLocal so the write is independent of the
+    request session and cannot affect the HTTP response.
+    Failures are silently swallowed — login availability must never depend
+    on the analytics write path.
+    """
+    try:
+        from app.crud.login_attempt import record_login_attempt
+        from app.db.session import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as db:
+            await record_login_attempt(db, ip, success)
+            await db.commit()
+    except Exception:
+        logger.debug("Failed to persist login attempt")
 
 
 @router.post("/refresh", response_model=TokenPair)
