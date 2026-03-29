@@ -5,7 +5,7 @@ Full WS connection tests use Starlette's sync TestClient (the only client that
 supports WebSocket connections). Event-publish tests mock Redis so no running
 instance is required.
 """
-import json
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -16,10 +16,10 @@ from app.core.security import create_access_token
 from app.main import app
 from tests.conftest import register, setup_user
 
-
 # ---------------------------------------------------------------------------
 # WebSocket connection & auth
 # ---------------------------------------------------------------------------
+
 
 def test_ws_rejects_invalid_token():
     """A bad/expired token is rejected with close code 1008."""
@@ -56,8 +56,13 @@ def test_ws_accepts_valid_token():
     mock_redis = MagicMock()
     mock_redis.pubsub.return_value = mock_pubsub
 
-    with patch("app.api.ws.get_redis", return_value=mock_redis), \
-         patch("app.api.ws.decode_access_token", return_value={"sub": "1", "type": "access"}):
+    with (
+        patch("app.api.ws.get_redis", return_value=mock_redis),
+        patch(
+            "app.api.ws.decode_access_token",
+            return_value={"sub": "1", "type": "access"},
+        ),
+    ):
         with TestClient(app) as tc:
             with tc.websocket_connect(f"/ws?token={token}") as ws:
                 # Connection accepted — send a ping to confirm it's live
@@ -70,6 +75,7 @@ def test_ws_accepts_valid_token():
 # publish_to_user resilience
 # ---------------------------------------------------------------------------
 
+
 async def test_publish_to_user_swallows_redis_error():
     """publish_to_user never raises even when Redis is unreachable."""
     with patch("app.core.redis.get_redis") as mock_get:
@@ -78,6 +84,7 @@ async def test_publish_to_user_swallows_redis_error():
         mock_get.return_value = mock_client
 
         from app.core.redis import publish_to_user
+
         # Must not raise
         await publish_to_user(1, "new_post", {"id": 42, "title": "hello"})
 
@@ -85,6 +92,7 @@ async def test_publish_to_user_swallows_redis_error():
 # ---------------------------------------------------------------------------
 # new_post published to local followers
 # ---------------------------------------------------------------------------
+
 
 async def test_create_post_notifies_followers(client):
     """Creating a post fires publish_to_user(follower_id, 'new_post', ...) for each follower."""
@@ -103,7 +111,9 @@ async def test_create_post_notifies_followers(client):
         event_types = [call.args[1] for call in mock_pub.call_args_list]
         assert "new_post" in event_types
 
-        new_post_call = next(c for c in mock_pub.call_args_list if c.args[1] == "new_post")
+        new_post_call = next(
+            c for c in mock_pub.call_args_list if c.args[1] == "new_post"
+        )
         assert new_post_call.args[2]["title"] == "hello world"
         assert new_post_call.args[2]["author"] == "alice"
 
@@ -128,16 +138,19 @@ async def test_create_post_no_notification_without_followers(client):
 # new_message published to recipient
 # ---------------------------------------------------------------------------
 
+
 async def test_send_message_notifies_recipient(client):
     """Sending a DM fires publish_to_user(recipient_id, 'new_message', ...)."""
     alice_h = await setup_user(client, "alice")
     bob_resp = await register(client, "bob")
     bob_id = bob_resp.json()["id"]
 
-    with patch("app.api.v1.messages.publish_to_user", new_callable=AsyncMock) as mock_pub:
+    with patch(
+        "app.api.v1.messages.publish_to_user", new_callable=AsyncMock
+    ) as mock_pub:
         r = await client.post(
             "/api/v1/messages",
-            json={"recipient_id": bob_id, "ciphertext": "enc", "encrypted_key": "key"},
+            json={"recipient_id": bob_id, "ciphertext": "enc", "device_keys": []},
             headers=alice_h,
         )
         assert r.status_code == 201
@@ -150,6 +163,7 @@ async def test_send_message_notifies_recipient(client):
 # ---------------------------------------------------------------------------
 # karma_update published to post author
 # ---------------------------------------------------------------------------
+
 
 async def test_vote_notifies_author_karma(client):
     """A +1 vote fires publish_to_user(author_id, 'karma_update', ...) when karma changes."""
@@ -167,7 +181,9 @@ async def test_vote_notifies_author_karma(client):
         )
         assert r.status_code == 200
 
-        karma_calls = [c for c in mock_pub.call_args_list if c.args[1] == "karma_update"]
+        karma_calls = [
+            c for c in mock_pub.call_args_list if c.args[1] == "karma_update"
+        ]
         assert len(karma_calls) == 1
         data = karma_calls[0].args[2]
         assert data["post_id"] == post_id

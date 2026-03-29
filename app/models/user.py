@@ -64,9 +64,6 @@ class User(Base):
     ap_public_key_pem: Mapped[str | None] = mapped_column(Text)
     ap_private_key_pem: Mapped[str | None] = mapped_column(Text)
 
-    # E2EE — client-published RSA-OAEP public key for DM encryption (base64-encoded SPKI)
-    e2ee_public_key: Mapped[str | None] = mapped_column(Text)
-
     # Profile customization
     cover_image_url: Mapped[str | None] = mapped_column(String(2048))
     accent_color: Mapped[str | None] = mapped_column(String(7))  # hex #rrggbb

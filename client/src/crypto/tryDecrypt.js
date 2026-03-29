@@ -1,36 +1,28 @@
 import { decryptMessage } from "./decrypt";
+import { loadDeviceId } from "./keys";
 
 /**
- * Try to decrypt a message. For own sent messages, use sender_encrypted_key.
- * For received messages, use encrypted_key. Falls back to plaintext or placeholder.
+ * Try to decrypt a message using this device's wrapped key.
+ * Falls back to plaintext display or a placeholder.
  */
-export async function tryDecrypt(msg, myUserId) {
-  // If encrypted_key is empty, the message was sent as plaintext (pre-E2EE)
-  if (!msg.encrypted_key) {
+export async function tryDecrypt(msg) {
+  // No device keys — message is plaintext (pre-E2EE) or has no encryption
+  if (!msg.device_keys?.length) {
     return { ...msg, decryptedText: msg.ciphertext };
   }
 
-  // Pick the right wrapped key: sender's copy for own messages, recipient's for theirs
-  const isMine = msg.sender_id === myUserId;
-  const keyToUse = isMine ? msg.sender_encrypted_key : msg.encrypted_key;
+  // Find this device's wrapped key
+  const myDeviceId = await loadDeviceId();
+  const myEntry = msg.device_keys.find((dk) => dk.device_id === myDeviceId);
 
-  if (!keyToUse) {
-    // Own message sent before sender-copy existed
-    return {
-      ...msg,
-      decryptedText: isMine ? "[Sent from another device]" : "[Cannot decrypt]",
-    };
+  if (!myEntry) {
+    return { ...msg, decryptedText: "[Cannot decrypt on this device]" };
   }
 
   try {
-    const text = await decryptMessage(msg.ciphertext, keyToUse);
+    const text = await decryptMessage(msg.ciphertext, myEntry.encrypted_key);
     return { ...msg, decryptedText: text };
   } catch {
-    return {
-      ...msg,
-      decryptedText: isMine
-        ? "[Sent from another device]"
-        : "[Cannot decrypt — sent from another device]",
-    };
+    return { ...msg, decryptedText: "[Cannot decrypt]" };
   }
 }

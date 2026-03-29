@@ -149,3 +149,36 @@
     animation: slideIn 0.2s ease-out;
   }
 }
+
+/* Shield / verification icon */
+.shieldBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: color 0.15s;
+}
+
+.shieldBtn:hover {
+  color: var(--color-text);
+}
+
+.shieldVerified {
+  color: var(--color-success, #38a169);
+}
+
+.shieldVerified:hover {
+  color: var(--color-success, #38a169);
+}
+
+.shieldChanged {
+  color: var(--color-warning, #dd6b20);
+}
+
+.shieldChanged:hover {
+  color: var(--color-warning, #dd6b20);
+}

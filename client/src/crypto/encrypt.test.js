@@ -20,7 +20,6 @@ describe("crypto/encrypt", () => {
     mockRecipientKey = { type: "public", owner: "recipient" };
     mockSenderKey = { type: "public", owner: "sender" };
 
-    // importPublicKey returns different keys for recipient vs sender
     importPublicKey.mockImplementation((base64) => {
       if (base64 === "recipient-pub-b64") return Promise.resolve(mockRecipientKey);
       if (base64 === "sender-pub-b64") return Promise.resolve(mockSenderKey);
@@ -58,7 +57,7 @@ describe("crypto/encrypt", () => {
   });
 
   it("generates an AES-256-GCM key", async () => {
-    await encryptMessage("hello", "recipient-pub-b64");
+    await encryptMessage("hello", [{ device_id: 1, public_key: "recipient-pub-b64" }], []);
 
     expect(crypto.subtle.generateKey).toHaveBeenCalledWith(
       { name: "AES-GCM", length: 256 },
@@ -68,7 +67,7 @@ describe("crypto/encrypt", () => {
   });
 
   it("encrypts plaintext with AES-GCM and a 12-byte IV", async () => {
-    await encryptMessage("hello", "recipient-pub-b64");
+    await encryptMessage("hello", [{ device_id: 1, public_key: "recipient-pub-b64" }], []);
 
     const aesCall = crypto.subtle.encrypt.mock.calls.find(
       (c) => c[0].name === "AES-GCM",
@@ -78,8 +77,8 @@ describe("crypto/encrypt", () => {
     expect(aesCall[1]).toBe(mockAesKey);
   });
 
-  it("wraps AES key with recipient RSA-OAEP public key", async () => {
-    await encryptMessage("hello", "recipient-pub-b64");
+  it("wraps AES key with recipient device RSA-OAEP public key", async () => {
+    await encryptMessage("hello", [{ device_id: 10, public_key: "recipient-pub-b64" }], []);
 
     expect(importPublicKey).toHaveBeenCalledWith("recipient-pub-b64");
     const rsaCall = crypto.subtle.encrypt.mock.calls.find(
@@ -88,41 +87,48 @@ describe("crypto/encrypt", () => {
     expect(rsaCall).toBeTruthy();
   });
 
-  it("returns ciphertext and encryptedKey as base64", async () => {
-    const result = await encryptMessage("hello", "recipient-pub-b64");
-
-    expect(typeof result.ciphertext).toBe("string");
-    expect(typeof result.encryptedKey).toBe("string");
-    // Verify they are valid base64 by decoding
-    expect(() => atob(result.ciphertext)).not.toThrow();
-    expect(() => atob(result.encryptedKey)).not.toThrow();
-  });
-
-  it("returns senderEncryptedKey as null when no sender key provided", async () => {
-    const result = await encryptMessage("hello", "recipient-pub-b64");
-
-    expect(result.senderEncryptedKey).toBeNull();
-  });
-
-  it("wraps AES key for sender when senderPublicKeyBase64 is provided", async () => {
+  it("returns ciphertext and deviceKeys with base64 encrypted_key", async () => {
     const result = await encryptMessage(
       "hello",
-      "recipient-pub-b64",
-      "sender-pub-b64",
+      [{ device_id: 10, public_key: "recipient-pub-b64" }],
+      [],
     );
 
-    expect(importPublicKey).toHaveBeenCalledWith("sender-pub-b64");
-    const senderRsaCall = crypto.subtle.encrypt.mock.calls.find(
-      (c) => c[0].name === "RSA-OAEP" && c[1] === mockSenderKey,
+    expect(typeof result.ciphertext).toBe("string");
+    expect(() => atob(result.ciphertext)).not.toThrow();
+    expect(result.deviceKeys).toHaveLength(1);
+    expect(result.deviceKeys[0].device_id).toBe(10);
+    expect(typeof result.deviceKeys[0].encrypted_key).toBe("string");
+    expect(() => atob(result.deviceKeys[0].encrypted_key)).not.toThrow();
+  });
+
+  it("returns empty deviceKeys when no device keys provided", async () => {
+    const result = await encryptMessage("hello", [], []);
+
+    expect(result.deviceKeys).toEqual([]);
+  });
+
+  it("wraps AES key for both recipient and sender devices", async () => {
+    const result = await encryptMessage(
+      "hello",
+      [{ device_id: 10, public_key: "recipient-pub-b64" }],
+      [{ device_id: 20, public_key: "sender-pub-b64" }],
     );
-    expect(senderRsaCall).toBeTruthy();
-    expect(result.senderEncryptedKey).toBeTruthy();
-    expect(typeof result.senderEncryptedKey).toBe("string");
-    expect(() => atob(result.senderEncryptedKey)).not.toThrow();
+
+    expect(importPublicKey).toHaveBeenCalledWith("recipient-pub-b64");
+    expect(importPublicKey).toHaveBeenCalledWith("sender-pub-b64");
+    expect(result.deviceKeys).toHaveLength(2);
+    expect(result.deviceKeys[0].device_id).toBe(10);
+    expect(result.deviceKeys[1].device_id).toBe(20);
+    expect(() => atob(result.deviceKeys[1].encrypted_key)).not.toThrow();
   });
 
   it("prepends IV to ciphertext before base64-encoding", async () => {
-    const result = await encryptMessage("hello", "recipient-pub-b64");
+    const result = await encryptMessage(
+      "hello",
+      [{ device_id: 1, public_key: "recipient-pub-b64" }],
+      [],
+    );
 
     // Decode the ciphertext
     const decoded = atob(result.ciphertext);
@@ -133,7 +139,7 @@ describe("crypto/encrypt", () => {
   });
 
   it("exports the raw AES key for wrapping", async () => {
-    await encryptMessage("hello", "recipient-pub-b64");
+    await encryptMessage("hello", [{ device_id: 1, public_key: "recipient-pub-b64" }], []);
 
     expect(crypto.subtle.exportKey).toHaveBeenCalledWith("raw", mockAesKey);
   });

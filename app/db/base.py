@@ -27,7 +27,9 @@ from app.models.issue import (  # noqa: F401
     IssuePollVote,
     IssueVote,
 )
+from app.models.key_backup import KeyBackup  # noqa: F401
 from app.models.message import Message  # noqa: F401
+from app.models.message_device_key import MessageDeviceKey  # noqa: F401
 from app.models.notification import Notification, NotificationPreference  # noqa: F401
 from app.models.password_reset import PasswordResetToken  # noqa: F401
 from app.models.pending_deletion import PendingDeletion  # noqa: F401
@@ -38,4 +40,5 @@ from app.models.report import Report  # noqa: F401
 from app.models.story import Story  # noqa: F401
 from app.models.story_mention import StoryMention  # noqa: F401
 from app.models.user import User  # noqa: F401
+from app.models.user_device import UserDevice  # noqa: F401
 from app.models.vote import Vote  # noqa: F401

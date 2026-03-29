@@ -15,7 +15,7 @@ import { tryDecrypt } from "../crypto/tryDecrypt";
 import styles from "./Messages.module.css";
 
 export default function Messages() {
-  const { user: me } = useAuth();
+  const { user: me, deviceId } = useAuth();
   const { refetch } = useNotifications();
   const [conversations, setConversations] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
@@ -24,7 +24,7 @@ export default function Messages() {
 
   const loadInbox = useCallback(async () => {
     try {
-      const res = await messagesApi.getInbox();
+      const res = await messagesApi.getInbox(deviceId);
       // Decrypt last message preview for each conversation
       const withPreviews = await Promise.all(
         res.data.map(async (c) => {
@@ -33,13 +33,15 @@ export default function Messages() {
           }
           if (!c.last_message_ciphertext) return c;
           try {
+            // Build a fake message with device_keys for tryDecrypt
+            const deviceKeys = c.last_message_device_key
+              ? [{ device_id: deviceId, encrypted_key: c.last_message_device_key }]
+              : [];
             const fakeMsg = {
-              sender_id: c.last_message_sender_id,
               ciphertext: c.last_message_ciphertext,
-              encrypted_key: c.last_message_encrypted_key,
-              sender_encrypted_key: c.last_message_sender_encrypted_key,
+              device_keys: deviceKeys,
             };
-            const decrypted = await tryDecrypt(fakeMsg, me?.id);
+            const decrypted = await tryDecrypt(fakeMsg);
             const text = decrypted.decryptedText || "";
             return { ...c, preview: text.length > 50 ? text.slice(0, 50) + "..." : text };
           } catch {
@@ -53,7 +55,7 @@ export default function Messages() {
     } finally {
       setLoading(false);
     }
-  }, [me?.id]);
+  }, [deviceId]);
 
   useEffect(() => { loadInbox(); refetch(); }, [loadInbox, refetch]);
 

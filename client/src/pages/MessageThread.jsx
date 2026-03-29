@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import DateSeparator from "../components/DateSeparator";
 import Header from "../components/Header";
 import MessageBubble from "../components/MessageBubble";
+import SafetyNumberModal from "../components/SafetyNumberModal";
 import Avatar from "../components/ui/Avatar";
 import Spinner from "../components/ui/Spinner";
 import SendIcon from "../components/ui/icons/SendIcon";
@@ -12,14 +13,17 @@ import { useWS } from "../contexts/WSContext";
 import { useWSSend } from "../contexts/WSContext";
 import * as messagesApi from "../api/messages";
 import * as usersApi from "../api/users";
+import * as devicesApi from "../api/devices";
 import { encryptMessage } from "../crypto/encrypt";
 import { tryDecrypt } from "../crypto/tryDecrypt";
+import { getVerification } from "../crypto/verification";
+import { computeFingerprint } from "../crypto/fingerprint";
 import styles from "./MessageThread.module.css";
 
 export default function MessageThread() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user: me, isNewDevice, dismissNewDevice } = useAuth();
+  const { user: me, isNewDevice, dismissNewDevice, deviceId } = useAuth();
   const toast = useToast();
   const wsSend = useWSSend();
   const [messages, setMessages] = useState([]);
@@ -27,7 +31,8 @@ export default function MessageThread() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState(false);
-  const [recipientKey, setRecipientKey] = useState(null);
+  const [recipientDeviceKeys, setRecipientDeviceKeys] = useState([]);
+  const [senderDeviceKeys, setSenderDeviceKeys] = useState([]);
   const [otherUser, setOtherUser] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -41,34 +46,65 @@ export default function MessageThread() {
   const loadingMoreRef = useRef(false);
   const messagesRef = useRef([]);
   const newMessageIds = useRef(new Set());
+  const [safetyModalOpen, setSafetyModalOpen] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null); // null | "verified" | "changed" | "unverified"
+  const [myPublicKey, setMyPublicKey] = useState(null);
+  const [theirPublicKey, setTheirPublicKey] = useState(null);
 
   const otherUserId = parseInt(userId, 10);
 
-  // Fetch other user info (username, avatar, E2EE key) via inbox
+  // Fetch other user info + device keys for encryption + verification status
   useEffect(() => {
-    messagesApi.getInbox().then((res) => {
+    messagesApi.getInbox(deviceId).then((res) => {
       const conv = res.data.find((c) => c.other_user_id === otherUserId);
       if (conv) {
         setOtherUser({ username: conv.other_username, avatar_url: conv.other_avatar_url });
+        // Fetch full profile for avatar
         usersApi.getUser(conv.other_username).then((r) => {
-          if (r.data.e2ee_public_key) setRecipientKey(r.data.e2ee_public_key);
           setOtherUser({ username: r.data.username, avatar_url: r.data.avatar_url });
+          // Fetch recipient device keys
+          devicesApi.getUserDeviceKeys(r.data.username).then(async (dkRes) => {
+            setRecipientDeviceKeys(dkRes.data);
+            // Set first device key for verification (primary device)
+            if (dkRes.data.length > 0) {
+              setTheirPublicKey(dkRes.data[0].public_key);
+              // Check verification status
+              try {
+                const stored = await getVerification(otherUserId);
+                if (stored) {
+                  const currentFp = await computeFingerprint(dkRes.data[0].public_key);
+                  setVerificationStatus(stored.fingerprint === currentFp ? "verified" : "changed");
+                } else {
+                  setVerificationStatus("unverified");
+                }
+              } catch {
+                setVerificationStatus("unverified");
+              }
+            }
+          }).catch(() => {});
         }).catch(() => {});
       }
     }).catch(() => {});
-  }, [otherUserId]);
+    // Fetch own device keys for sender-side wrapping
+    devicesApi.getMyDevices().then((res) => {
+      setSenderDeviceKeys(res.data.map((d) => ({ device_id: d.id, public_key: d.public_key })));
+      // Set own public key for verification
+      const myDevice = res.data.find((d) => d.id === deviceId);
+      if (myDevice) setMyPublicKey(myDevice.public_key);
+    }).catch(() => {});
+  }, [otherUserId, deviceId]);
 
   // Load messages and decrypt them
   const loadAndDecrypt = useCallback(async () => {
     try {
-      const res = await messagesApi.getConversation(otherUserId);
+      const res = await messagesApi.getConversation(otherUserId, undefined, deviceId);
       const reversed = [...res.data].reverse();
-      const decrypted = await Promise.all(reversed.map((m) => tryDecrypt(m, me?.id)));
+      const decrypted = await Promise.all(reversed.map((m) => tryDecrypt(m)));
       setMessages(decrypted);
     } catch {
       // silent
     }
-  }, [otherUserId, me?.id]);
+  }, [otherUserId, deviceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,8 +133,8 @@ export default function MessageThread() {
     useCallback(async (data) => {
       if (data.sender_id === otherUserId && data.message_id) {
         try {
-          const res = await messagesApi.getSingleMessage(data.message_id);
-          const decrypted = await tryDecrypt(res.data, me?.id);
+          const res = await messagesApi.getSingleMessage(data.message_id, deviceId);
+          const decrypted = await tryDecrypt(res.data);
           newMessageIds.current.add(decrypted.id);
           setMessages((prev) => [...prev, decrypted]);
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -108,7 +144,7 @@ export default function MessageThread() {
         }
         messagesApi.markRead(otherUserId).catch(() => {});
       }
-    }, [otherUserId, me?.id, loadAndDecrypt]),
+    }, [otherUserId, deviceId, loadAndDecrypt]),
   );
 
   // Live message_deleted from WS — update message to tombstone
@@ -177,11 +213,11 @@ export default function MessageThread() {
         loadingMoreRef.current = true;
         const oldestId = messagesRef.current[0]?.id;
         try {
-          const res = await messagesApi.getConversation(otherUserId, oldestId);
+          const res = await messagesApi.getConversation(otherUserId, oldestId, deviceId);
           const older = [...res.data].reverse();
           if (older.length < 50) { setHasMore(false); hasMoreRef.current = false; }
           if (older.length > 0) {
-            const decrypted = await Promise.all(older.map((m) => tryDecrypt(m, me?.id)));
+            const decrypted = await Promise.all(older.map((m) => tryDecrypt(m)));
             const listEl = messageListRef.current;
             const prevHeight = listEl?.scrollHeight || 0;
             setMessages((prev) => [...decrypted, ...prev]);
@@ -201,7 +237,7 @@ export default function MessageThread() {
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [otherUserId, me?.id]);
+  }, [otherUserId, deviceId]);
 
   // Send typing_stop on unmount
   useEffect(() => {
@@ -235,27 +271,25 @@ export default function MessageThread() {
     wsSend?.({ type: "typing_stop", recipient_id: otherUserId });
     try {
       let payload;
-      if (recipientKey) {
-        const senderPubKey = me?.e2ee_public_key || null;
-        const { ciphertext, encryptedKey, senderEncryptedKey } =
-          await encryptMessage(content, recipientKey, senderPubKey);
+      if (recipientDeviceKeys.length > 0) {
+        const { ciphertext, deviceKeys } =
+          await encryptMessage(content, recipientDeviceKeys, senderDeviceKeys);
         payload = {
           recipient_id: otherUserId,
           ciphertext,
-          encrypted_key: encryptedKey,
-          sender_encrypted_key: senderEncryptedKey,
+          device_keys: deviceKeys,
         };
       } else {
         payload = {
           recipient_id: otherUserId,
           ciphertext: content,
-          encrypted_key: "",
+          device_keys: [],
         };
       }
       const res = await messagesApi.send(payload);
       setText("");
       // Append own sent message locally instead of full reload
-      const decrypted = await tryDecrypt(res.data, me?.id);
+      const decrypted = await tryDecrypt(res.data);
       newMessageIds.current.add(decrypted.id);
       setMessages((prev) => [...prev, decrypted]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -298,6 +332,24 @@ export default function MessageThread() {
               </>
             )}
           </div>
+        }
+        right={
+          theirPublicKey && myPublicKey ? (
+            <button
+              className={`${styles.shieldBtn} ${verificationStatus === "verified" ? styles.shieldVerified : ""} ${verificationStatus === "changed" ? styles.shieldChanged : ""}`}
+              onClick={() => setSafetyModalOpen(true)}
+              aria-label="Verify encryption"
+              title={
+                verificationStatus === "verified" ? "Verified" :
+                verificationStatus === "changed" ? "Key changed since verification" :
+                "Not verified"
+              }
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={verificationStatus === "verified" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </button>
+          ) : null
         }
       />
 
@@ -355,7 +407,7 @@ export default function MessageThread() {
             className={styles.input}
             value={text}
             onChange={handleInputChange}
-            placeholder={recipientKey ? "Encrypted message..." : "Write a message..."}
+            placeholder={recipientDeviceKeys.length > 0 ? "Encrypted message..." : "Write a message..."}
             maxLength={5000}
             disabled={sending}
           />
@@ -369,6 +421,20 @@ export default function MessageThread() {
           </button>
         </form>
       </div>
+
+      {otherUser && theirPublicKey && myPublicKey && (
+        <SafetyNumberModal
+          open={safetyModalOpen}
+          onClose={() => setSafetyModalOpen(false)}
+          myPublicKey={myPublicKey}
+          theirPublicKey={theirPublicKey}
+          contactUserId={otherUserId}
+          contactUsername={otherUser.username}
+          onVerificationChange={({ verified }) => {
+            setVerificationStatus(verified ? "verified" : "unverified");
+          }}
+        />
+      )}
     </>
   );
 }

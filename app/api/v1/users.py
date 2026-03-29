@@ -28,6 +28,7 @@ from app.crud.user import (
 from app.federation.actor import actor_id, build_follow, build_undo_follow
 from app.federation.delivery import deliver_activity
 from app.models.follow import Follow
+from app.schemas.device import DeviceKeyPublic
 from app.schemas.device_token import DeviceTokenCreate
 from app.schemas.post import PostPublic
 from app.schemas.user import DeleteAccountRequest, UserPublic, UserUpdate
@@ -397,6 +398,26 @@ async def list_following(
         for f in following
     ]
     return [await _resolve_user_urls(r) for r in results]
+
+
+@router.get("/{username}/devices", response_model=list[DeviceKeyPublic])
+async def get_user_device_keys(username: str, db: DBSession):
+    """Get a user's active device public keys. Used by senders to encrypt messages."""
+    user = await get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    from app.crud.device import get_active_device_keys_for_user
+
+    devices = await get_active_device_keys_for_user(db, user.id)
+    return [
+        DeviceKeyPublic(
+            device_id=d.id,
+            public_key=d.public_key,
+            public_key_fingerprint=d.public_key_fingerprint,
+        )
+        for d in devices
+    ]
 
 
 @router.get("/{username}/posts", response_model=list[PostPublic])

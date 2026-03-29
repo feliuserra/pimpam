@@ -4,6 +4,7 @@ import Modal from "./ui/Modal";
 import { useAuth } from "../contexts/AuthContext";
 import * as usersApi from "../api/users";
 import * as messagesApi from "../api/messages";
+import * as devicesApi from "../api/devices";
 import { encryptMessage } from "../crypto/encrypt";
 import styles from "./NewMessageModal.module.css";
 
@@ -21,24 +22,33 @@ export default function NewMessageModal({ open, onClose }) {
     setSending(true);
     setError("");
     try {
-      // Look up the user to get their ID and E2EE public key
-      const userRes = await usersApi.getUser(username.trim().replace(/^@/, ""));
+      // Look up the user to get their ID
+      const cleanUsername = username.trim().replace(/^@/, "");
+      const userRes = await usersApi.getUser(cleanUsername);
       const recipientId = userRes.data.id;
-      const recipientPubKey = userRes.data.e2ee_public_key;
+
+      // Fetch recipient and sender device keys for encryption
+      const [recipientDkRes, senderDkRes] = await Promise.all([
+        devicesApi.getUserDeviceKeys(cleanUsername),
+        devicesApi.getMyDevices(),
+      ]);
+      const recipientDeviceKeys = recipientDkRes.data;
+      const senderDeviceKeys = senderDkRes.data.map((d) => ({
+        device_id: d.id,
+        public_key: d.public_key,
+      }));
 
       let payload;
-      if (recipientPubKey) {
-        const senderPubKey = me?.e2ee_public_key || null;
-        const { ciphertext, encryptedKey, senderEncryptedKey } =
-          await encryptMessage(message.trim(), recipientPubKey, senderPubKey);
+      if (recipientDeviceKeys.length > 0) {
+        const { ciphertext, deviceKeys } =
+          await encryptMessage(message.trim(), recipientDeviceKeys, senderDeviceKeys);
         payload = {
           recipient_id: recipientId,
           ciphertext,
-          encrypted_key: encryptedKey,
-          sender_encrypted_key: senderEncryptedKey,
+          device_keys: deviceKeys,
         };
       } else {
-        payload = { recipient_id: recipientId, ciphertext: message.trim(), encrypted_key: "" };
+        payload = { recipient_id: recipientId, ciphertext: message.trim(), device_keys: [] };
       }
       await messagesApi.send(payload);
       setUsername("");

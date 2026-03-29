@@ -121,8 +121,7 @@ async def test_blocked_user_cannot_message(client):
         json={
             "recipient_id": alice_id,
             "ciphertext": "hello",
-            "encrypted_key": "key1",
-            "sender_encrypted_key": "key2",
+            "device_keys": [],
         },
     )
     assert r.status_code == 403
@@ -143,8 +142,7 @@ async def test_blocker_cannot_message_blocked(client):
         json={
             "recipient_id": bob_id,
             "ciphertext": "hello",
-            "encrypted_key": "key1",
-            "sender_encrypted_key": "key2",
+            "device_keys": [],
         },
     )
     assert r.status_code == 403

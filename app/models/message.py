@@ -28,12 +28,9 @@ class Message(Base):
     sender_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     recipient_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
-    # Ciphertext only — server never holds plaintext
+    # Ciphertext only — server never holds plaintext.
+    # Per-device wrapped AES keys live in message_device_keys (fan-out table).
     ciphertext: Mapped[str] = mapped_column(Text, nullable=False)
-    # AES key encrypted with recipient's public key
-    encrypted_key: Mapped[str] = mapped_column(Text, nullable=False)
-    # AES key encrypted with sender's own public key (so sender can re-read)
-    sender_encrypted_key: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Optional: post shared as a DM (metadata — post content is public anyway)
     shared_post_id: Mapped[int | None] = mapped_column(
