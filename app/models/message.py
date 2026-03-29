@@ -18,8 +18,8 @@ class Message(Base):
 
     The server stores only ciphertext — it never sees plaintext content.
     Encryption is done client-side before the request is sent.
-    The encrypted_key field holds the AES key, itself encrypted with the
-    recipient's public key, so only the recipient can decrypt the message.
+    Per-device wrapped AES keys are stored in the message_device_keys
+    fan-out table (one row per device).
     """
 
     __tablename__ = "messages"

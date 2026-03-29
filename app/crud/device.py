@@ -120,7 +120,6 @@ async def upsert_backup(
         existing.salt = salt
         existing.kdf = kdf
         existing.kdf_params = kdf_params
-        existing.created_at = datetime.now(timezone.utc)
         await db.commit()
         await db.refresh(existing)
         return existing

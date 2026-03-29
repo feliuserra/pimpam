@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import case, func, or_, select, update
+from sqlalchemy import case, delete, func, or_, select, update
 
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.limiter import limiter
@@ -447,7 +447,10 @@ async def delete_message(
 
     msg.is_deleted = True
     msg.ciphertext = ""
-    # Device keys are deleted via CASCADE (message_device_keys FK)
+    # Clean up per-device wrapped keys (no longer needed for tombstoned message)
+    await db.execute(
+        delete(MessageDeviceKey).where(MessageDeviceKey.message_id == msg.id)
+    )
     await db.commit()
 
     await publish_to_user(
