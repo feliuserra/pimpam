@@ -19,12 +19,19 @@ from app.models.moderation import (
 from app.models.post import Post
 from app.schemas.moderation import BanProposalCreate, ModProposalCreate
 
-ROLE_HIERARCHY = {"member": 0, "trusted_member": 1, "moderator": 2, "senior_mod": 3, "owner": 4}
+ROLE_HIERARCHY = {
+    "member": 0,
+    "trusted_member": 1,
+    "moderator": 2,
+    "senior_mod": 3,
+    "owner": 4,
+}
 MOD_KARMA_REQUIRED = {"moderator": 200, "senior_mod": 500}
 APPEAL_COOLDOWN = timedelta(days=7)
 
 
 # --- Role helpers ---
+
 
 async def _get_role(db: AsyncSession, community_id: int, user_id: int) -> str:
     result = await db.execute(
@@ -36,7 +43,9 @@ async def _get_role(db: AsyncSession, community_id: int, user_id: int) -> str:
     return result.scalar_one_or_none() or "member"
 
 
-async def _has_min_role(db: AsyncSession, community_id: int, user_id: int, min_role: str) -> bool:
+async def _has_min_role(
+    db: AsyncSession, community_id: int, user_id: int, min_role: str
+) -> bool:
     role = await _get_role(db, community_id, user_id)
     return ROLE_HIERARCHY.get(role, 0) >= ROLE_HIERARCHY.get(min_role, 0)
 
@@ -74,6 +83,7 @@ async def _is_banned(db: AsyncSession, community_id: int, user_id: int) -> bool:
 
 # --- Post removal ---
 
+
 async def remove_post(db: AsyncSession, post: Post, moderator_id: int) -> Post:
     """Hide a post. It remains in the DB and is visible to moderators."""
     post.is_removed = True
@@ -81,7 +91,10 @@ async def remove_post(db: AsyncSession, post: Post, moderator_id: int) -> Post:
     await db.commit()
     await db.refresh(post)
     from app.crud.notification import notify
-    await notify(db, post.author_id, "post_removed", actor_id=moderator_id, post_id=post.id)
+
+    await notify(
+        db, post.author_id, "post_removed", actor_id=moderator_id, post_id=post.id
+    )
     return post
 
 
@@ -95,6 +108,7 @@ async def restore_post(db: AsyncSession, post: Post) -> Post:
 
 
 # --- Ban proposals ---
+
 
 async def propose_ban(
     db: AsyncSession,
@@ -120,6 +134,7 @@ async def propose_ban(
     await db.commit()
     await db.refresh(proposal)
     from app.crud.notification import notify
+
     await notify(db, target_user_id, "ban_proposed", community_id=community_id)
     return proposal
 
@@ -141,22 +156,27 @@ async def vote_ban_proposal(
             )
         )
         if existing.scalar_one_or_none() is None:
-            db.add(Ban(
-                community_id=proposal.community_id,
-                user_id=proposal.target_user_id,
-                reason=proposal.reason,
-                coc_violation=proposal.coc_violation,
-                is_permanent=proposal.is_permanent,
-                expires_at=proposal.expires_at,
-                proposal_id=proposal.id,
-            ))
+            db.add(
+                Ban(
+                    community_id=proposal.community_id,
+                    user_id=proposal.target_user_id,
+                    reason=proposal.reason,
+                    coc_violation=proposal.coc_violation,
+                    is_permanent=proposal.is_permanent,
+                    expires_at=proposal.expires_at,
+                    proposal_id=proposal.id,
+                )
+            )
             banned_now = True
 
     await db.commit()
     await db.refresh(proposal)
     if banned_now:
         from app.crud.notification import notify
-        await notify(db, proposal.target_user_id, "banned", community_id=proposal.community_id)
+
+        await notify(
+            db, proposal.target_user_id, "banned", community_id=proposal.community_id
+        )
     return proposal
 
 
@@ -171,6 +191,7 @@ async def get_active_bans(db: AsyncSession, community_id: int) -> list[Ban]:
 
 # --- Ban appeals ---
 
+
 async def submit_ban_appeal(
     db: AsyncSession, ban_id: int, appellant_id: int, reason: str
 ) -> BanAppeal:
@@ -179,7 +200,9 @@ async def submit_ban_appeal(
     Raises ValueError with a code string on violation.
     """
     ban_result = await db.execute(
-        select(Ban).where(Ban.id == ban_id, Ban.user_id == appellant_id, Ban.status == "active")
+        select(Ban).where(
+            Ban.id == ban_id, Ban.user_id == appellant_id, Ban.status == "active"
+        )
     )
     if ban_result.scalar_one_or_none() is None:
         raise ValueError("ban_not_found")
@@ -188,7 +211,9 @@ async def submit_ban_appeal(
 
     # Check no pending appeal
     pending_result = await db.execute(
-        select(BanAppeal).where(BanAppeal.ban_id == ban_id, BanAppeal.status == "pending")
+        select(BanAppeal).where(
+            BanAppeal.ban_id == ban_id, BanAppeal.status == "pending"
+        )
     )
     if pending_result.scalar_one_or_none():
         raise ValueError("pending_appeal_exists")
@@ -251,8 +276,11 @@ async def vote_ban_appeal(
     await db.refresh(appeal)
     if resolved_now:
         from app.crud.notification import notify
+
         community_id = ban.community_id if ban else None
-        await notify(db, appeal.appellant_id, "appeal_resolved", community_id=community_id)
+        await notify(
+            db, appeal.appellant_id, "appeal_resolved", community_id=community_id
+        )
     return appeal
 
 
@@ -267,6 +295,7 @@ async def get_pending_appeals(db: AsyncSession, community_id: int) -> list[BanAp
 
 
 # --- Moderator promotion ---
+
 
 async def propose_mod_promotion(
     db: AsyncSession,
@@ -309,6 +338,7 @@ async def propose_mod_promotion(
     await db.commit()
     await db.refresh(proposal)
     from app.crud.notification import notify
+
     await notify(db, target_user_id, "mod_nominated", community_id=community_id)
     return proposal
 
@@ -338,14 +368,18 @@ async def vote_mod_proposal(
     await db.refresh(proposal)
     if promoted_now:
         from app.crud.notification import notify
+
         await notify(
-            db, proposal.target_user_id, "mod_promoted",
+            db,
+            proposal.target_user_id,
+            "mod_promoted",
             community_id=proposal.community_id,
         )
     return proposal
 
 
 # --- Ownership transfer ---
+
 
 async def propose_ownership_transfer(
     db: AsyncSession, community_id: int, proposed_by_id: int, recipient_id: int
@@ -372,6 +406,7 @@ async def propose_ownership_transfer(
     await db.commit()
     await db.refresh(transfer)
     from app.crud.notification import notify
+
     await notify(db, recipient_id, "ownership_offered", community_id=community_id)
     return transfer
 
@@ -384,12 +419,14 @@ async def respond_to_ownership_transfer(
         transfer.status = "accepted"
 
         from app.models.community import Community
+
         community_result = await db.execute(
             select(Community).where(Community.id == transfer.community_id)
         )
         community = community_result.scalar_one_or_none()
 
         if community:
+            old_owner_id = community.owner_id
             # Downgrade old owner to moderator
             old_owner_result = await db.execute(
                 select(CommunityMember).where(
@@ -416,12 +453,26 @@ async def respond_to_ownership_transfer(
                 recipient_member.role = "owner"
             else:
                 # Recipient is not yet a member — add them as owner
-                db.add(CommunityMember(
-                    community_id=transfer.community_id,
-                    user_id=transfer.recipient_id,
-                    role="owner",
-                ))
+                db.add(
+                    CommunityMember(
+                        community_id=transfer.community_id,
+                        user_id=transfer.recipient_id,
+                        role="owner",
+                    )
+                )
                 community.member_count += 1
+
+            # Audit log for ownership transfer
+            from app.models.community_audit import CommunityAuditLog
+
+            db.add(
+                CommunityAuditLog(
+                    community_id=transfer.community_id,
+                    actor_id=transfer.recipient_id,
+                    action="ownership_transfer",
+                    detail=f"Ownership transferred from user {old_owner_id} to user {transfer.recipient_id}",
+                )
+            )
     else:
         transfer.status = "rejected"
 

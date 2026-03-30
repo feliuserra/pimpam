@@ -250,6 +250,11 @@ async def get_inbox(
     """
     uid = current_user.id
 
+    # Fetch IDs of users blocked in either direction to exclude from inbox
+    from app.crud.block import get_blocked_user_ids
+
+    blocked_ids = await get_blocked_user_ids(db, uid)
+
     other_user_id = case(
         (Message.sender_id == uid, Message.recipient_id),
         else_=Message.sender_id,
@@ -274,7 +279,7 @@ async def get_inbox(
         .subquery()
     )
 
-    result = await db.execute(
+    inbox_query = (
         select(
             subq.c.other_user_id,
             User.username.label("other_username"),
@@ -286,6 +291,10 @@ async def get_inbox(
         .join(User, User.id == subq.c.other_user_id)
         .order_by(subq.c.last_message_at.desc())
     )
+    if blocked_ids:
+        inbox_query = inbox_query.where(subq.c.other_user_id.notin_(blocked_ids))
+
+    result = await db.execute(inbox_query)
 
     from app.core.media_urls import resolve_urls
 
@@ -379,6 +388,13 @@ async def get_conversation(
 ):
     """Retrieve the conversation thread with another user, newest first.
     Supports cursor pagination via ``before_id``."""
+    from app.crud.block import is_blocked_either_direction
+
+    if await is_blocked_either_direction(db, current_user.id, other_user_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="Cannot view this conversation"
+        )
+
     query = select(Message).where(
         or_(
             (Message.sender_id == current_user.id)
@@ -467,6 +483,13 @@ async def mark_as_read(other_user_id: int, current_user: CurrentUser, db: DBSess
     Call this when the user opens a conversation.
     Publishes a ``messages_read`` WS event so the sender sees blue checkmarks.
     """
+    from app.crud.block import is_blocked_either_direction
+
+    if await is_blocked_either_direction(db, current_user.id, other_user_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="Cannot interact with this user"
+        )
+
     result = await db.execute(
         update(Message)
         .where(

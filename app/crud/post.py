@@ -309,6 +309,13 @@ async def create_share(
     db.add(post)
     await db.flush()
 
+    # Copy PostImage records from root post for multi-image shares
+    from app.models.post_image import PostImage
+
+    img_result = await db.execute(select(PostImage).where(PostImage.post_id == root_id))
+    for img in img_result.scalars().all():
+        db.add(PostImage(post_id=post.id, url=img.url, display_order=img.display_order))
+
     from app.crud.vote import create_initial_vote
 
     await create_initial_vote(db, user_id=author_id, post_id=post.id)

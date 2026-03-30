@@ -488,6 +488,28 @@ async def share(
             status.HTTP_400_BAD_REQUEST, detail="Cannot share your own post"
         )
 
+    if data.community_id:
+        from sqlalchemy import select as _select
+
+        from app.models.community import Community, CommunityMember
+
+        comm_result = await db.execute(
+            _select(Community).where(Community.id == data.community_id)
+        )
+        if comm_result.scalar_one_or_none() is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Community not found")
+        mem_result = await db.execute(
+            _select(CommunityMember).where(
+                CommunityMember.community_id == data.community_id,
+                CommunityMember.user_id == current_user.id,
+            )
+        )
+        if mem_result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="You must be a member of this community to share here",
+            )
+
     try:
         post = await create_share(db, original, current_user.id, data)
     except ValueError as e:

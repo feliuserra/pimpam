@@ -23,7 +23,7 @@ async def create_comment(
     depth = 0
     if data.parent_id is not None:
         parent = await get_comment(db, data.parent_id)
-        if parent is None or parent.post_id != post_id:
+        if parent is None or parent.post_id != post_id or parent.is_removed:
             raise ValueError("parent_not_found")
         if parent.depth >= MAX_DEPTH:
             raise ValueError("max_depth_exceeded")
@@ -60,7 +60,7 @@ async def get_post_comments(
         Comment.parent_id.is_(None),
     )
 
-    if before_id is not None and sort == "latest":
+    if before_id is not None:
         subq = (
             select(Comment.created_at).where(Comment.id == before_id).scalar_subquery()
         )

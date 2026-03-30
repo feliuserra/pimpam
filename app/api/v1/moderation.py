@@ -213,6 +213,11 @@ async def propose_ban_endpoint(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, detail="Cannot propose banning yourself"
         )
+    if target.id == community.owner_id:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Cannot ban the community owner",
+        )
 
     return await propose_ban(db, community.id, current_user.id, target.id, data)
 
