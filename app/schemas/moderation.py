@@ -1,13 +1,14 @@
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.moderation import CoCViolation
 
 
 class BanProposalCreate(BaseModel):
-    target_username: str
-    reason: str
+    target_username: str = Field(max_length=30)
+    reason: str = Field(min_length=1, max_length=2000)
     coc_violation: CoCViolation
     is_permanent: bool = True
     expires_at: datetime | None = None
@@ -45,8 +46,8 @@ class BanPublic(BaseModel):
 
 
 class ModProposalCreate(BaseModel):
-    target_username: str
-    target_role: str = "moderator"
+    target_username: str = Field(max_length=30)
+    target_role: Literal["moderator", "senior_mod"] = "moderator"
 
 
 class ModProposalPublic(BaseModel):
@@ -65,7 +66,7 @@ class ModProposalPublic(BaseModel):
 
 class BanAppealCreate(BaseModel):
     ban_id: int
-    reason: str
+    reason: str = Field(min_length=1, max_length=2000)
 
 
 class BanAppealPublic(BaseModel):

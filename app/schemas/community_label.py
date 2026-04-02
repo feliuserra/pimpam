@@ -46,4 +46,4 @@ class LabelPublic(BaseModel):
 
 
 class LabelReorder(BaseModel):
-    ids: list[int]
+    ids: list[int] = Field(max_length=100)

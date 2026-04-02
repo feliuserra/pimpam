@@ -262,7 +262,12 @@ async def get_inbox(
 
     unread_count = func.sum(
         case(
-            ((Message.recipient_id == uid) & (Message.is_read == False), 1),  # noqa: E712
+            (
+                (Message.recipient_id == uid)
+                & (Message.is_read == False)  # noqa: E712
+                & (Message.is_deleted == False),  # noqa: E712
+                1,
+            ),
             else_=0,
         )
     ).label("unread_count")

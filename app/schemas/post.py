@@ -1,15 +1,15 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.community_label import LabelPublic
 
 
 class PostCreate(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=300)
     content: str | None = None
-    url: str | None = None  # external link
+    url: str | None = Field(default=None, max_length=2048)  # external link
     image_url: str | None = None  # single uploaded image (backward compat)
     image_urls: list[
         str

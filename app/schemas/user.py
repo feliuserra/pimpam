@@ -150,7 +150,7 @@ class TotpSetupResponse(BaseModel):
 
 
 class TotpVerifyRequest(BaseModel):
-    code: str  # 6-digit code from authenticator app
+    code: str = Field(pattern=r"^\d{6}$")  # 6-digit code from authenticator app
 
 
 class TotpDisableRequest(BaseModel):

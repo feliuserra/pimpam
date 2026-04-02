@@ -562,25 +562,48 @@ async def list_community_reports(
     all_reports = list(post_reports) + list(comment_reports)
     all_reports.sort(key=lambda r: r.created_at, reverse=True)
 
-    # Enrich with content preview and reporter username
+    # Batch-fetch reporter usernames
+    reporter_ids = list({r.reporter_id for r in all_reports if r.reporter_id})
+    reporters_map: dict[int, str] = {}
+    if reporter_ids:
+        _r_rows = await db.execute(
+            select(User.id, User.username).where(User.id.in_(reporter_ids))
+        )
+        reporters_map = {row.id: row.username for row in _r_rows.all()}
+
+    # Batch-fetch post previews
+    post_ids = [r.content_id for r in all_reports if r.content_type == "post"]
+    posts_map: dict[int, str] = {}
+    if post_ids:
+        from app.models.post import Post
+
+        _p_rows = await db.execute(
+            select(Post.id, Post.title).where(Post.id.in_(post_ids))
+        )
+        posts_map = {row.id: row.title[:100] for row in _p_rows.all()}
+
+    # Batch-fetch comment previews
+    comment_ids = [r.content_id for r in all_reports if r.content_type == "comment"]
+    comments_map: dict[int, str] = {}
+    if comment_ids:
+        from app.models.comment import Comment
+
+        _c_rows = await db.execute(
+            select(Comment.id, Comment.content).where(Comment.id.in_(comment_ids))
+        )
+        comments_map = {
+            row.id: (row.content[:100] if row.content else "[deleted]")
+            for row in _c_rows.all()
+        }
+
     result = []
     for r in all_reports:
-        reporter = await db.execute(
-            select(User.username).where(User.id == r.reporter_id)
-        )
-        reporter_name = reporter.scalar_one_or_none() or "deleted"
-
-        preview = None
         if r.content_type == "post":
-            post = await get_post(db, r.content_id)
-            preview = post.title[:100] if post else "[deleted]"
+            preview = posts_map.get(r.content_id, "[deleted]")
         elif r.content_type == "comment":
-            from app.crud.comment import get_comment as _get_comment
-
-            comment = await _get_comment(db, r.content_id)
-            preview = (
-                comment.content[:100] if comment and comment.content else "[deleted]"
-            )
+            preview = comments_map.get(r.content_id, "[deleted]")
+        else:
+            preview = None
 
         result.append(
             {
@@ -588,7 +611,7 @@ async def list_community_reports(
                 "content_type": r.content_type,
                 "content_id": r.content_id,
                 "content_preview": preview,
-                "reporter_username": reporter_name,
+                "reporter_username": reporters_map.get(r.reporter_id, "deleted"),
                 "reason": r.reason,
                 "status": r.status,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
@@ -686,36 +709,40 @@ async def list_removed_content(
         .all()
     )
 
+    # Batch-fetch remover usernames
+    remover_ids = list(
+        {p.removed_by_id for p in removed_posts if p.removed_by_id}
+        | {c.removed_by_id for c in removed_comments if c.removed_by_id}
+    )
+    removers_map: dict[int, str] = {}
+    if remover_ids:
+        _rem_rows = await db.execute(
+            select(User.id, User.username).where(User.id.in_(remover_ids))
+        )
+        removers_map = {row.id: row.username for row in _rem_rows.all()}
+
     items = []
     for p in removed_posts:
-        remover = None
-        if p.removed_by_id:
-            r = await db.execute(
-                select(User.username).where(User.id == p.removed_by_id)
-            )
-            remover = r.scalar_one_or_none()
         items.append(
             {
                 "type": "post",
                 "id": p.id,
                 "preview": p.title[:100],
-                "removed_by": remover,
+                "removed_by": removers_map.get(p.removed_by_id)
+                if p.removed_by_id
+                else None,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
             }
         )
     for c in removed_comments:
-        remover = None
-        if c.removed_by_id:
-            r = await db.execute(
-                select(User.username).where(User.id == c.removed_by_id)
-            )
-            remover = r.scalar_one_or_none()
         items.append(
             {
                 "type": "comment",
                 "id": c.id,
                 "preview": (c.content[:100] if c.content else ""),
-                "removed_by": remover,
+                "removed_by": removers_map.get(c.removed_by_id)
+                if c.removed_by_id
+                else None,
                 "created_at": c.created_at.isoformat() if c.created_at else None,
             }
         )
