@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Avatar from "./ui/Avatar";
 import RelativeTime from "./ui/RelativeTime";
+import MarkdownContent from "./MarkdownContent";
 import VoteButtons from "./VoteButtons";
 import ShareModal from "./ShareModal";
 import CommentIcon from "./ui/icons/CommentIcon";
@@ -168,7 +169,7 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
 
       {/* Content (truncated) */}
       {post.content && (
-        <p className={styles.content}>{post.content}</p>
+        <MarkdownContent as="p" className={styles.content}>{post.content}</MarkdownContent>
       )}
 
       {/* Hashtags */}

@@ -255,6 +255,10 @@
   color: #fff;
 }
 
+.toggleBtnActive:hover {
+  background: var(--accent-hover);
+}
+
 .filterSep {
   width: 1px;
   height: 20px;

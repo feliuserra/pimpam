@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Avatar from "./ui/Avatar";
 import RelativeTime from "./ui/RelativeTime";
+import MarkdownContent from "./MarkdownContent";
 import { useAuth } from "../contexts/AuthContext";
 import * as commentsApi from "../api/comments";
 import styles from "./CommentCard.module.css";
@@ -136,7 +137,7 @@ export default function CommentCard({ comment, onReply, onDeleted }) {
 
         {/* Content */}
         {!isDeleted && (
-          <p className={styles.content}>{comment.content}</p>
+          <MarkdownContent as="p" className={styles.content}>{comment.content}</MarkdownContent>
         )}
 
         {/* Actions */}

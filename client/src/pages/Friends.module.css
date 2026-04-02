@@ -44,6 +44,37 @@
   flex-direction: column;
 }
 
+/* Search bar within tabs */
+.searchBar {
+  padding: 0 0 0.75rem;
+  position: sticky;
+  top: var(--header-height);
+  z-index: 1;
+  background: var(--color-bg);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--color-text);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  border-color: var(--accent);
+  background: var(--color-bg);
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
 .loader {
   display: flex;
   justify-content: center;
