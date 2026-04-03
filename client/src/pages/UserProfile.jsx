@@ -9,6 +9,7 @@ import CropModal from "../components/CropModal";
 import SettingsIcon from "../components/ui/icons/SettingsIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import * as usersApi from "../api/users";
 import * as postsApi from "../api/posts";
@@ -144,8 +145,8 @@ export default function UserProfile() {
       }
       setEditMode(false);
       addToast("Profile updated", "success");
-    } catch {
-      addToast("Failed to save profile", "error");
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't save your profile. Check your connection and try again."), "error");
     } finally {
       setSaving(false);
     }
@@ -169,8 +170,8 @@ export default function UserProfile() {
         const res = await mediaApi.upload(file, "cover_image");
         uploadedKeys.current.cover_image_url = res.data.key;
         setDraft((d) => ({ ...d, cover_image_url: res.data.url }));
-      } catch {
-        addToast("Failed to upload cover image", "error");
+      } catch (err) {
+        addToast(errorMessage(err, "Couldn't upload your cover image. The file may be too large."), "error");
       } finally {
         setCoverUploading(false);
       }
@@ -198,8 +199,9 @@ export default function UserProfile() {
       const res = await mediaApi.upload(file, mediaType);
       uploadedKeys.current[draftKey] = res.data.key;
       setDraft((d) => ({ ...d, [draftKey]: res.data.url }));
-    } catch {
-      addToast(`Failed to upload ${type === "cover" ? "cover image" : "avatar"}`, "error");
+    } catch (err) {
+      const label = type === "cover" ? "cover image" : "avatar";
+      addToast(errorMessage(err, `Couldn't upload your ${label}. The file may be too large.`), "error");
     } finally {
       setUploading(false);
     }
@@ -252,8 +254,8 @@ export default function UserProfile() {
       await usersApi.pinPost(postId);
       setProfile((p) => ({ ...p, pinned_post_id: postId }));
       addToast("Post pinned to your profile", "success");
-    } catch {
-      addToast("Failed to pin post", "error");
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't pin this post. Try again."), "error");
     }
   };
 
@@ -263,8 +265,8 @@ export default function UserProfile() {
       setProfile((p) => ({ ...p, pinned_post_id: null }));
       setPinnedPost(null);
       addToast("Post unpinned", "success");
-    } catch {
-      addToast("Failed to unpin post", "error");
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't unpin this post. Try again."), "error");
     }
   };
 

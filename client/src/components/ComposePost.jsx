@@ -5,6 +5,7 @@ import { upload } from "../api/media";
 import * as labelsApi from "../api/communityLabels";
 import { getCloseFriends, list as listFriendGroups } from "../api/friendGroups";
 import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
 import ImageIcon from "./ui/icons/ImageIcon";
@@ -128,8 +129,7 @@ export default function ComposePost({ open, onClose, onCreated, defaultCommunity
       onClose();
       onCreated?.(post);
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      addToast(typeof detail === "string" ? detail : "Failed to create post.", "error");
+      addToast(errorMessage(err, "Couldn't create your post. Check your connection and try again."), "error");
     } finally {
       setLoading(false);
     }

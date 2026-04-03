@@ -88,6 +88,70 @@ async def test_comment_content_max_length_enforced(client):
     assert r.status_code == 422
 
 
+async def test_consecutive_comments_by_same_user(client):
+    """Regression: posting multiple comments in succession must not get stuck."""
+    ha = await setup_user(client, "alice")
+    hb = await setup_user(client, "bob")
+    post = await create_post(client, ha)
+
+    # Bob posts 4 comments in rapid succession — all should succeed
+    for i in range(4):
+        r = await create_comment(client, hb, post["id"], f"Comment {i + 1}")
+        assert r.status_code == 201, f"Comment {i + 1} failed with {r.status_code}"
+        assert r.json()["content"] == f"Comment {i + 1}"
+
+    # Verify all 4 appear in the listing
+    r = await client.get(f"/api/v1/posts/{post['id']}/comments")
+    assert r.status_code == 200
+    assert len(r.json()) == 4
+
+
+async def test_consecutive_replies_by_same_user(client):
+    """Regression: posting multiple replies in succession must not get stuck."""
+    ha = await setup_user(client, "alice")
+    hb = await setup_user(client, "bob")
+    post = await create_post(client, ha)
+    comment = (await create_comment(client, ha, post["id"], "Root")).json()
+
+    # Bob posts 3 replies to the same comment back-to-back
+    for i in range(3):
+        r = await create_comment(
+            client, hb, post["id"], f"Reply {i + 1}", parent_id=comment["id"]
+        )
+        assert r.status_code == 201, f"Reply {i + 1} failed with {r.status_code}"
+        assert r.json()["parent_id"] == comment["id"]
+
+    # Verify all 3 replies appear
+    r = await client.get(f"/api/v1/comments/{comment['id']}/replies")
+    assert r.status_code == 200
+    assert len(r.json()) == 3
+
+
+async def test_rate_limit_returns_429(client):
+    """The comment endpoint should return 429 when rate-limited, not hang."""
+    from app.core.limiter import limiter as shared_limiter
+
+    ha = await setup_user(client, "alice")
+    hb = await setup_user(client, "bob")
+    post = await create_post(client, ha)
+
+    # Temporarily enable the rate limiter
+    shared_limiter.enabled = True
+    try:
+        # Post 7 comments to exceed the 6/minute limit
+        statuses = []
+        for i in range(7):
+            r = await create_comment(client, hb, post["id"], f"Spam {i + 1}")
+            statuses.append(r.status_code)
+
+        # At least one should be 429
+        assert 429 in statuses, f"Expected at least one 429 but got: {statuses}"
+        # The first few should succeed
+        assert statuses[0] == 201
+    finally:
+        shared_limiter.enabled = False
+
+
 # --- List comments ---
 
 async def test_list_comments(client):

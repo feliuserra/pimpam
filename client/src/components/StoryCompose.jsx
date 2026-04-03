@@ -5,6 +5,7 @@ import { autocompleteUsers } from "../api/users";
 import { getLinkPreview } from "../api/posts";
 import { getCloseFriends } from "../api/friendGroups";
 import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
 import ImageIcon from "./ui/icons/ImageIcon";
@@ -205,8 +206,8 @@ export default function StoryCompose({ open, onClose }) {
       addToast("Story posted!", "success");
       reset();
       onClose();
-    } catch {
-      addToast("Failed to post story.", "error");
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't post your story. Check your connection and try again."), "error");
     } finally {
       setLoading(false);
     }

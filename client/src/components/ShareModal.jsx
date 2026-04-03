@@ -10,6 +10,7 @@ import * as postsApi from "../api/posts";
 import * as messagesApi from "../api/messages";
 import * as usersApi from "../api/users";
 import * as devicesApi from "../api/devices";
+import errorMessage from "../api/errorMessage";
 import * as communitiesApi from "../api/communities";
 import { encryptMessage } from "../crypto/encrypt";
 import styles from "./ShareModal.module.css";
@@ -121,7 +122,7 @@ export default function ShareModal({ open, onClose, postId, post }) {
       if (detail === "Cannot message this user") {
         setSendError("You can't message this user");
       } else {
-        setSendError(detail || "Failed to send");
+        setSendError(errorMessage(err, "Couldn't send this message. Check your connection and try again."));
       }
     } finally {
       setSending(false);
@@ -132,7 +133,7 @@ export default function ShareModal({ open, onClose, postId, post }) {
     const url = `${window.location.origin}/posts/${postId}`;
     navigator.clipboard.writeText(url).then(
       () => addToast("Link copied!", "success"),
-      () => addToast("Failed to copy link", "error"),
+      () => addToast("Couldn't copy link. Your browser may not support clipboard access.", "error"),
     );
   };
 
@@ -152,7 +153,7 @@ export default function ShareModal({ open, onClose, postId, post }) {
       if (typeof code === "string" && code.includes("already_shared")) {
         addToast("You already shared this post", "error");
       } else {
-        addToast("Failed to share", "error");
+        addToast(errorMessage(err, "Couldn't share this post. Try again."), "error");
       }
     } finally {
       setSharing(false);

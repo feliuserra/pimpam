@@ -6,6 +6,7 @@ import CommentIcon from "../components/ui/icons/CommentIcon";
 import SearchIcon from "../components/ui/icons/SearchIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import * as issuesApi from "../api/issues";
 import styles from "./Issues.module.css";
 
@@ -168,7 +169,7 @@ export default function Issues() {
       const { data } = await issuesApi.list(params);
       setIssues(data);
     } catch {
-      addToast("Failed to load issues", "error");
+      addToast("Couldn't load issues. Check your connection.", "error");
     } finally {
       setLoading(false);
     }
@@ -197,7 +198,7 @@ export default function Issues() {
         } else {
           await issuesApi.vote(issueId);
         }
-      } catch {
+      } catch (err) {
         setIssues((prev) =>
           prev.map((i) =>
             i.id === issueId
@@ -209,7 +210,7 @@ export default function Issues() {
               : i,
           ),
         );
-        addToast("Vote failed", "error");
+        addToast(errorMessage(err, "Couldn't register your vote. Try again."), "error");
       }
     },
     [addToast],
@@ -260,8 +261,7 @@ export default function Issues() {
       addToast("Issue submitted!", "success");
       fetchIssues();
     } catch (err) {
-      const msg = err.response?.data?.detail || "Failed to submit issue";
-      addToast(msg, "error");
+      addToast(errorMessage(err, "Couldn't submit your issue. Try again."), "error");
     } finally {
       setSubmitting(false);
     }

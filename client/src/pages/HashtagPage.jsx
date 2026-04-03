@@ -6,6 +6,7 @@ import Spinner from "../components/ui/Spinner";
 import { useAuth } from "../contexts/AuthContext";
 import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import * as hashtagsApi from "../api/hashtags";
 import styles from "./HashtagPage.module.css";
 
@@ -85,7 +86,7 @@ export default function HashtagPage() {
       }
     } catch {
       setIsSubscribed(wasSub);
-      addToast(wasSub ? "Failed to unsubscribe" : "Failed to subscribe", "error");
+      addToast(wasSub ? "Couldn't unfollow this hashtag. Try again." : "Couldn't follow this hashtag. Try again.", "error");
     } finally {
       setSubBusy(false);
     }

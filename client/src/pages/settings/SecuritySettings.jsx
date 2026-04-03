@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
+import errorMessage from "../../api/errorMessage";
 import * as devicesApi from "../../api/devices";
 import { createBackup } from "../../crypto/backup";
 import RelativeTime from "../../components/ui/RelativeTime";
@@ -47,7 +48,7 @@ function DevicesSection() {
       setEditingId(null);
       loadDevices();
     } catch {
-      addToast("Failed to rename device", "error");
+      addToast("Couldn't rename this device. Try again.", "error");
     }
   };
 
@@ -58,7 +59,7 @@ function DevicesSection() {
       loadDevices();
       addToast("Device revoked", "success");
     } catch {
-      addToast("Failed to revoke device", "error");
+      addToast("Couldn't revoke this device. Try again.", "error");
     }
   };
 
@@ -185,7 +186,7 @@ function BackupSection() {
       setShowForm(false);
       loadBackups();
     } catch (err) {
-      addToast("Failed to create backup", "error");
+      addToast(errorMessage(err, "Couldn't create your key backup. Try again."), "error");
     } finally {
       setCreating(false);
     }
@@ -198,7 +199,7 @@ function BackupSection() {
       addToast("Backup deleted", "success");
       loadBackups();
     } catch {
-      addToast("Failed to delete backup", "error");
+      addToast("Couldn't delete your backup. Try again.", "error");
     }
   };
 

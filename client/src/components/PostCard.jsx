@@ -13,6 +13,7 @@ import ExternalLinkIcon from "./ui/icons/ExternalLinkIcon";
 import LinkPreview from "./LinkPreview";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import * as postsApi from "../api/posts";
 import styles from "./PostCard.module.css";
 
@@ -47,8 +48,8 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
     try {
       await postsApi.remove(post.id);
       onDelete?.(post.id);
-    } catch {
-      addToast("Failed to delete post", "error");
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't delete this post. Try again."), "error");
     }
   };
 
@@ -63,7 +64,7 @@ export default function PostCard({ post, onDelete, onUpdate, isCloseFriend = fal
       } else if (status === 503) {
         addToast("Federation is not enabled", "error");
       } else {
-        addToast("Failed to boost", "error");
+        addToast(errorMessage(err, "Couldn't boost this post. Try again later."), "error");
       }
     }
   };

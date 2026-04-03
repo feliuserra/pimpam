@@ -99,7 +99,7 @@ async def _batch_author_info(
     response_model=CommentPublic,
     status_code=status.HTTP_201_CREATED,
 )
-@limiter.limit("1/30 seconds")
+@limiter.limit("6/minute")
 async def create(
     request: Request,
     post_id: int,
@@ -110,6 +110,7 @@ async def create(
     """
     Create a comment on a post, or reply to another comment (via parent_id).
     Maximum nesting depth is 5 levels. Comments cannot be edited after posting.
+    Rate-limited to 6 per minute per IP to prevent spam while allowing natural conversation.
     """
     post = await get_post(db, post_id)
     if post is None or post.is_removed:
