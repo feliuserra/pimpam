@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Avatar from "./ui/Avatar";
 import RelativeTime from "./ui/RelativeTime";
+import MarkdownContent from "./MarkdownContent";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import * as commentsApi from "../api/comments";
 import styles from "./CommentCard.module.css";
 
@@ -17,6 +20,7 @@ const MAX_VISIBLE_DEPTH = 4;
 
 export default function CommentCard({ comment, onReply, onDeleted }) {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [replies, setReplies] = useState(null);
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -55,8 +59,8 @@ export default function CommentCard({ comment, onReply, onDeleted }) {
       setReplyText("");
       setShowReplyInput(false);
       onReply?.(res.data);
-    } catch {
-      // silent
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't post your reply. Try again."), "error");
     } finally {
       setSubmitting(false);
     }
@@ -136,7 +140,7 @@ export default function CommentCard({ comment, onReply, onDeleted }) {
 
         {/* Content */}
         {!isDeleted && (
-          <p className={styles.content}>{comment.content}</p>
+          <MarkdownContent as="p" className={styles.content}>{comment.content}</MarkdownContent>
         )}
 
         {/* Actions */}

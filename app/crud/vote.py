@@ -57,10 +57,11 @@ async def _apply_karma(db: AsyncSession, post: Post, karma_delta: int) -> None:
         original = await get_post(db, post.shared_from_id)
         if original and original.author_id != post.author_id:
             original_author = await get_user_by_id(db, original.author_id)
-            if original_author and karma_delta > 0:
-                original_author.karma += (
-                    1  # bonus karma for original author on +1 votes
-                )
+            if original_author:
+                if karma_delta > 0:
+                    original_author.karma += 1
+                elif karma_delta < 0:
+                    original_author.karma -= 1
 
     if post.community_id is not None:
         from app.crud.community_karma import update_community_karma

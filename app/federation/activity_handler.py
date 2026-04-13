@@ -5,10 +5,11 @@ The inbox router calls the appropriate handler after signature verification.
 Unknown activity types return silently — the AP spec requires servers not to
 error on unknown activities.
 """
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.user import get_user_by_ap_id, get_user_by_username
+from app.crud.user import get_user_by_ap_id
 from app.federation.actor import build_accept
 from app.federation.delivery import deliver_activity
 from app.models.follow import Follow
@@ -30,6 +31,7 @@ async def dispatch(activity: dict, db: AsyncSession) -> None:
 
 
 # --- Individual handlers ---
+
 
 async def _handle_follow(activity: dict, db: AsyncSession) -> None:
     """Remote actor follows a local user. Auto-accept immediately."""
@@ -58,6 +60,7 @@ async def _handle_follow(activity: dict, db: AsyncSession) -> None:
     # Send Accept back to the remote actor's inbox
     accept = build_accept(local_user.username, activity)
     from app.federation.fetcher import fetch_remote_actor
+
     actor_doc = await fetch_remote_actor(actor_ap_id, db)
     inbox_url = actor_doc.get("inbox", "")
     if inbox_url:
@@ -106,7 +109,9 @@ async def _handle_create(activity: dict, db: AsyncSession) -> None:
         return
 
     content: str = obj.get("content", "")
-    title = content[:100].rstrip() if content else "(untitled)"  # Note has no title field
+    title = (
+        content[:100].rstrip() if content else "(untitled)"
+    )  # Note has no title field
 
     post = Post(
         title=title,
@@ -138,13 +143,27 @@ async def _handle_accept(activity: dict, db: AsyncSession) -> None:
     Clear the is_pending flag so the follow becomes active in feeds.
     """
     obj = activity.get("object", {})
-    # Accept.object may be the full Follow activity dict or just its ID string
+    # Accept.object may be the full Follow activity dict or just its ID string.
+    # Many servers (Mastodon, Pleroma) send just the IRI string.
     if isinstance(obj, str):
-        follow_actor = activity.get("actor", "")  # the remote actor who accepted
-        # Find the pending follow: local user → this remote actor
-        local_actor_doc = await get_user_by_ap_id(db, follow_actor)
-        # We can't resolve easily from just the ID string; skip for robustness
+        # The actor is the remote server that accepted our Follow.
+        # Find any pending follow from a local user to this remote actor.
+        followed_ap_id = activity.get("actor", "")
+        followed = await get_user_by_ap_id(db, followed_ap_id)
+        if followed is None:
+            return
+        result = await db.execute(
+            select(Follow).where(
+                Follow.followed_id == followed.id,
+                Follow.is_pending == True,  # noqa: E712
+            )
+        )
+        follow = result.scalar_one_or_none()
+        if follow:
+            follow.is_pending = False
+            await db.commit()
         return
+
     if not isinstance(obj, dict) or obj.get("type") != "Follow":
         return
 
@@ -171,13 +190,14 @@ async def _handle_accept(activity: dict, db: AsyncSession) -> None:
 
 # --- Helpers ---
 
+
 async def _get_or_create_remote_user(ap_id: str, db: AsyncSession):
     """
     Find or create a stub User row for a remote actor.
     Remote users have is_remote=True and ap_id set; no password or keys.
     """
+    from app.federation.fetcher import FederationFetchError, fetch_remote_actor
     from app.models.user import User
-    from app.federation.fetcher import fetch_remote_actor, FederationFetchError
 
     user = await get_user_by_ap_id(db, ap_id)
     if user:

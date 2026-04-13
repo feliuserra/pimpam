@@ -46,9 +46,43 @@ async def get_membership(
     return result.scalar_one_or_none()
 
 
+async def is_user_banned(db: AsyncSession, community_id: int, user_id: int) -> bool:
+    """Check if a user has an active ban in a community."""
+    from datetime import datetime, timezone
+
+    from app.models.moderation import Ban
+
+    result = await db.execute(
+        select(Ban).where(
+            Ban.community_id == community_id,
+            Ban.user_id == user_id,
+            Ban.status == "active",
+        )
+    )
+    ban = result.scalar_one_or_none()
+    if ban is None:
+        return False
+    if ban.is_permanent:
+        return True
+    if ban.expires_at is not None:
+        now = datetime.now(timezone.utc)
+        expires = ban.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires > now:
+            return True
+        # Ban has expired — mark it inactive
+        ban.status = "expired"
+        await db.flush()
+        return False
+    return True
+
+
 async def join_community(
     db: AsyncSession, community: Community, user_id: int
 ) -> CommunityMember:
+    if await is_user_banned(db, community.id, user_id):
+        raise ValueError("banned")
     existing = await get_membership(db, community.id, user_id)
     if existing:
         return existing

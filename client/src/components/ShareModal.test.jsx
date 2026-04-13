@@ -9,6 +9,8 @@ const mockAutocomplete = vi.fn();
 const mockGetUser = vi.fn();
 const mockSendMessage = vi.fn();
 const mockEncrypt = vi.fn();
+const mockGetUserDeviceKeys = vi.fn();
+const mockGetMyDevices = vi.fn();
 
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
@@ -20,7 +22,7 @@ vi.mock("../contexts/ToastContext", () => ({
 
 vi.mock("../contexts/AuthContext", () => ({
   useAuth: vi.fn(() => ({
-    user: { id: 1, username: "testuser", e2ee_public_key: "pubkey" },
+    user: { id: 1, username: "testuser" },
   })),
 }));
 
@@ -39,6 +41,11 @@ vi.mock("../api/users", () => ({
 
 vi.mock("../api/messages", () => ({
   send: (...args) => mockSendMessage(...args),
+}));
+
+vi.mock("../api/devices", () => ({
+  getUserDeviceKeys: (...args) => mockGetUserDeviceKeys(...args),
+  getMyDevices: (...args) => mockGetMyDevices(...args),
 }));
 
 vi.mock("../crypto/encrypt", () => ({
@@ -225,12 +232,20 @@ describe("ShareModal", () => {
       data: [{ id: 2, username: "bob", avatar_url: null }],
     });
     mockGetUser.mockResolvedValue({
-      data: { id: 2, e2ee_public_key: "bobpubkey" },
+      data: { id: 2 },
+    });
+    mockGetUserDeviceKeys.mockResolvedValue({
+      data: [{ device_id: 10, public_key: "bobpubkey", public_key_fingerprint: "abc" }],
+    });
+    mockGetMyDevices.mockResolvedValue({
+      data: [{ id: 5, public_key: "mypubkey", device_name: "Chrome" }],
     });
     mockEncrypt.mockResolvedValue({
       ciphertext: "enc_text",
-      encryptedKey: "enc_key",
-      senderEncryptedKey: "sender_key",
+      deviceKeys: [
+        { device_id: 10, encrypted_key: "bob_wrapped" },
+        { device_id: 5, encrypted_key: "my_wrapped" },
+      ],
     });
     mockSendMessage.mockResolvedValue({});
 
@@ -276,13 +291,15 @@ describe("ShareModal", () => {
       vi.advanceTimersByTime(100);
     });
 
-    expect(mockGetUser).toHaveBeenCalledWith("bob");
+    expect(mockGetUserDeviceKeys).toHaveBeenCalledWith("bob");
     expect(mockEncrypt).toHaveBeenCalled();
     expect(mockSendMessage).toHaveBeenCalledWith({
       recipient_id: 2,
       ciphertext: "enc_text",
-      encrypted_key: "enc_key",
-      sender_encrypted_key: "sender_key",
+      device_keys: [
+        { device_id: 10, encrypted_key: "bob_wrapped" },
+        { device_id: 5, encrypted_key: "my_wrapped" },
+      ],
       shared_post_id: 10,
     });
     expect(mockAddToast).toHaveBeenCalledWith("Sent to @bob", "success");

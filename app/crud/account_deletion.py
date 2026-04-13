@@ -18,7 +18,9 @@ from app.models.comment import Comment, CommentReaction
 from app.models.community import CommunityMember
 from app.models.community_karma import CommunityKarma
 from app.models.follow import Follow
+from app.models.key_backup import KeyBackup
 from app.models.message import Message
+from app.models.message_device_key import MessageDeviceKey
 from app.models.moderation import (
     Ban,
     BanAppeal,
@@ -33,6 +35,7 @@ from app.models.notification import Notification
 from app.models.password_reset import PasswordResetToken
 from app.models.post import Post
 from app.models.user import User
+from app.models.user_device import UserDevice
 from app.models.vote import Vote
 
 
@@ -152,6 +155,15 @@ async def execute_deletion(db: AsyncSession, user_id: int) -> None:
     await db.execute(
         delete(PasswordResetToken).where(PasswordResetToken.user_id == user_id)
     )
+
+    # --- E2EE device data ---
+    # Delete in FK dependency order: backups -> message device keys -> devices
+    user_device_ids = select(UserDevice.id).where(UserDevice.user_id == user_id)
+    await db.execute(delete(KeyBackup).where(KeyBackup.user_id == user_id))
+    await db.execute(
+        delete(MessageDeviceKey).where(MessageDeviceKey.device_id.in_(user_device_ids))
+    )
+    await db.execute(delete(UserDevice).where(UserDevice.user_id == user_id))
 
     # --- Messages ---
     # Anonymize sent messages (other party keeps them as from "[deleted]")

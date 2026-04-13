@@ -4,17 +4,17 @@ Additional moderation tests covering:
 - Ban vote threshold (10 votes → auto-ban + list_bans returns the ban)
 - Edge cases: wrong community, 404 paths, invalid target_role
 """
+
 import pytest
 
-from tests.conftest import get_test_db, setup_user, register
 from app.models.community import CommunityMember
 from app.models.community_karma import CommunityKarma
-from app.models.moderation import Ban
-
+from tests.conftest import get_test_db, setup_user
 
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
 
 async def _setup(client):
     """
@@ -25,20 +25,26 @@ async def _setup(client):
     alice_h = await setup_user(client, "alice")
     bob_h = await setup_user(client, "bob")
 
-    await client.post("/api/v1/communities", headers=alice_h, json={
-        "name": "general", "description": "Test"
-    })
+    await client.post(
+        "/api/v1/communities",
+        headers=alice_h,
+        json={"name": "general", "description": "Test"},
+    )
     comm_r = await client.get("/api/v1/communities/general")
     community = comm_r.json()
 
     await client.post("/api/v1/communities/general/join", headers=bob_h)
-    post_r = await client.post("/api/v1/posts", headers=bob_h, json={
-        "title": "Post", "content": "body", "community_id": community["id"]
-    })
+    post_r = await client.post(
+        "/api/v1/posts",
+        headers=bob_h,
+        json={"title": "Post", "content": "body", "community_id": community["id"]},
+    )
     post = post_r.json()
 
     comment_r = await client.post(
-        f"/api/v1/posts/{post['id']}/comments", headers=bob_h, json={"content": "A comment"}
+        f"/api/v1/posts/{post['id']}/comments",
+        headers=bob_h,
+        json={"content": "A comment"},
     )
     comment = comment_r.json()
     return alice_h, bob_h, community, post, comment
@@ -50,6 +56,7 @@ async def _get_user_id(client, username):
 
 async def _set_role(user_id, community_id, role):
     from sqlalchemy import select
+
     async for session in get_test_db():
         result = await session.execute(
             select(CommunityMember).where(
@@ -66,6 +73,7 @@ async def _set_role(user_id, community_id, role):
 # ---------------------------------------------------------------------------
 # Comment moderation
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_mod_remove_comment(client):
@@ -123,9 +131,11 @@ async def test_remove_comment_wrong_community(client):
     alice_h, bob_h, community, post, comment = await _setup(client)
 
     # Create a second community owned by alice
-    await client.post("/api/v1/communities", headers=alice_h, json={
-        "name": "other", "description": "Other"
-    })
+    await client.post(
+        "/api/v1/communities",
+        headers=alice_h,
+        json={"name": "other", "description": "Other"},
+    )
 
     # Try to remove the comment through the wrong community
     r = await client.delete(
@@ -149,9 +159,11 @@ async def test_restore_comment_wrong_community(client):
     await client.delete(
         f"/api/v1/communities/general/comments/{comment['id']}", headers=alice_h
     )
-    await client.post("/api/v1/communities", headers=alice_h, json={
-        "name": "other", "description": "Other"
-    })
+    await client.post(
+        "/api/v1/communities",
+        headers=alice_h,
+        json={"name": "other", "description": "Other"},
+    )
     r = await client.post(
         f"/api/v1/communities/other/comments/{comment['id']}/restore", headers=alice_h
     )
@@ -162,18 +174,21 @@ async def test_restore_comment_wrong_community(client):
 # Ban vote threshold → auto-ban + list_bans
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_ban_proposal_auto_bans_at_threshold(client):
     """When 10 votes are cast, the ban proposal is approved and a Ban row is created."""
     alice_h, bob_h, community, post, comment = await _setup(client)
 
     proposal_r = await client.post(
-        "/api/v1/communities/general/bans", headers=alice_h, json={
+        "/api/v1/communities/general/bans",
+        headers=alice_h,
+        json={
             "target_username": "bob",
             "reason": "Spam",
             "coc_violation": "spam",
             "is_permanent": True,
-        }
+        },
     )
     assert proposal_r.status_code == 201
     proposal_id = proposal_r.json()["id"]
@@ -206,12 +221,14 @@ async def test_list_bans_shows_active_ban(client):
     alice_h, bob_h, community, post, comment = await _setup(client)
 
     proposal_r = await client.post(
-        "/api/v1/communities/general/bans", headers=alice_h, json={
+        "/api/v1/communities/general/bans",
+        headers=alice_h,
+        json={
             "target_username": "bob",
             "reason": "Spam",
             "coc_violation": "spam",
             "is_permanent": True,
-        }
+        },
     )
     proposal_id = proposal_r.json()["id"]
 
@@ -226,7 +243,9 @@ async def test_list_bans_shows_active_ban(client):
         voter_headers.append(h)
 
     for h in voter_headers:
-        await client.post(f"/api/v1/communities/general/bans/{proposal_id}/vote", headers=h)
+        await client.post(
+            f"/api/v1/communities/general/bans/{proposal_id}/vote", headers=h
+        )
 
     r = await client.get("/api/v1/communities/general/bans", headers=alice_h)
     assert r.status_code == 200
@@ -239,16 +258,19 @@ async def test_list_bans_shows_active_ban(client):
 # Edge cases
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_propose_ban_target_not_found(client):
     alice_h, bob_h, community, post, comment = await _setup(client)
     r = await client.post(
-        "/api/v1/communities/general/bans", headers=alice_h, json={
+        "/api/v1/communities/general/bans",
+        headers=alice_h,
+        json={
             "target_username": "ghost",
             "reason": "Test",
             "coc_violation": "spam",
             "is_permanent": False,
-        }
+        },
     )
     assert r.status_code == 404
 
@@ -256,9 +278,7 @@ async def test_propose_ban_target_not_found(client):
 @pytest.mark.asyncio
 async def test_vote_ban_proposal_not_found(client):
     alice_h, _, _, _, _ = await _setup(client)
-    r = await client.post(
-        "/api/v1/communities/general/bans/9999/vote", headers=alice_h
-    )
+    r = await client.post("/api/v1/communities/general/bans/9999/vote", headers=alice_h)
     assert r.status_code == 404
 
 
@@ -275,9 +295,9 @@ async def test_vote_mod_proposal_not_found(client):
 async def test_propose_mod_target_not_found(client):
     alice_h, _, _, _, _ = await _setup(client)
     r = await client.post(
-        "/api/v1/communities/general/moderators", headers=alice_h, json={
-            "target_username": "ghost"
-        }
+        "/api/v1/communities/general/moderators",
+        headers=alice_h,
+        json={"target_username": "ghost"},
     )
     assert r.status_code == 404
 
@@ -288,17 +308,20 @@ async def test_propose_mod_invalid_role(client):
     bob_id = await _get_user_id(client, "bob")
     # Seed enough karma
     async for session in get_test_db():
-        session.add(CommunityKarma(user_id=bob_id, community_id=community["id"], karma=200))
+        session.add(
+            CommunityKarma(user_id=bob_id, community_id=community["id"], karma=200)
+        )
         await session.commit()
 
     r = await client.post(
-        "/api/v1/communities/general/moderators", headers=alice_h, json={
+        "/api/v1/communities/general/moderators",
+        headers=alice_h,
+        json={
             "target_username": "bob",
             "target_role": "god",  # invalid
-        }
+        },
     )
-    assert r.status_code == 400
-    assert "target_role" in r.json()["detail"]
+    assert r.status_code == 422  # Pydantic rejects invalid Literal value
 
 
 @pytest.mark.asyncio
@@ -321,8 +344,8 @@ async def test_community_not_found_returns_404(client):
 async def test_propose_mod_cannot_propose_self(client):
     alice_h, _, _, _, _ = await _setup(client)
     r = await client.post(
-        "/api/v1/communities/general/moderators", headers=alice_h, json={
-            "target_username": "alice"
-        }
+        "/api/v1/communities/general/moderators",
+        headers=alice_h,
+        json={"target_username": "alice"},
     )
     assert r.status_code == 400

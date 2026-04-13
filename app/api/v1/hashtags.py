@@ -25,7 +25,7 @@ from app.crud.hashtag_subscription import (
     subscribe,
     unsubscribe,
 )
-from app.crud.post import annotate_posts_with_user_vote, get_post
+from app.crud.post import annotate_posts_with_user_vote
 from app.schemas.hashtag import HashtagPublic
 from app.schemas.hashtag_subscription import HashtagSubscriptionPublic
 from app.schemas.post import PostPublic
@@ -94,11 +94,15 @@ async def posts_by_hashtag(
     if not post_ids:
         return []
 
-    posts = []
-    for pid in post_ids:
-        p = await get_post(db, pid)
-        if p and not p.is_removed:
-            posts.append(p)
+    from sqlalchemy import select as _select
+
+    from app.models.post import Post as _Post
+
+    _result = await db.execute(
+        _select(_Post).where(_Post.id.in_(post_ids), _Post.is_removed == False)  # noqa: E712
+    )
+    _fetched = {p.id: p for p in _result.scalars().all()}
+    posts = [_fetched[pid] for pid in post_ids if pid in _fetched]
 
     user_id = current_user.id if current_user else None
     return await annotate_posts_with_user_vote(db, posts, user_id)

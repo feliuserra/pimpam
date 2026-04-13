@@ -17,7 +17,7 @@ export default defineConfig({
         name: "PimPam",
         short_name: "PimPam",
         description: "Open-source, ad-free social network",
-        theme_color: "#1a1a2e",
+        theme_color: "#0a76a9",
         background_color: "#ffffff",
         display: "standalone",
         start_url: "/",

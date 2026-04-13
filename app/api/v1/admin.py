@@ -67,15 +67,26 @@ async def get_reports(
     reports = await list_reports(
         db, status_filter=status_filter, limit=limit, offset=offset
     )
-    # Enrich with reporter username
+    # Batch-fetch reporter usernames to avoid N+1
+    reporter_ids = list({r.reporter_id for r in reports if r.reporter_id})
+    reporters_map: dict[int, str] = {}
+    if reporter_ids:
+        from sqlalchemy import select as _select
+
+        from app.models.user import User as _User
+
+        _rows = await db.execute(
+            _select(_User.id, _User.username).where(_User.id.in_(reporter_ids))
+        )
+        reporters_map = {r.id: r.username for r in _rows.all()}
+
     result = []
     for r in reports:
-        reporter = await get_user_by_id(db, r.reporter_id)
         result.append(
             ReportPublic(
                 id=r.id,
                 reporter_id=r.reporter_id,
-                reporter_username=reporter.username if reporter else "deleted",
+                reporter_username=reporters_map.get(r.reporter_id, "deleted"),
                 content_type=r.content_type,
                 content_id=r.content_id,
                 reason=r.reason,
@@ -198,14 +209,24 @@ async def list_suspensions_endpoint(
 ):
     """List user suspensions."""
     suspensions = await list_suspensions(db, active_only=active_only, limit=limit)
+    # Batch-fetch usernames
+    user_ids = list({s.user_id for s in suspensions})
+    names_map: dict[int, str] = {}
+    if user_ids:
+        from sqlalchemy import select as _sel
+
+        from app.models.user import User as _U
+
+        _rows = await db.execute(_sel(_U.id, _U.username).where(_U.id.in_(user_ids)))
+        names_map = {r.id: r.username for r in _rows.all()}
+
     result = []
     for s in suspensions:
-        user = await get_user_by_id(db, s.user_id)
         result.append(
             SuspensionPublic(
                 id=s.id,
                 user_id=s.user_id,
-                username=user.username if user else "deleted",
+                username=names_map.get(s.user_id, "deleted"),
                 suspended_by_id=s.suspended_by_id,
                 reason=s.reason,
                 expires_at=s.expires_at,
@@ -274,14 +295,26 @@ async def list_bans_endpoint(
 ):
     """List all global bans."""
     bans = await list_global_bans(db, limit=limit)
+    # Batch-fetch usernames
+    ban_user_ids = list({b.user_id for b in bans})
+    ban_names: dict[int, str] = {}
+    if ban_user_ids:
+        from sqlalchemy import select as _sel2
+
+        from app.models.user import User as _U2
+
+        _rows = await db.execute(
+            _sel2(_U2.id, _U2.username).where(_U2.id.in_(ban_user_ids))
+        )
+        ban_names = {r.id: r.username for r in _rows.all()}
+
     result = []
     for b in bans:
-        user = await get_user_by_id(db, b.user_id)
         result.append(
             GlobalBanPublic(
                 id=b.id,
                 user_id=b.user_id,
-                username=user.username if user else "deleted",
+                username=ban_names.get(b.user_id, "deleted"),
                 banned_by_id=b.banned_by_id,
                 reason=b.reason,
                 created_at=b.created_at,

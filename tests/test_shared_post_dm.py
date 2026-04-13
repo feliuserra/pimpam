@@ -30,7 +30,7 @@ async def test_send_dm_with_shared_post(client):
         json={
             "recipient_id": bob_id,
             "ciphertext": "Check this out!",
-            "encrypted_key": "fakekey",
+            "device_keys": [],
             "shared_post_id": post_id,
         },
     )
@@ -66,7 +66,7 @@ async def test_send_dm_with_invalid_shared_post(client):
         json={
             "recipient_id": bob_id,
             "ciphertext": "Check this out!",
-            "encrypted_key": "fakekey",
+            "device_keys": [],
             "shared_post_id": 99999,
         },
     )
@@ -88,7 +88,7 @@ async def test_send_dm_without_shared_post(client):
         json={
             "recipient_id": bob_id,
             "ciphertext": "Just a normal message",
-            "encrypted_key": "fakekey",
+            "device_keys": [],
         },
     )
     assert r.status_code == 201

@@ -35,7 +35,6 @@ class UserUpdate(BaseModel):
     display_name: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
-    e2ee_public_key: str | None = None
     cover_image_url: str | None = None
     accent_color: str | None = None
     location: str | None = None
@@ -97,7 +96,6 @@ class UserPublic(BaseModel):
     follower_count: int = 0
     following_count: int = 0
     is_following: bool | None = None  # None on own profile or unauthenticated
-    e2ee_public_key: str | None = None
     cover_image_url: str | None = None
     accent_color: str | None = None
     location: str | None = None
@@ -152,7 +150,7 @@ class TotpSetupResponse(BaseModel):
 
 
 class TotpVerifyRequest(BaseModel):
-    code: str  # 6-digit code from authenticator app
+    code: str = Field(pattern=r"^\d{6}$")  # 6-digit code from authenticator app
 
 
 class TotpDisableRequest(BaseModel):

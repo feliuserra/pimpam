@@ -6,6 +6,7 @@ import styles from "./Settings.module.css";
 const NAV = [
   { to: "/settings", label: "Account", end: true },
   { to: "/settings/profile", label: "Profile" },
+  { to: "/settings/security", label: "Security" },
   { to: "/settings/notifications", label: "Notifications" },
   { to: "/settings/friend-groups", label: "Friend Groups" },
   { to: "/settings/privacy", label: "Privacy" },

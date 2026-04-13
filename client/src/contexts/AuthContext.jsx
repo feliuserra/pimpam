@@ -10,6 +10,25 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNewDevice, setIsNewDevice] = useState(false);
+  const [deviceId, setDeviceId] = useState(null);
+  const [needsRecovery, setNeedsRecovery] = useState(false);
+  const [recoveryBackupDeviceId, setRecoveryBackupDeviceId] = useState(null);
+  const [extractablePrivateKey, setExtractablePrivateKey] = useState(null);
+
+  const handleKeySetup = useCallback((result) => {
+    if (result.needsRecovery) {
+      setNeedsRecovery(true);
+      setRecoveryBackupDeviceId(result.backupDeviceId);
+    } else {
+      setDeviceId(result.deviceId);
+      if (result.isNewDevice) {
+        setIsNewDevice(true);
+        if (result.extractablePrivateKey) {
+          setExtractablePrivateKey(result.extractablePrivateKey);
+        }
+      }
+    }
+  }, []);
 
   const hydrate = useCallback(async () => {
     const token = localStorage.getItem("access_token");
@@ -20,9 +39,8 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await getMe();
       setUser(data);
-      // Ensure E2EE keys exist on this device
-      const newKeys = await ensureKeysExist();
-      if (newKeys) setIsNewDevice(true);
+      const result = await ensureKeysExist();
+      handleKeySetup(result);
     } catch {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
@@ -30,7 +48,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleKeySetup]);
 
   useEffect(() => {
     hydrate();
@@ -42,11 +60,10 @@ export function AuthProvider({ children }) {
     localStorage.setItem("refresh_token", data.refresh_token);
     const { data: profile } = await getMe();
     setUser(profile);
-    // Ensure E2EE keys exist on this device
-    const newKeys = await ensureKeysExist();
-    if (newKeys) setIsNewDevice(true);
+    const result = await ensureKeysExist();
+    handleKeySetup(result);
     return data;
-  }, []);
+  }, [handleKeySetup]);
 
   const logout = useCallback(async () => {
     try {
@@ -57,13 +74,24 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     setUser(null);
+    setDeviceId(null);
+    setNeedsRecovery(false);
+    setExtractablePrivateKey(null);
   }, []);
 
   const updateUser = useCallback((fields) => {
     setUser((prev) => (prev ? { ...prev, ...fields } : prev));
   }, []);
 
-  const dismissNewDevice = useCallback(() => setIsNewDevice(false), []);
+  const dismissNewDevice = useCallback(() => {
+    setIsNewDevice(false);
+    setExtractablePrivateKey(null);
+  }, []);
+
+  const dismissRecovery = useCallback(() => {
+    setNeedsRecovery(false);
+    setRecoveryBackupDeviceId(null);
+  }, []);
 
   // Auto-logout after 30 minutes of inactivity
   useIdleTimer({
@@ -73,8 +101,20 @@ export function AuthProvider({ children }) {
   });
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, updateUser, isNewDevice, dismissNewDevice }),
-    [user, loading, login, logout, updateUser, isNewDevice, dismissNewDevice],
+    () => ({
+      user, loading, login, logout, updateUser,
+      isNewDevice, dismissNewDevice,
+      deviceId, setDeviceId,
+      needsRecovery, recoveryBackupDeviceId, dismissRecovery,
+      extractablePrivateKey,
+    }),
+    [
+      user, loading, login, logout, updateUser,
+      isNewDevice, dismissNewDevice,
+      deviceId,
+      needsRecovery, recoveryBackupDeviceId, dismissRecovery,
+      extractablePrivateKey,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

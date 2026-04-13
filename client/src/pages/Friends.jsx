@@ -46,6 +46,7 @@ export default function Friends() {
 function CloseFriendsList() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -54,6 +55,16 @@ function CloseFriendsList() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return members;
+    const q = search.toLowerCase();
+    return members.filter(
+      (m) =>
+        m.username.toLowerCase().includes(q) ||
+        (m.display_name || "").toLowerCase().includes(q),
+    );
+  }, [members, search]);
 
   if (loading) return <div className={styles.loader}><Spinner size={20} /></div>;
   if (members.length === 0) {
@@ -66,13 +77,27 @@ function CloseFriendsList() {
 
   return (
     <div className={styles.list}>
-      {members.map((m) => (
-        <UserCard
-          key={m.user_id}
-          user={{ id: m.user_id, username: m.username, display_name: m.display_name, avatar_url: m.avatar_url }}
-          isCloseFriend
+      <div className={styles.searchBar}>
+        <input
+          className={styles.searchInput}
+          type="search"
+          placeholder="Search close friends..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search close friends"
         />
-      ))}
+      </div>
+      {filtered.length === 0 ? (
+        <p className={styles.empty}>No matches for &ldquo;{search}&rdquo;</p>
+      ) : (
+        filtered.map((m) => (
+          <UserCard
+            key={m.user_id}
+            user={{ id: m.user_id, username: m.username, display_name: m.display_name, avatar_url: m.avatar_url }}
+            isCloseFriend
+          />
+        ))
+      )}
     </div>
   );
 }
@@ -81,6 +106,7 @@ function FollowList({ username, type, hideFollow = false }) {
   const { isCloseFriend } = useCloseFriends();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!username) return;
@@ -92,24 +118,47 @@ function FollowList({ username, type, hideFollow = false }) {
       .finally(() => setLoading(false));
   }, [username, type]);
 
-  // Sort close friends first (computed at render, not in effect)
-  const sorted = useMemo(() => {
-    return [...users].sort((a, b) => {
+  // Filter by search, then sort close friends first
+  const filtered = useMemo(() => {
+    let list = users;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (u) =>
+          u.username.toLowerCase().includes(q) ||
+          (u.display_name || "").toLowerCase().includes(q),
+      );
+    }
+    return [...list].sort((a, b) => {
       const aClose = isCloseFriend(a.id);
       const bClose = isCloseFriend(b.id);
       if (aClose === bClose) return 0;
       return aClose ? -1 : 1;
     });
-  }, [users, isCloseFriend]);
+  }, [users, search, isCloseFriend]);
 
   if (loading) return <div className={styles.loader}><Spinner size={20} /></div>;
-  if (sorted.length === 0) return <p className={styles.empty}>No {type} yet.</p>;
+  if (users.length === 0) return <p className={styles.empty}>No {type} yet.</p>;
 
   return (
     <div className={styles.list}>
-      {sorted.map((u) => (
-        <UserCard key={u.id} user={u} hideFollow={hideFollow} isCloseFriend={isCloseFriend(u.id)} />
-      ))}
+      <div className={styles.searchBar}>
+        <input
+          className={styles.searchInput}
+          type="search"
+          placeholder={`Search ${type}...`}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label={`Search ${type}`}
+        />
+      </div>
+      {filtered.length === 0 ? (
+        <p className={styles.empty}>No matches for &ldquo;{search}&rdquo;</p>
+      ) : (
+        filtered.map((u) => (
+          <UserCard key={u.id} user={u} hideFollow={hideFollow} isCloseFriend={isCloseFriend(u.id)} />
+        ))
+      )}
     </div>
   );
 }

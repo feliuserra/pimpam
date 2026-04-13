@@ -7,6 +7,7 @@ import RelativeTime from "../components/ui/RelativeTime";
 import ArrowUpIcon from "../components/ui/icons/ArrowUpIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import * as issuesApi from "../api/issues";
 import styles from "./IssueDetail.module.css";
 
@@ -49,8 +50,8 @@ function PollSection({ poll, issueId, user, onUpdate }) {
       // Reload issue to get updated poll data
       const res = await issuesApi.get(issueId);
       onUpdate(res.data.poll);
-    } catch {
-      addToast("Vote failed", "error");
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't register your vote. Try again."), "error");
     } finally {
       setVoting(false);
     }
@@ -135,13 +136,13 @@ export default function IssueDetail() {
       } else {
         await issuesApi.vote(id);
       }
-    } catch {
+    } catch (err) {
       setIssue((i) => ({
         ...i,
         vote_count: voted ? i.vote_count + 1 : i.vote_count - 1,
         has_voted: voted,
       }));
-      addToast("Vote failed", "error");
+      addToast(errorMessage(err, "Couldn't register your vote. Try again."), "error");
     }
   };
 
@@ -154,8 +155,8 @@ export default function IssueDetail() {
       setComments((prev) => [...prev, res.data]);
       setContent("");
       setIssue((i) => i && { ...i, comment_count: i.comment_count + 1 });
-    } catch {
-      addToast("Failed to post comment", "error");
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't post your comment. Try again."), "error");
     } finally {
       setSubmitting(false);
     }
@@ -172,8 +173,8 @@ export default function IssueDetail() {
         : await issuesApi.close(id);
       setIssue(res.data);
       addToast(issue.is_closed ? "Issue reopened" : "Issue closed", "success");
-    } catch {
-      addToast("Action failed", "error");
+    } catch (err) {
+      addToast(errorMessage(err, issue.is_closed ? "Couldn't reopen this issue." : "Couldn't close this issue."), "error");
     } finally {
       setClosing(false);
     }

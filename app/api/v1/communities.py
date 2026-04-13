@@ -237,7 +237,15 @@ async def join(name: str, current_user: CurrentUser, db: DBSession):
     community = await get_community_by_name(db, name)
     if community is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Community not found")
-    await join_community(db, community, current_user.id)
+    try:
+        await join_community(db, community, current_user.id)
+    except ValueError as exc:
+        if str(exc) == "banned":
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="You are banned from this community",
+            )
+        raise
 
 
 @router.post("/{name}/leave", status_code=status.HTTP_204_NO_CONTENT)
@@ -246,6 +254,11 @@ async def leave(name: str, current_user: CurrentUser, db: DBSession):
     community = await get_community_by_name(db, name)
     if community is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Community not found")
+    if community.owner_id == current_user.id:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Community owner cannot leave. Transfer ownership first.",
+        )
     await leave_community(db, community, current_user.id)
 
 

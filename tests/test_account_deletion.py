@@ -1,9 +1,8 @@
 """Tests for account deletion flow."""
-from unittest.mock import AsyncMock, patch
 
-import pytest
+from unittest.mock import patch
 
-from tests.conftest import get_test_db, setup_user
+from tests.conftest import get_test_db
 
 
 async def setup_verified_user(client, username):
@@ -14,14 +13,19 @@ async def setup_verified_user(client, username):
         captured["token"] = token
 
     with patch("app.api.v1.auth.send_verification_email", new=mock_send):
-        await client.post("/api/v1/auth/register", json={
-            "username": username,
-            "email": f"{username}@example.com",
-            "password": "testpass123",
-        })
+        await client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": username,
+                "email": f"{username}@example.com",
+                "password": "testpass123",
+            },
+        )
 
     await client.get(f"/api/v1/auth/verify?token={captured['token']}")
-    r = await client.post("/api/v1/auth/login", json={"username": username, "password": "testpass123"})
+    r = await client.post(
+        "/api/v1/auth/login", json={"username": username, "password": "testpass123"}
+    )
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
@@ -29,21 +33,28 @@ async def setup_verified_user(client, username):
 # Schedule deletion
 # ---------------------------------------------------------------------------
 
+
 async def test_schedule_deletion_requires_correct_password(client):
     ha = await setup_verified_user(client, "alice")
-    r = await client.post("/api/v1/users/me/delete", json={"password": "wrongpass"}, headers=ha)
+    r = await client.post(
+        "/api/v1/users/me/delete", json={"password": "wrongpass"}, headers=ha
+    )
     assert r.status_code == 401
 
 
 async def test_schedule_deletion_returns_202(client):
     ha = await setup_verified_user(client, "alice")
-    r = await client.post("/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha)
+    r = await client.post(
+        "/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha
+    )
     assert r.status_code == 202
 
 
 async def test_schedule_deletion_sets_scheduled_at(client):
     ha = await setup_verified_user(client, "alice")
-    await client.post("/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha)
+    await client.post(
+        "/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha
+    )
 
     profile = (await client.get("/api/v1/users/me", headers=ha)).json()
     assert profile["deletion_scheduled_at"] is not None
@@ -51,14 +62,20 @@ async def test_schedule_deletion_sets_scheduled_at(client):
 
 async def test_schedule_deletion_twice_returns_409(client):
     ha = await setup_verified_user(client, "alice")
-    await client.post("/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha)
-    r = await client.post("/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha)
+    await client.post(
+        "/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha
+    )
+    r = await client.post(
+        "/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha
+    )
     assert r.status_code == 409
 
 
 async def test_user_can_still_use_platform_during_grace(client):
     ha = await setup_verified_user(client, "alice")
-    await client.post("/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha)
+    await client.post(
+        "/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha
+    )
 
     # Should still be able to read their own profile
     r = await client.get("/api/v1/users/me", headers=ha)
@@ -69,9 +86,12 @@ async def test_user_can_still_use_platform_during_grace(client):
 # Cancel deletion
 # ---------------------------------------------------------------------------
 
+
 async def test_cancel_deletion(client):
     ha = await setup_verified_user(client, "alice")
-    await client.post("/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha)
+    await client.post(
+        "/api/v1/users/me/delete", json={"password": "testpass123"}, headers=ha
+    )
 
     r = await client.post("/api/v1/users/me/delete/cancel", headers=ha)
     assert r.status_code == 200
@@ -90,9 +110,9 @@ async def test_cancel_when_not_scheduled_returns_400(client):
 # Execute deletion (direct CRUD call)
 # ---------------------------------------------------------------------------
 
+
 async def test_execute_deletion_removes_user(client):
     from app.crud.account_deletion import execute_deletion
-    from app.crud.user import get_user_by_username
 
     ha = await setup_verified_user(client, "alice")
 
@@ -116,9 +136,11 @@ async def test_execute_deletion_anonymizes_posts(client):
     user_id = profile["id"]
 
     # alice creates a post
-    post = (await client.post(
-        "/api/v1/posts", json={"title": "Hello", "content": "World"}, headers=ha
-    )).json()
+    post = (
+        await client.post(
+            "/api/v1/posts", json={"title": "Hello", "content": "World"}, headers=ha
+        )
+    ).json()
 
     async for db in get_test_db():
         await execute_deletion(db, user_id)
@@ -131,21 +153,24 @@ async def test_execute_deletion_anonymizes_posts(client):
 
 async def test_execute_deletion_removes_received_messages(client):
     from app.crud.account_deletion import execute_deletion
-    from sqlalchemy import select
     from app.models.message import Message
+    from sqlalchemy import select
 
     ha = await setup_verified_user(client, "alice")
     hb = await setup_verified_user(client, "bob")
 
     alice_id = (await client.get("/api/v1/users/me", headers=ha)).json()["id"]
-    bob_id = (await client.get("/api/v1/users/me", headers=hb)).json()["id"]
 
     # Bob sends alice a message
-    await client.post("/api/v1/messages", json={
-        "recipient_id": alice_id,
-        "ciphertext": "encrypted",
-        "encrypted_key": "key",
-    }, headers=hb)
+    await client.post(
+        "/api/v1/messages",
+        json={
+            "recipient_id": alice_id,
+            "ciphertext": "encrypted",
+            "device_keys": [],
+        },
+        headers=hb,
+    )
 
     # Delete alice
     async for db in get_test_db():
@@ -153,14 +178,16 @@ async def test_execute_deletion_removes_received_messages(client):
 
     # Message should be deleted (alice was recipient)
     async for db in get_test_db():
-        result = await db.execute(select(Message).where(Message.recipient_id == alice_id))
+        result = await db.execute(
+            select(Message).where(Message.recipient_id == alice_id)
+        )
         assert result.scalar_one_or_none() is None
 
 
 async def test_execute_deletion_anonymizes_sent_messages(client):
     from app.crud.account_deletion import execute_deletion
-    from sqlalchemy import select
     from app.models.message import Message
+    from sqlalchemy import select
 
     ha = await setup_verified_user(client, "alice")
     hb = await setup_verified_user(client, "bob")
@@ -169,11 +196,15 @@ async def test_execute_deletion_anonymizes_sent_messages(client):
     bob_id = (await client.get("/api/v1/users/me", headers=hb)).json()["id"]
 
     # Alice sends bob a message
-    await client.post("/api/v1/messages", json={
-        "recipient_id": bob_id,
-        "ciphertext": "encrypted",
-        "encrypted_key": "key",
-    }, headers=ha)
+    await client.post(
+        "/api/v1/messages",
+        json={
+            "recipient_id": bob_id,
+            "ciphertext": "encrypted",
+            "device_keys": [],
+        },
+        headers=ha,
+    )
 
     # Delete alice
     async for db in get_test_db():

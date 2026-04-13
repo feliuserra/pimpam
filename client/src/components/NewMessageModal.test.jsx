@@ -29,8 +29,14 @@ vi.mock("../api/messages", () => ({
   send: vi.fn(),
 }));
 
+vi.mock("../api/devices", () => ({
+  getUserDeviceKeys: vi.fn(),
+  getMyDevices: vi.fn(),
+}));
+
 import * as usersApi from "../api/users";
 import * as messagesApi from "../api/messages";
+import * as devicesApi from "../api/devices";
 
 function renderModal(props = {}) {
   return render(
@@ -53,6 +59,8 @@ describe("NewMessageModal", () => {
 
   it("submitting looks up user then sends message", async () => {
     usersApi.getUser.mockResolvedValue({ data: { id: 99, username: "recipient" } });
+    devicesApi.getUserDeviceKeys.mockResolvedValue({ data: [] });
+    devicesApi.getMyDevices.mockResolvedValue({ data: [] });
     messagesApi.send.mockResolvedValue({});
     const onClose = vi.fn();
 
@@ -74,7 +82,7 @@ describe("NewMessageModal", () => {
       expect(messagesApi.send).toHaveBeenCalledWith({
         recipient_id: 99,
         ciphertext: "Hi there!",
-        encrypted_key: "",
+        device_keys: [],
       });
     });
   });

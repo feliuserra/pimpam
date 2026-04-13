@@ -16,11 +16,15 @@ class SharedPostPreview(BaseModel):
     karma: int = 0
 
 
+class DeviceKeyEntry(BaseModel):
+    device_id: int
+    encrypted_key: str
+
+
 class MessageSend(BaseModel):
     recipient_id: int
     ciphertext: str  # encrypted client-side — server never sees plaintext
-    encrypted_key: str  # AES key wrapped with recipient's public key
-    sender_encrypted_key: str | None = None  # AES key wrapped with sender's own key
+    device_keys: list[DeviceKeyEntry]  # AES key wrapped per-device (sender + recipient)
     shared_post_id: int | None = None  # optional post shared via DM
 
 
@@ -29,11 +33,11 @@ class MessagePublic(BaseModel):
     sender_id: int
     recipient_id: int
     ciphertext: str
-    encrypted_key: str
-    sender_encrypted_key: str | None = None
+    device_keys: list[DeviceKeyEntry] = []
     shared_post_id: int | None = None
     shared_post: SharedPostPreview | None = None
     is_read: bool
+    is_deleted: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -47,3 +51,8 @@ class ConversationSummary(BaseModel):
     other_avatar_url: str | None = None
     last_message_at: datetime
     unread_count: int
+    last_message_id: int | None = None
+    last_message_ciphertext: str | None = None
+    last_message_device_key: str | None = None  # wrapped AES key for requesting device
+    last_message_sender_id: int | None = None
+    last_message_is_deleted: bool = False

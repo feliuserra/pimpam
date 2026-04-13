@@ -9,6 +9,8 @@ import { useToast } from "../contexts/ToastContext";
 import * as postsApi from "../api/posts";
 import * as messagesApi from "../api/messages";
 import * as usersApi from "../api/users";
+import * as devicesApi from "../api/devices";
+import errorMessage from "../api/errorMessage";
 import * as communitiesApi from "../api/communities";
 import { encryptMessage } from "../crypto/encrypt";
 import styles from "./ShareModal.module.css";
@@ -82,27 +84,32 @@ export default function ShareModal({ open, onClose, postId, post }) {
       // Build message text — include post context if no custom text
       const text = dmText.trim() || "Shared a post with you";
 
-      // Look up recipient for E2EE keys
-      const userRes = await usersApi.getUser(selectedUser.username);
-      const recipientPubKey = userRes.data.e2ee_public_key;
+      // Fetch recipient and sender device keys for encryption
+      const [recipientDkRes, senderDkRes] = await Promise.all([
+        devicesApi.getUserDeviceKeys(selectedUser.username),
+        devicesApi.getMyDevices(),
+      ]);
+      const recipientDeviceKeys = recipientDkRes.data;
+      const senderDeviceKeys = senderDkRes.data.map((d) => ({
+        device_id: d.id,
+        public_key: d.public_key,
+      }));
 
       let payload;
-      if (recipientPubKey) {
-        const senderPubKey = me?.e2ee_public_key || null;
-        const { ciphertext, encryptedKey, senderEncryptedKey } =
-          await encryptMessage(text, recipientPubKey, senderPubKey);
+      if (recipientDeviceKeys.length > 0) {
+        const { ciphertext, deviceKeys } =
+          await encryptMessage(text, recipientDeviceKeys, senderDeviceKeys);
         payload = {
           recipient_id: selectedUser.id,
           ciphertext,
-          encrypted_key: encryptedKey,
-          sender_encrypted_key: senderEncryptedKey,
+          device_keys: deviceKeys,
           shared_post_id: postId,
         };
       } else {
         payload = {
           recipient_id: selectedUser.id,
           ciphertext: text,
-          encrypted_key: "",
+          device_keys: [],
           shared_post_id: postId,
         };
       }
@@ -115,7 +122,7 @@ export default function ShareModal({ open, onClose, postId, post }) {
       if (detail === "Cannot message this user") {
         setSendError("You can't message this user");
       } else {
-        setSendError(detail || "Failed to send");
+        setSendError(errorMessage(err, "Couldn't send this message. Check your connection and try again."));
       }
     } finally {
       setSending(false);
@@ -126,7 +133,7 @@ export default function ShareModal({ open, onClose, postId, post }) {
     const url = `${window.location.origin}/posts/${postId}`;
     navigator.clipboard.writeText(url).then(
       () => addToast("Link copied!", "success"),
-      () => addToast("Failed to copy link", "error"),
+      () => addToast("Couldn't copy link. Your browser may not support clipboard access.", "error"),
     );
   };
 
@@ -146,7 +153,7 @@ export default function ShareModal({ open, onClose, postId, post }) {
       if (typeof code === "string" && code.includes("already_shared")) {
         addToast("You already shared this post", "error");
       } else {
-        addToast("Failed to share", "error");
+        addToast(errorMessage(err, "Couldn't share this post. Try again."), "error");
       }
     } finally {
       setSharing(false);

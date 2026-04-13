@@ -4,8 +4,6 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 // jsdom does not implement scrollIntoView
 Element.prototype.scrollIntoView = vi.fn();
 
-import MessageThread from "./MessageThread";
-
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
@@ -16,7 +14,13 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../contexts/AuthContext", () => ({
-  useAuth: vi.fn(() => ({ user: { id: 1, username: "testuser" }, updateUser: vi.fn() })),
+  useAuth: vi.fn(() => ({
+    user: { id: 1, username: "testuser" },
+    updateUser: vi.fn(),
+    deviceId: 7,
+    isNewDevice: false,
+    dismissNewDevice: vi.fn(),
+  })),
 }));
 
 vi.mock("../contexts/WSContext", () => ({
@@ -33,18 +37,63 @@ vi.mock("../contexts/NotificationContext", () => ({
   })),
 }));
 
-vi.mock("../api/messages", () => ({
-  getConversation: vi.fn(),
-  markRead: vi.fn(),
-  send: vi.fn(),
+vi.mock("../contexts/ToastContext", () => ({
+  useToast: vi.fn(() => vi.fn()),
 }));
 
+vi.mock("../api/messages", () => ({
+  getConversation: vi.fn(),
+  getInbox: vi.fn(),
+  getSingleMessage: vi.fn(),
+  markRead: vi.fn(),
+  send: vi.fn(),
+  deleteMessage: vi.fn(),
+}));
+
+vi.mock("../api/users", () => ({
+  getUser: vi.fn(),
+}));
+
+vi.mock("../api/devices", () => ({
+  getUserDeviceKeys: vi.fn(),
+  getMyDevices: vi.fn(),
+}));
+
+vi.mock("../crypto/encrypt", () => ({
+  encryptMessage: vi.fn(),
+}));
+
+vi.mock("../crypto/tryDecrypt", () => ({
+  tryDecrypt: vi.fn((msg) => Promise.resolve({ ...msg, decryptedText: msg.ciphertext })),
+}));
+
+vi.mock("../crypto/verification", () => ({
+  getVerification: vi.fn(() => Promise.resolve(null)),
+  saveVerification: vi.fn(),
+  clearVerification: vi.fn(),
+}));
+
+vi.mock("../crypto/fingerprint", () => ({
+  computeFingerprint: vi.fn(() => Promise.resolve("abcd1234")),
+  computeSafetyNumber: vi.fn(() => "12345 67890 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890"),
+}));
+
+vi.mock("../components/SafetyNumberModal", () => ({
+  default: () => null,
+}));
+
+import MessageThread from "./MessageThread";
 import * as messagesApi from "../api/messages";
+import * as usersApi from "../api/users";
+import * as devicesApi from "../api/devices";
 
 describe("MessageThread", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     messagesApi.markRead.mockResolvedValue({});
+    messagesApi.getInbox.mockResolvedValue({ data: [] });
+    devicesApi.getUserDeviceKeys.mockResolvedValue({ data: [] });
+    devicesApi.getMyDevices.mockResolvedValue({ data: [] });
   });
 
   it("shows spinner while loading", () => {
@@ -80,9 +129,11 @@ describe("MessageThread", () => {
     });
   });
 
-  it("sending a message calls API", async () => {
+  it("sending a message calls API with device_keys", async () => {
     messagesApi.getConversation.mockResolvedValue({ data: [] });
-    messagesApi.send.mockResolvedValue({});
+    messagesApi.send.mockResolvedValue({
+      data: { id: 100, sender_id: 1, ciphertext: "Hello!", created_at: "2026-03-25T10:05:00Z", is_read: false },
+    });
 
     render(<MessageThread />);
 
@@ -98,7 +149,7 @@ describe("MessageThread", () => {
       expect(messagesApi.send).toHaveBeenCalledWith({
         recipient_id: 42,
         ciphertext: "Hello!",
-        encrypted_key: "",
+        device_keys: [],
       });
     });
   });

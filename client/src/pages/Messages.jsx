@@ -11,10 +11,11 @@ import { useWS } from "../contexts/WSContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import * as messagesApi from "../api/messages";
 import * as usersApi from "../api/users";
+import { tryDecrypt } from "../crypto/tryDecrypt";
 import styles from "./Messages.module.css";
 
 export default function Messages() {
-  const { user: me } = useAuth();
+  const { user: me, deviceId } = useAuth();
   const { refetch } = useNotifications();
   const [conversations, setConversations] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
@@ -23,14 +24,38 @@ export default function Messages() {
 
   const loadInbox = useCallback(async () => {
     try {
-      const res = await messagesApi.getInbox();
-      setConversations(res.data);
+      const res = await messagesApi.getInbox(deviceId);
+      // Decrypt last message preview for each conversation
+      const withPreviews = await Promise.all(
+        res.data.map(async (c) => {
+          if (c.last_message_is_deleted) {
+            return { ...c, preview: "This message was deleted" };
+          }
+          if (!c.last_message_ciphertext) return c;
+          try {
+            // Build a fake message with device_keys for tryDecrypt
+            const deviceKeys = c.last_message_device_key
+              ? [{ device_id: deviceId, encrypted_key: c.last_message_device_key }]
+              : [];
+            const fakeMsg = {
+              ciphertext: c.last_message_ciphertext,
+              device_keys: deviceKeys,
+            };
+            const decrypted = await tryDecrypt(fakeMsg);
+            const text = decrypted.decryptedText || "";
+            return { ...c, preview: text.length > 50 ? text.slice(0, 50) + "..." : text };
+          } catch {
+            return c;
+          }
+        }),
+      );
+      setConversations(withPreviews);
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [deviceId]);
 
   useEffect(() => { loadInbox(); refetch(); }, [loadInbox, refetch]);
 
@@ -42,20 +67,11 @@ export default function Messages() {
       .catch(() => {});
   }, [me?.username]);
 
-  // Bump conversation to top on new message
+  // Reload inbox on new message — bumps conversation to top with fresh preview
   useWS(
     "new_message",
-    useCallback((data) => {
-      setConversations((prev) => {
-        const idx = prev.findIndex((c) => c.other_user_id === data.sender_id);
-        if (idx >= 0) {
-          const updated = { ...prev[idx], unread_count: prev[idx].unread_count + 1, last_message_at: new Date().toISOString() };
-          return [updated, ...prev.filter((_, i) => i !== idx)];
-        }
-        // New conversation — reload
-        loadInbox();
-        return prev;
-      });
+    useCallback(() => {
+      loadInbox();
     }, [loadInbox]),
   );
 
@@ -125,10 +141,15 @@ export default function Messages() {
                           <RelativeTime date={c.last_message_at} />
                         </span>
                       </div>
-                      {c.unread_count > 0 && (
-                        <span className={styles.unread}>{c.unread_count} unread</span>
+                      {c.preview && (
+                        <span className={`${styles.convPreview} ${c.last_message_is_deleted ? styles.convPreviewDeleted : ""}`}>
+                          {c.preview}
+                        </span>
                       )}
                     </div>
+                    {c.unread_count > 0 && (
+                      <span className={styles.unreadBadge}>{c.unread_count}</span>
+                    )}
                   </Link>
                 ))}
               </div>

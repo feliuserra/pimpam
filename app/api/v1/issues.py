@@ -121,16 +121,28 @@ async def list_all(
     else:
         voted_set = set()
 
+    # Batch-fetch authors to avoid N+1
+    author_ids = list({i.author_id for i in issues if i.author_id})
+    authors_map: dict[int, str] = {}
+    if author_ids:
+        from sqlalchemy import select as _select
+
+        from app.models.user import User as _User
+
+        _a_result = await db.execute(
+            _select(_User.id, _User.username).where(_User.id.in_(author_ids))
+        )
+        authors_map = {r.id: r.username for r in _a_result.all()}
+
     result = []
     for issue in issues:
-        author = await get_user_by_id(db, issue.author_id)
         poll_data = await get_poll_for_issue(db, issue.id, user_id)
         poll = PollPublic(**poll_data) if poll_data else None
         result.append(
             IssuePublic(
                 id=issue.id,
                 author_id=issue.author_id,
-                author_username=author.username if author else "deleted",
+                author_username=authors_map.get(issue.author_id, "deleted"),
                 title=issue.title,
                 description=issue.description,
                 category=issue.category,
@@ -272,16 +284,35 @@ async def get_comments(
     if issue is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Issue not found")
     comments = await list_issue_comments(db, issue_id, limit=limit, offset=offset)
+
+    # Batch-fetch authors to avoid N+1
+    author_ids = list({c.author_id for c in comments if c.author_id})
+    authors_map: dict[int, str] = {}
+    admins_set: set[int] = set()
+    if author_ids:
+        from sqlalchemy import select as _select
+
+        from app.models.user import User as _User
+
+        _rows = await db.execute(
+            _select(_User.id, _User.username, _User.is_admin).where(
+                _User.id.in_(author_ids)
+            )
+        )
+        for r in _rows.all():
+            authors_map[r.id] = r.username
+            if r.is_admin:
+                admins_set.add(r.id)
+
     result = []
     for c in comments:
-        author = await get_user_by_id(db, c.author_id)
         result.append(
             IssueCommentPublic(
                 id=c.id,
                 issue_id=c.issue_id,
                 author_id=c.author_id,
-                author_username=author.username if author else "deleted",
-                is_admin=getattr(author, "is_admin", False) if author else False,
+                author_username=authors_map.get(c.author_id, "deleted"),
+                is_admin=c.author_id in admins_set,
                 content=c.content,
                 created_at=c.created_at,
             )

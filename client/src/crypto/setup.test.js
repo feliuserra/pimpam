@@ -1,24 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock dependencies
 vi.mock("./keys", () => ({
   loadPrivateKey: vi.fn(),
-  generateKeyPair: vi.fn(),
+  loadDeviceId: vi.fn(),
+  generateExtractableKeyPair: vi.fn(),
+  reimportAsNonExtractable: vi.fn(),
   storePrivateKey: vi.fn(),
+  storeDeviceId: vi.fn(),
   exportPublicKey: vi.fn(),
 }));
 
-vi.mock("../api/users", () => ({
-  updateMe: vi.fn(),
+vi.mock("../api/devices", () => ({
+  registerDevice: vi.fn(),
+  getMyDevices: vi.fn(),
+  getAvailableBackups: vi.fn(),
 }));
 
 import {
   loadPrivateKey,
-  generateKeyPair,
+  loadDeviceId,
+  generateExtractableKeyPair,
+  reimportAsNonExtractable,
   storePrivateKey,
+  storeDeviceId,
   exportPublicKey,
 } from "./keys";
-import { updateMe } from "../api/users";
+import { registerDevice, getMyDevices, getAvailableBackups } from "../api/devices";
 import { ensureKeysExist } from "./setup";
 
 describe("crypto/setup", () => {
@@ -26,76 +33,64 @@ describe("crypto/setup", () => {
     vi.clearAllMocks();
   });
 
-  it("returns false when a private key already exists", async () => {
+  it("returns existing device when key and device ID exist and device is active", async () => {
     loadPrivateKey.mockResolvedValue({ type: "private" });
+    loadDeviceId.mockResolvedValue(42);
+    getMyDevices.mockResolvedValue({ data: [{ id: 42 }] });
 
     const result = await ensureKeysExist();
 
-    expect(result).toBe(false);
-    expect(generateKeyPair).not.toHaveBeenCalled();
-    expect(storePrivateKey).not.toHaveBeenCalled();
-    expect(updateMe).not.toHaveBeenCalled();
+    expect(result).toEqual({ isNewDevice: false, deviceId: 42 });
+    expect(generateExtractableKeyPair).not.toHaveBeenCalled();
   });
 
-  it("generates a new keypair when no private key exists", async () => {
-    const mockKeyPair = {
-      publicKey: { type: "public" },
-      privateKey: { type: "private" },
-    };
+  it("signals recovery when backup exists and no local key", async () => {
     loadPrivateKey.mockResolvedValue(null);
-    generateKeyPair.mockResolvedValue(mockKeyPair);
-    storePrivateKey.mockResolvedValue(undefined);
-    exportPublicKey.mockResolvedValue("base64-public-key");
-    updateMe.mockResolvedValue({ data: {} });
-
-    const result = await ensureKeysExist();
-
-    expect(result).toBe(true);
-    expect(generateKeyPair).toHaveBeenCalled();
-  });
-
-  it("stores the private key in IndexedDB", async () => {
-    const mockKeyPair = {
-      publicKey: { type: "public" },
-      privateKey: { type: "private", id: "new" },
-    };
-    loadPrivateKey.mockResolvedValue(null);
-    generateKeyPair.mockResolvedValue(mockKeyPair);
-    storePrivateKey.mockResolvedValue(undefined);
-    exportPublicKey.mockResolvedValue("base64-public-key");
-    updateMe.mockResolvedValue({ data: {} });
-
-    await ensureKeysExist();
-
-    expect(storePrivateKey).toHaveBeenCalledWith(mockKeyPair.privateKey);
-  });
-
-  it("publishes the public key to the server", async () => {
-    const mockKeyPair = {
-      publicKey: { type: "public" },
-      privateKey: { type: "private" },
-    };
-    loadPrivateKey.mockResolvedValue(null);
-    generateKeyPair.mockResolvedValue(mockKeyPair);
-    storePrivateKey.mockResolvedValue(undefined);
-    exportPublicKey.mockResolvedValue("my-b64-key");
-    updateMe.mockResolvedValue({ data: {} });
-
-    await ensureKeysExist();
-
-    expect(exportPublicKey).toHaveBeenCalledWith(mockKeyPair.publicKey);
-    expect(updateMe).toHaveBeenCalledWith({
-      e2ee_public_key: "my-b64-key",
+    loadDeviceId.mockResolvedValue(null);
+    getAvailableBackups.mockResolvedValue({
+      data: [{ device_id: 10 }],
     });
+
+    const result = await ensureKeysExist();
+
+    expect(result).toEqual({ needsRecovery: true, backupDeviceId: 10 });
   });
 
-  it("returns false and does not throw when key generation fails", async () => {
+  it("generates new keypair and registers device when no key exists", async () => {
+    const mockKeyPair = {
+      publicKey: { type: "public" },
+      privateKey: { type: "private", extractable: true },
+    };
+    const mockNonExtractable = { type: "private", extractable: false };
+
+    loadPrivateKey.mockResolvedValue(null);
+    loadDeviceId.mockResolvedValue(null);
+    getAvailableBackups.mockResolvedValue({ data: [] });
+    generateExtractableKeyPair.mockResolvedValue(mockKeyPair);
+    reimportAsNonExtractable.mockResolvedValue(mockNonExtractable);
+    storePrivateKey.mockResolvedValue(undefined);
+    exportPublicKey.mockResolvedValue("base64-public-key");
+    registerDevice.mockResolvedValue({ data: { id: 99 } });
+    storeDeviceId.mockResolvedValue(undefined);
+
+    const result = await ensureKeysExist();
+
+    expect(result.isNewDevice).toBe(true);
+    expect(result.deviceId).toBe(99);
+    expect(result.extractablePrivateKey).toBe(mockKeyPair.privateKey);
+    expect(storePrivateKey).toHaveBeenCalledWith(mockNonExtractable);
+    expect(registerDevice).toHaveBeenCalled();
+    expect(storeDeviceId).toHaveBeenCalledWith(99);
+  });
+
+  it("returns gracefully when loadPrivateKey throws", async () => {
     loadPrivateKey.mockRejectedValue(new Error("IndexedDB error"));
+    loadDeviceId.mockResolvedValue(null);
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const result = await ensureKeysExist();
 
-    expect(result).toBe(false);
+    expect(result).toEqual({ isNewDevice: false, deviceId: null });
     expect(consoleSpy).toHaveBeenCalledWith(
       "E2EE key setup failed:",
       expect.any(Error),
@@ -103,37 +98,23 @@ describe("crypto/setup", () => {
     consoleSpy.mockRestore();
   });
 
-  it("returns false when storePrivateKey fails", async () => {
-    const mockKeyPair = {
+  it("returns gracefully when registerDevice fails", async () => {
+    loadPrivateKey.mockResolvedValue(null);
+    loadDeviceId.mockResolvedValue(null);
+    getAvailableBackups.mockResolvedValue({ data: [] });
+    generateExtractableKeyPair.mockResolvedValue({
       publicKey: { type: "public" },
       privateKey: { type: "private" },
-    };
-    loadPrivateKey.mockResolvedValue(null);
-    generateKeyPair.mockResolvedValue(mockKeyPair);
-    storePrivateKey.mockRejectedValue(new Error("Storage full"));
-
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await ensureKeysExist();
-
-    expect(result).toBe(false);
-    consoleSpy.mockRestore();
-  });
-
-  it("returns false when updateMe fails", async () => {
-    const mockKeyPair = {
-      publicKey: { type: "public" },
-      privateKey: { type: "private" },
-    };
-    loadPrivateKey.mockResolvedValue(null);
-    generateKeyPair.mockResolvedValue(mockKeyPair);
+    });
+    reimportAsNonExtractable.mockResolvedValue({ type: "private" });
     storePrivateKey.mockResolvedValue(undefined);
-    exportPublicKey.mockResolvedValue("b64key");
-    updateMe.mockRejectedValue(new Error("Network error"));
+    exportPublicKey.mockResolvedValue("key");
+    registerDevice.mockRejectedValue(new Error("Network error"));
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const result = await ensureKeysExist();
 
-    expect(result).toBe(false);
+    expect(result).toEqual({ isNewDevice: false, deviceId: null });
     consoleSpy.mockRestore();
   });
 });

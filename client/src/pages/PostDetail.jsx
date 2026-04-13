@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import Header from "../components/Header";
 import Avatar from "../components/ui/Avatar";
 import RelativeTime from "../components/ui/RelativeTime";
+import MarkdownContent from "../components/MarkdownContent";
 import Spinner from "../components/ui/Spinner";
 import VoteButtons from "../components/VoteButtons";
 import ImageGallery from "../components/ImageGallery";
@@ -13,6 +14,7 @@ import BoostIcon from "../components/ui/icons/BoostIcon";
 import ExternalLinkIcon from "../components/ui/icons/ExternalLinkIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import errorMessage from "../api/errorMessage";
 import * as postsApi from "../api/posts";
 import styles from "./PostDetail.module.css";
 
@@ -77,8 +79,8 @@ export default function PostDetail() {
     try {
       await postsApi.remove(post.id);
       navigate("/", { replace: true });
-    } catch {
-      addToast("Failed to delete post", "error");
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't delete this post. Try again."), "error");
     }
   };
 
@@ -117,7 +119,7 @@ export default function PostDetail() {
       } else if (status === 503) {
         addToast("Federation is not enabled", "error");
       } else {
-        addToast("Failed to boost", "error");
+        addToast(errorMessage(err, "Couldn't boost this post. Try again later."), "error");
       }
     }
   };
@@ -217,7 +219,7 @@ export default function PostDetail() {
               </span>
             )}
 
-            {post.content && <div className={styles.content}>{post.content}</div>}
+            {post.content && <MarkdownContent className={styles.content}>{post.content}</MarkdownContent>}
           </>
         )}
 

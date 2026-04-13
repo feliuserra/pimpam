@@ -11,6 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { useCloseFriends } from "../contexts/CloseFriendsContext";
 import { useInfiniteList } from "../hooks/useInfiniteList";
+import errorMessage from "../api/errorMessage";
 import * as communitiesApi from "../api/communities";
 import * as labelsApi from "../api/communityLabels";
 import * as mediaApi from "../api/media";
@@ -100,7 +101,7 @@ export default function CommunityPage() {
       setPicks(res.data || []);
       addToast("Post picked", "success");
     } catch (err) {
-      addToast(err.response?.data?.detail || "Failed to pick post", "error");
+      addToast(errorMessage(err, "Couldn't pick this post. Try again."), "error");
     } finally {
       setPickBusy(null);
     }
@@ -114,7 +115,7 @@ export default function CommunityPage() {
       setPicks((prev) => prev.filter((p) => p.id !== pickId));
       addToast("Pick removed", "success");
     } catch {
-      addToast("Failed to remove pick", "error");
+      addToast("Couldn't remove this pick. Try again.", "error");
     } finally {
       setPickBusy(null);
     }
@@ -151,7 +152,7 @@ export default function CommunityPage() {
       setCommunity((c) => c && { ...c, avatar_url: url });
       addToast("Community avatar updated", "success");
     } catch {
-      addToast("Failed to upload avatar", "error");
+      addToast("Couldn't update the community avatar. The image may be too large or in an unsupported format.", "error");
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";

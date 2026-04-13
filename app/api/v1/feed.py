@@ -20,7 +20,7 @@ async def get_feed(
     request: Request,
     current_user: CurrentUser,
     db: DBSession,
-    limit: int = Query(default=20, le=50),
+    limit: int = Query(default=20, ge=1, le=50),
     before_id: int | None = Query(default=None),
 ):
     """
@@ -40,8 +40,8 @@ async def get_trending(
     request: Request,
     db: DBSession,
     current_user: OptionalUser,
-    limit: int = Query(default=15, le=30),
-    hours: int = Query(default=24, le=168),
+    limit: int = Query(default=15, ge=1, le=30),
+    hours: int = Query(default=24, ge=1, le=168),
 ):
     """
     Top posts by engagement score in the last N hours.
@@ -68,7 +68,7 @@ async def get_trending(
             Post.is_removed == False,  # noqa: E712
             Post.visibility == "public",
         )
-        .order_by(score.desc())
+        .order_by(score.desc(), Post.created_at.desc())
         .limit(limit)
     )
 
@@ -84,7 +84,7 @@ async def get_news(
     request: Request,
     db: DBSession,
     current_user: OptionalUser,
-    limit: int = Query(default=20, le=50),
+    limit: int = Query(default=20, ge=1, le=50),
     before_id: int | None = Query(default=None),
 ):
     """
@@ -148,7 +148,7 @@ async def get_for_you(
     request: Request,
     current_user: CurrentUser,
     db: DBSession,
-    limit: int = Query(default=20, le=50),
+    limit: int = Query(default=20, ge=1, le=50),
     before_id: int | None = Query(default=None),
 ):
     """

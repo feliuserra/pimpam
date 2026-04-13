@@ -170,6 +170,28 @@ async def refresh(data: RefreshRequest, db: DBSession):
             status.HTTP_401_UNAUTHORIZED, detail="Refresh token revoked"
         )
 
+    # Block token refresh for suspended users
+    from datetime import datetime as _dt
+    from datetime import timezone as _tz
+
+    from app.crud.admin import get_active_suspension
+
+    suspension = await get_active_suspension(db, user.id)
+    if suspension:
+        expired = (
+            suspension.expires_at is not None
+            and suspension.expires_at.tzinfo is not None
+            and suspension.expires_at < _dt.now(_tz.utc)
+        )
+        if expired:
+            suspension.is_active = False
+            await db.commit()
+        else:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="Account is suspended",
+            )
+
     return TokenPair(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id, user.token_version),

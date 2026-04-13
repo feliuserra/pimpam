@@ -2,12 +2,15 @@ import { useState, useCallback, useEffect } from "react";
 import CommentCard from "./CommentCard";
 import Spinner from "./ui/Spinner";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { useWS } from "../contexts/WSContext";
+import errorMessage from "../api/errorMessage";
 import * as commentsApi from "../api/comments";
 import styles from "./CommentThread.module.css";
 
 export default function CommentThread({ postId }) {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [comments, setComments] = useState([]);
   const [sort, setSort] = useState("latest");
   const [loading, setLoading] = useState(true);
@@ -73,8 +76,8 @@ export default function CommentThread({ postId }) {
       const res = await commentsApi.create(postId, { content: newText.trim() });
       setComments((prev) => [...prev, res.data]);
       setNewText("");
-    } catch {
-      // silent
+    } catch (err) {
+      addToast(errorMessage(err, "Couldn't post your comment. Try again."), "error");
     } finally {
       setSubmitting(false);
     }
