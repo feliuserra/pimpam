@@ -89,13 +89,12 @@ describe("crypto/setup", () => {
     });
   });
 
-  it("returns false and does not throw when key generation fails", async () => {
+  it("throws when key generation fails", async () => {
     loadPrivateKey.mockRejectedValue(new Error("IndexedDB error"));
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await ensureKeysExist();
 
-    expect(result).toBe(false);
+    await expect(ensureKeysExist()).rejects.toThrow("IndexedDB error");
     expect(consoleSpy).toHaveBeenCalledWith(
       "E2EE key setup failed:",
       expect.any(Error),
@@ -103,7 +102,7 @@ describe("crypto/setup", () => {
     consoleSpy.mockRestore();
   });
 
-  it("returns false when storePrivateKey fails", async () => {
+  it("throws when storePrivateKey fails", async () => {
     const mockKeyPair = {
       publicKey: { type: "public" },
       privateKey: { type: "private" },
@@ -113,13 +112,12 @@ describe("crypto/setup", () => {
     storePrivateKey.mockRejectedValue(new Error("Storage full"));
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await ensureKeysExist();
 
-    expect(result).toBe(false);
+    await expect(ensureKeysExist()).rejects.toThrow("Storage full");
     consoleSpy.mockRestore();
   });
 
-  it("returns false when updateMe fails", async () => {
+  it("throws when updateMe fails", async () => {
     const mockKeyPair = {
       publicKey: { type: "public" },
       privateKey: { type: "private" },
@@ -131,9 +129,8 @@ describe("crypto/setup", () => {
     updateMe.mockRejectedValue(new Error("Network error"));
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await ensureKeysExist();
 
-    expect(result).toBe(false);
+    await expect(ensureKeysExist()).rejects.toThrow("Network error");
     consoleSpy.mockRestore();
   });
 });

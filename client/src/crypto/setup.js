@@ -28,6 +28,6 @@ export async function ensureKeysExist() {
     return true; // new keypair was generated
   } catch (err) {
     console.error("E2EE key setup failed:", err);
-    return false;
+    throw err;
   }
 }

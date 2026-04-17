@@ -66,6 +66,8 @@ class User(Base):
 
     # E2EE — client-published RSA-OAEP public key for DM encryption (base64-encoded SPKI)
     e2ee_public_key: Mapped[str | None] = mapped_column(Text)
+    e2ee_key_set_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    e2ee_key_fingerprint: Mapped[str | None] = mapped_column(String(64))  # SHA-256 hex
 
     # Profile customization
     cover_image_url: Mapped[str | None] = mapped_column(String(2048))

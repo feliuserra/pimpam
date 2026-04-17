@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Modal from "./ui/Modal";
+import LockIcon from "./ui/icons/LockIcon";
 import { useAuth } from "../contexts/AuthContext";
 import * as usersApi from "../api/users";
 import * as messagesApi from "../api/messages";
@@ -26,20 +27,20 @@ export default function NewMessageModal({ open, onClose }) {
       const recipientId = userRes.data.id;
       const recipientPubKey = userRes.data.e2ee_public_key;
 
-      let payload;
-      if (recipientPubKey) {
-        const senderPubKey = me?.e2ee_public_key || null;
-        const { ciphertext, encryptedKey, senderEncryptedKey } =
-          await encryptMessage(message.trim(), recipientPubKey, senderPubKey);
-        payload = {
-          recipient_id: recipientId,
-          ciphertext,
-          encrypted_key: encryptedKey,
-          sender_encrypted_key: senderEncryptedKey,
-        };
-      } else {
-        payload = { recipient_id: recipientId, ciphertext: message.trim(), encrypted_key: "" };
+      if (!recipientPubKey) {
+        setError("This user hasn't set up encryption yet. Messages cannot be sent until both users have encryption keys.");
+        return;
       }
+
+      const senderPubKey = me?.e2ee_public_key || null;
+      const { ciphertext, encryptedKey, senderEncryptedKey } =
+        await encryptMessage(message.trim(), recipientPubKey, senderPubKey);
+      const payload = {
+        recipient_id: recipientId,
+        ciphertext,
+        encrypted_key: encryptedKey,
+        sender_encrypted_key: senderEncryptedKey,
+      };
       await messagesApi.send(payload);
       setUsername("");
       setMessage("");
@@ -76,7 +77,7 @@ export default function NewMessageModal({ open, onClose }) {
             className={styles.textarea}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Write your message..."
+            placeholder="Encrypted message..."
             rows={3}
             maxLength={5000}
             required
@@ -84,6 +85,11 @@ export default function NewMessageModal({ open, onClose }) {
         </label>
 
         {error && <p className={styles.error} role="alert">{error}</p>}
+
+        <p className={styles.encryptionNote}>
+          <LockIcon size={12} />
+          Messages are end-to-end encrypted
+        </p>
 
         <button
           type="submit"

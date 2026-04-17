@@ -5,6 +5,7 @@ import {
   importPublicKey,
   storePrivateKey,
   loadPrivateKey,
+  computeFingerprint,
 } from "./keys";
 
 // --- IndexedDB mock ---
@@ -179,6 +180,27 @@ describe("crypto/keys", () => {
     it("returns null when no key is stored", async () => {
       const loaded = await loadPrivateKey();
       expect(loaded).toBeNull();
+    });
+  });
+
+  describe("computeFingerprint", () => {
+    it("returns a 64-character hex SHA-256 digest", async () => {
+      // Mock crypto.subtle.digest to return a known hash
+      const fakeHash = new Uint8Array(32);
+      for (let i = 0; i < 32; i++) fakeHash[i] = i;
+      mockSubtle.digest = vi.fn().mockResolvedValue(fakeHash.buffer);
+
+      const base64Input = btoa(String.fromCharCode(1, 2, 3));
+      const result = await computeFingerprint(base64Input);
+
+      expect(mockSubtle.digest).toHaveBeenCalledWith("SHA-256", expect.any(Uint8Array));
+      expect(result).toHaveLength(64);
+      expect(result).toMatch(/^[0-9a-f]{64}$/);
+      // Verify the expected hex from our mock
+      const expected = Array.from(fakeHash)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      expect(result).toBe(expected);
     });
   });
 });

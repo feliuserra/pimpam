@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class SharedPostPreview(BaseModel):
@@ -22,6 +22,15 @@ class MessageSend(BaseModel):
     encrypted_key: str  # AES key wrapped with recipient's public key
     sender_encrypted_key: str | None = None  # AES key wrapped with sender's own key
     shared_post_id: int | None = None  # optional post shared via DM
+
+    @field_validator("encrypted_key")
+    @classmethod
+    def validate_encrypted_key(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError(
+                "encrypted_key is required — plaintext messages are not allowed"
+            )
+        return v
 
 
 class MessagePublic(BaseModel):

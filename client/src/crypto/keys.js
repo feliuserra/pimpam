@@ -62,6 +62,19 @@ export async function exportPublicKey(publicKey) {
   return btoa(String.fromCharCode(...new Uint8Array(spki)));
 }
 
+/** Compute SHA-256 fingerprint of a base64-encoded public key. Returns hex string. */
+export async function computeFingerprint(publicKeyBase64) {
+  const binary = atob(publicKeyBase64);
+  const buffer = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    buffer[i] = binary.charCodeAt(i);
+  }
+  const hash = await crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 /** Import a base64-encoded SPKI public key into a CryptoKey. */
 export async function importPublicKey(base64) {
   const binary = atob(base64);

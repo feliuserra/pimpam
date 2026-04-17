@@ -10,6 +10,17 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNewDevice, setIsNewDevice] = useState(false);
+  const [e2eeError, setE2eeError] = useState(false);
+
+  const trySetupKeys = useCallback(async () => {
+    try {
+      const newKeys = await ensureKeysExist();
+      if (newKeys) setIsNewDevice(true);
+      setE2eeError(false);
+    } catch {
+      setE2eeError(true);
+    }
+  }, []);
 
   const hydrate = useCallback(async () => {
     const token = localStorage.getItem("access_token");
@@ -20,9 +31,7 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await getMe();
       setUser(data);
-      // Ensure E2EE keys exist on this device
-      const newKeys = await ensureKeysExist();
-      if (newKeys) setIsNewDevice(true);
+      await trySetupKeys();
     } catch {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
@@ -30,7 +39,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [trySetupKeys]);
 
   useEffect(() => {
     hydrate();
@@ -42,11 +51,9 @@ export function AuthProvider({ children }) {
     localStorage.setItem("refresh_token", data.refresh_token);
     const { data: profile } = await getMe();
     setUser(profile);
-    // Ensure E2EE keys exist on this device
-    const newKeys = await ensureKeysExist();
-    if (newKeys) setIsNewDevice(true);
+    await trySetupKeys();
     return data;
-  }, []);
+  }, [trySetupKeys]);
 
   const logout = useCallback(async () => {
     try {
@@ -65,6 +72,10 @@ export function AuthProvider({ children }) {
 
   const dismissNewDevice = useCallback(() => setIsNewDevice(false), []);
 
+  const retryE2eeSetup = useCallback(async () => {
+    await trySetupKeys();
+  }, [trySetupKeys]);
+
   // Auto-logout after 30 minutes of inactivity
   useIdleTimer({
     timeoutMs: 30 * 60 * 1000,
@@ -73,8 +84,12 @@ export function AuthProvider({ children }) {
   });
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, updateUser, isNewDevice, dismissNewDevice }),
-    [user, loading, login, logout, updateUser, isNewDevice, dismissNewDevice],
+    () => ({
+      user, loading, login, logout, updateUser,
+      isNewDevice, dismissNewDevice,
+      e2eeError, retryE2eeSetup,
+    }),
+    [user, loading, login, logout, updateUser, isNewDevice, dismissNewDevice, e2eeError, retryE2eeSetup],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

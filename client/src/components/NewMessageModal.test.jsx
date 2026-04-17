@@ -4,7 +4,10 @@ import { BrowserRouter } from "react-router-dom";
 import NewMessageModal from "./NewMessageModal";
 
 vi.mock("../contexts/AuthContext", () => ({
-  useAuth: vi.fn(() => ({ user: { id: 1, username: "testuser" }, updateUser: vi.fn() })),
+  useAuth: vi.fn(() => ({
+    user: { id: 1, username: "testuser", e2ee_public_key: "my-pub-key" },
+    updateUser: vi.fn(),
+  })),
 }));
 
 vi.mock("../contexts/WSContext", () => ({
@@ -29,8 +32,13 @@ vi.mock("../api/messages", () => ({
   send: vi.fn(),
 }));
 
+vi.mock("../crypto/encrypt", () => ({
+  encryptMessage: vi.fn(),
+}));
+
 import * as usersApi from "../api/users";
 import * as messagesApi from "../api/messages";
+import { encryptMessage } from "../crypto/encrypt";
 
 function renderModal(props = {}) {
   return render(
@@ -48,11 +56,23 @@ describe("NewMessageModal", () => {
   it("renders username input and message textarea", () => {
     renderModal();
     expect(screen.getByPlaceholderText("@username")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Write your message...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Encrypted message...")).toBeInTheDocument();
   });
 
-  it("submitting looks up user then sends message", async () => {
-    usersApi.getUser.mockResolvedValue({ data: { id: 99, username: "recipient" } });
+  it("shows encryption note", () => {
+    renderModal();
+    expect(screen.getByText(/end-to-end encrypted/i)).toBeInTheDocument();
+  });
+
+  it("sends encrypted message when recipient has key", async () => {
+    usersApi.getUser.mockResolvedValue({
+      data: { id: 99, username: "recipient", e2ee_public_key: "recipient-pub-key" },
+    });
+    encryptMessage.mockResolvedValue({
+      ciphertext: "encrypted-ct",
+      encryptedKey: "wrapped-key",
+      senderEncryptedKey: "sender-wrapped",
+    });
     messagesApi.send.mockResolvedValue({});
     const onClose = vi.fn();
 
@@ -61,22 +81,44 @@ describe("NewMessageModal", () => {
     fireEvent.change(screen.getByPlaceholderText("@username"), {
       target: { value: "recipient" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Write your message..."), {
+    fireEvent.change(screen.getByPlaceholderText("Encrypted message..."), {
       target: { value: "Hi there!" },
     });
     fireEvent.click(screen.getByRole("button", { name: /send/i }));
 
     await waitFor(() => {
-      expect(usersApi.getUser).toHaveBeenCalledWith("recipient");
+      expect(encryptMessage).toHaveBeenCalledWith("Hi there!", "recipient-pub-key", "my-pub-key");
     });
 
     await waitFor(() => {
       expect(messagesApi.send).toHaveBeenCalledWith({
         recipient_id: 99,
-        ciphertext: "Hi there!",
-        encrypted_key: "",
+        ciphertext: "encrypted-ct",
+        encrypted_key: "wrapped-key",
+        sender_encrypted_key: "sender-wrapped",
       });
     });
+  });
+
+  it("shows error when recipient has no encryption key", async () => {
+    usersApi.getUser.mockResolvedValue({
+      data: { id: 99, username: "recipient", e2ee_public_key: null },
+    });
+
+    renderModal();
+
+    fireEvent.change(screen.getByPlaceholderText("@username"), {
+      target: { value: "recipient" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Encrypted message..."), {
+      target: { value: "Hello" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/hasn't set up encryption/i);
+    });
+    expect(messagesApi.send).not.toHaveBeenCalled();
   });
 
   it("shows error on user not found", async () => {
@@ -87,7 +129,7 @@ describe("NewMessageModal", () => {
     fireEvent.change(screen.getByPlaceholderText("@username"), {
       target: { value: "nobody" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Write your message..."), {
+    fireEvent.change(screen.getByPlaceholderText("Encrypted message..."), {
       target: { value: "Hello" },
     });
     fireEvent.click(screen.getByRole("button", { name: /send/i }));

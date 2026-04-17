@@ -15,8 +15,9 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+const mockUseAuth = vi.fn();
 vi.mock("../contexts/AuthContext", () => ({
-  useAuth: vi.fn(() => ({ user: { id: 1, username: "testuser" }, updateUser: vi.fn() })),
+  useAuth: (...args) => mockUseAuth(...args),
 }));
 
 vi.mock("../contexts/WSContext", () => ({
@@ -35,16 +36,37 @@ vi.mock("../contexts/NotificationContext", () => ({
 
 vi.mock("../api/messages", () => ({
   getConversation: vi.fn(),
+  getInbox: vi.fn(),
   markRead: vi.fn(),
   send: vi.fn(),
 }));
 
+vi.mock("../crypto/encrypt", () => ({
+  encryptMessage: vi.fn(),
+}));
+
+vi.mock("../crypto/decrypt", () => ({
+  decryptMessage: vi.fn(),
+}));
+
 import * as messagesApi from "../api/messages";
+import { encryptMessage } from "../crypto/encrypt";
+
+const defaultAuth = {
+  user: { id: 1, username: "testuser", e2ee_public_key: "my-pub-key", e2ee_key_fingerprint: "aabbccdd" },
+  updateUser: vi.fn(),
+  isNewDevice: false,
+  dismissNewDevice: vi.fn(),
+  e2eeError: false,
+  retryE2eeSetup: vi.fn(),
+};
 
 describe("MessageThread", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAuth.mockReturnValue(defaultAuth);
     messagesApi.markRead.mockResolvedValue({});
+    messagesApi.getInbox.mockResolvedValue({ data: [] });
   });
 
   it("shows spinner while loading", () => {
@@ -56,8 +78,8 @@ describe("MessageThread", () => {
   it("renders messages from API (reversed for display)", async () => {
     messagesApi.getConversation.mockResolvedValue({
       data: [
-        { id: 2, sender_id: 42, sender_username: "alice", ciphertext: "Second msg", created_at: "2026-03-25T10:01:00Z", is_read: false },
-        { id: 1, sender_id: 1, sender_username: "testuser", ciphertext: "First msg", created_at: "2026-03-25T10:00:00Z", is_read: true },
+        { id: 2, sender_id: 42, sender_username: "alice", ciphertext: "Second msg", encrypted_key: "", created_at: "2026-03-25T10:01:00Z", is_read: false },
+        { id: 1, sender_id: 1, sender_username: "testuser", ciphertext: "First msg", encrypted_key: "", created_at: "2026-03-25T10:00:00Z", is_read: true },
       ],
     });
 
@@ -80,27 +102,41 @@ describe("MessageThread", () => {
     });
   });
 
-  it("sending a message calls API", async () => {
+  it("shows waiting message when recipient has no key", async () => {
     messagesApi.getConversation.mockResolvedValue({ data: [] });
-    messagesApi.send.mockResolvedValue({});
 
     render(<MessageThread />);
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText("Write a message...")).toBeInTheDocument();
+      expect(screen.getByText(/waiting for recipient/i)).toBeInTheDocument();
     });
+  });
 
-    const input = screen.getByPlaceholderText("Write a message...");
-    fireEvent.change(input, { target: { value: "Hello!" } });
-    fireEvent.submit(input.closest("form"));
+  it("shows e2ee error banner when e2eeError is true", async () => {
+    mockUseAuth.mockReturnValue({ ...defaultAuth, e2eeError: true });
+    messagesApi.getConversation.mockResolvedValue({ data: [] });
+
+    render(<MessageThread />);
 
     await waitFor(() => {
-      expect(messagesApi.send).toHaveBeenCalledWith({
-        recipient_id: 42,
-        ciphertext: "Hello!",
-        encrypted_key: "",
-      });
+      expect(screen.getByText(/encryption setup failed/i)).toBeInTheDocument();
     });
+    expect(screen.getByText("Retry")).toBeInTheDocument();
+  });
+
+  it("retry button calls retryE2eeSetup", async () => {
+    const retryFn = vi.fn();
+    mockUseAuth.mockReturnValue({ ...defaultAuth, e2eeError: true, retryE2eeSetup: retryFn });
+    messagesApi.getConversation.mockResolvedValue({ data: [] });
+
+    render(<MessageThread />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Retry")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Retry"));
+    expect(retryFn).toHaveBeenCalled();
   });
 
   it("shows Back button", async () => {

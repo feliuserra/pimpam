@@ -46,6 +46,23 @@ class UserUpdate(BaseModel):
     show_posts_on_profile: bool | None = None
     cover_gradient: bool | None = None
 
+    @field_validator("e2ee_public_key")
+    @classmethod
+    def validate_e2ee_public_key(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        import base64
+
+        try:
+            raw = base64.b64decode(v, validate=True)
+        except Exception:
+            raise ValueError("e2ee_public_key must be valid base64")
+        if not (200 <= len(raw) <= 500):
+            raise ValueError(
+                "e2ee_public_key decoded length must be 200–500 bytes (RSA-2048 SPKI)"
+            )
+        return v
+
     @field_validator("accent_color")
     @classmethod
     def validate_accent_color(cls, v: str | None) -> str | None:
@@ -98,6 +115,8 @@ class UserPublic(BaseModel):
     following_count: int = 0
     is_following: bool | None = None  # None on own profile or unauthenticated
     e2ee_public_key: str | None = None
+    e2ee_key_set_at: datetime | None = None
+    e2ee_key_fingerprint: str | None = None
     cover_image_url: str | None = None
     accent_color: str | None = None
     location: str | None = None

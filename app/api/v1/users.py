@@ -138,6 +138,18 @@ async def update_me(
             setattr(
                 current_user, field, json.dumps(value) if value is not None else None
             )
+        elif field == "e2ee_public_key":
+            import base64
+            import hashlib
+
+            setattr(current_user, field, value)
+            if value:
+                raw = base64.b64decode(value)
+                current_user.e2ee_key_fingerprint = hashlib.sha256(raw).hexdigest()
+                current_user.e2ee_key_set_at = datetime.now(timezone.utc)
+            else:
+                current_user.e2ee_key_fingerprint = None
+                current_user.e2ee_key_set_at = None
         else:
             setattr(current_user, field, value)
     await db.commit()
