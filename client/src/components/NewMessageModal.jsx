@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Modal from "./ui/Modal";
+import LockIcon from "./ui/icons/LockIcon";
 import { useAuth } from "../contexts/AuthContext";
 import * as usersApi from "../api/users";
 import * as messagesApi from "../api/messages";
@@ -38,18 +39,19 @@ export default function NewMessageModal({ open, onClose }) {
         public_key: d.public_key,
       }));
 
-      let payload;
-      if (recipientDeviceKeys.length > 0) {
-        const { ciphertext, deviceKeys } =
-          await encryptMessage(message.trim(), recipientDeviceKeys, senderDeviceKeys);
-        payload = {
-          recipient_id: recipientId,
-          ciphertext,
-          device_keys: deviceKeys,
-        };
-      } else {
-        payload = { recipient_id: recipientId, ciphertext: message.trim(), device_keys: [] };
+      if (recipientDeviceKeys.length === 0) {
+        setError("This user hasn't set up encryption yet. Messages cannot be sent.");
+        setSending(false);
+        return;
       }
+
+      const { ciphertext, deviceKeys } =
+        await encryptMessage(message.trim(), recipientDeviceKeys, senderDeviceKeys);
+      const payload = {
+        recipient_id: recipientId,
+        ciphertext,
+        device_keys: deviceKeys,
+      };
       await messagesApi.send(payload);
       setUsername("");
       setMessage("");
@@ -102,6 +104,10 @@ export default function NewMessageModal({ open, onClose }) {
         >
           {sending ? "Sending..." : "Send"}
         </button>
+
+        <p className={styles.encryptionNote}>
+          <LockIcon size={14} /> Messages are end-to-end encrypted
+        </p>
       </form>
     </Modal>
   );

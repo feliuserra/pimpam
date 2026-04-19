@@ -6,6 +6,7 @@ import MessageBubble from "../components/MessageBubble";
 import SafetyNumberModal from "../components/SafetyNumberModal";
 import Avatar from "../components/ui/Avatar";
 import Spinner from "../components/ui/Spinner";
+import LockIcon from "../components/ui/icons/LockIcon";
 import SendIcon from "../components/ui/icons/SendIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
@@ -23,7 +24,7 @@ import styles from "./MessageThread.module.css";
 export default function MessageThread() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user: me, isNewDevice, dismissNewDevice, deviceId } = useAuth();
+  const { user: me, isNewDevice, dismissNewDevice, deviceId, e2eeError, retryE2eeSetup } = useAuth();
   const toast = useToast();
   const wsSend = useWSSend();
   const [messages, setMessages] = useState([]);
@@ -52,6 +53,9 @@ export default function MessageThread() {
   const [theirPublicKey, setTheirPublicKey] = useState(null);
 
   const otherUserId = parseInt(userId, 10);
+
+  // Block sending when recipient has no device keys or E2EE setup failed
+  const sendBlocked = e2eeError || recipientDeviceKeys.length === 0;
 
   // Fetch other user info + device keys for encryption + verification status
   useEffect(() => {
@@ -265,27 +269,18 @@ export default function MessageThread() {
   const handleSend = async (e) => {
     e.preventDefault();
     const content = text.trim();
-    if (!content || sending) return;
+    if (!content || sending || sendBlocked) return;
     setSending(true);
     // Stop typing indicator on send
     wsSend?.({ type: "typing_stop", recipient_id: otherUserId });
     try {
-      let payload;
-      if (recipientDeviceKeys.length > 0) {
-        const { ciphertext, deviceKeys } =
-          await encryptMessage(content, recipientDeviceKeys, senderDeviceKeys);
-        payload = {
-          recipient_id: otherUserId,
-          ciphertext,
-          device_keys: deviceKeys,
-        };
-      } else {
-        payload = {
-          recipient_id: otherUserId,
-          ciphertext: content,
-          device_keys: [],
-        };
-      }
+      const { ciphertext, deviceKeys } =
+        await encryptMessage(content, recipientDeviceKeys, senderDeviceKeys);
+      const payload = {
+        recipient_id: otherUserId,
+        ciphertext,
+        device_keys: deviceKeys,
+      };
       const res = await messagesApi.send(payload);
       setText("");
       // Append own sent message locally instead of full reload
@@ -354,7 +349,17 @@ export default function MessageThread() {
       />
 
       <div className={styles.container}>
-        {isNewDevice && (
+        {/* E2EE setup error banner */}
+        {e2eeError && (
+          <div className={styles.e2eeErrorBanner} role="alert">
+            <span>Encryption setup failed. You cannot send messages.</span>
+            <button onClick={retryE2eeSetup} className={styles.retryBtn}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        {isNewDevice && !e2eeError && (
           <div className={styles.newDeviceBanner} role="alert">
             <span>New device detected. Messages from before this device cannot be decrypted.</span>
             <button onClick={dismissNewDevice} className={styles.dismissBanner} aria-label="Dismiss">
@@ -401,25 +406,32 @@ export default function MessageThread() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Compose bar */}
-        <form className={styles.compose} onSubmit={handleSend}>
-          <input
-            className={styles.input}
-            value={text}
-            onChange={handleInputChange}
-            placeholder={recipientDeviceKeys.length > 0 ? "Encrypted message..." : "Write a message..."}
-            maxLength={5000}
-            disabled={sending}
-          />
-          <button
-            type="submit"
-            className={styles.sendBtn}
-            disabled={!text.trim() || sending}
-            aria-label="Send"
-          >
-            <SendIcon size={20} />
-          </button>
-        </form>
+        {/* Compose bar or waiting state */}
+        {!e2eeError && recipientDeviceKeys.length === 0 && !loading ? (
+          <div className={styles.waitingKeys}>
+            <LockIcon size={16} />
+            <span>Waiting for recipient&apos;s encryption keys...</span>
+          </div>
+        ) : (
+          <form className={styles.compose} onSubmit={handleSend}>
+            <input
+              className={styles.input}
+              value={text}
+              onChange={handleInputChange}
+              placeholder="Encrypted message..."
+              maxLength={5000}
+              disabled={sending || sendBlocked}
+            />
+            <button
+              type="submit"
+              className={styles.sendBtn}
+              disabled={!text.trim() || sending || sendBlocked}
+              aria-label="Send"
+            >
+              <SendIcon size={20} />
+            </button>
+          </form>
+        )}
       </div>
 
       {otherUser && theirPublicKey && myPublicKey && (

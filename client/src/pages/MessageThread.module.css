@@ -182,3 +182,43 @@
 .shieldChanged:hover {
   color: var(--color-warning, #dd6b20);
 }
+
+/* E2EE setup error banner */
+.e2eeErrorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 1rem;
+  background: #fde8e8;
+  font-size: 0.8rem;
+  color: #b91c1c;
+  border-bottom: 1px solid #f5c2c2;
+}
+
+.retryBtn {
+  background: #b91c1c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.retryBtn:hover {
+  background: #991b1b;
+}
+
+/* Waiting for recipient keys */
+.waitingKeys {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 1rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+}

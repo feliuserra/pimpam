@@ -14,8 +14,10 @@ export function AuthProvider({ children }) {
   const [needsRecovery, setNeedsRecovery] = useState(false);
   const [recoveryBackupDeviceId, setRecoveryBackupDeviceId] = useState(null);
   const [extractablePrivateKey, setExtractablePrivateKey] = useState(null);
+  const [e2eeError, setE2eeError] = useState(false);
 
   const handleKeySetup = useCallback((result) => {
+    setE2eeError(false);
     if (result.needsRecovery) {
       setNeedsRecovery(true);
       setRecoveryBackupDeviceId(result.backupDeviceId);
@@ -39,8 +41,12 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await getMe();
       setUser(data);
-      const result = await ensureKeysExist();
-      handleKeySetup(result);
+      try {
+        const result = await ensureKeysExist();
+        handleKeySetup(result);
+      } catch {
+        setE2eeError(true);
+      }
     } catch {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
@@ -60,8 +66,12 @@ export function AuthProvider({ children }) {
     localStorage.setItem("refresh_token", data.refresh_token);
     const { data: profile } = await getMe();
     setUser(profile);
-    const result = await ensureKeysExist();
-    handleKeySetup(result);
+    try {
+      const result = await ensureKeysExist();
+      handleKeySetup(result);
+    } catch {
+      setE2eeError(true);
+    }
     return data;
   }, [handleKeySetup]);
 
@@ -93,6 +103,15 @@ export function AuthProvider({ children }) {
     setRecoveryBackupDeviceId(null);
   }, []);
 
+  const retryE2eeSetup = useCallback(async () => {
+    try {
+      const result = await ensureKeysExist();
+      handleKeySetup(result);
+    } catch {
+      setE2eeError(true);
+    }
+  }, [handleKeySetup]);
+
   // Auto-logout after 30 minutes of inactivity
   useIdleTimer({
     timeoutMs: 30 * 60 * 1000,
@@ -107,6 +126,7 @@ export function AuthProvider({ children }) {
       deviceId, setDeviceId,
       needsRecovery, recoveryBackupDeviceId, dismissRecovery,
       extractablePrivateKey,
+      e2eeError, retryE2eeSetup,
     }),
     [
       user, loading, login, logout, updateUser,
@@ -114,6 +134,7 @@ export function AuthProvider({ children }) {
       deviceId,
       needsRecovery, recoveryBackupDeviceId, dismissRecovery,
       extractablePrivateKey,
+      e2eeError, retryE2eeSetup,
     ],
   );
 

@@ -106,6 +106,6 @@ export async function ensureKeysExist() {
     };
   } catch (err) {
     console.error("E2EE key setup failed:", err);
-    return { isNewDevice: false, deviceId: null };
+    throw err;
   }
 }

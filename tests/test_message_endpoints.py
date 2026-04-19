@@ -45,13 +45,30 @@ async def _get_user_id(client, headers):
 
 
 async def _send_dm(
-    client, sender_headers, recipient_id, text="hello", device_keys=None
+    client,
+    sender_headers,
+    recipient_id,
+    text="hello",
+    device_keys=None,
+    sender_device_id=None,
 ):
-    """Send a DM and return the response JSON."""
+    """Send a DM and return the response JSON.
+
+    Either pass explicit ``device_keys`` or a ``sender_device_id``
+    (a convenience that wraps a single device key for the sender).
+    """
+    if device_keys is None:
+        if sender_device_id is None:
+            raise ValueError(
+                "Provide device_keys or sender_device_id — plaintext is not allowed"
+            )
+        device_keys = [
+            {"device_id": sender_device_id, "encrypted_key": "test_wrapped_key"}
+        ]
     payload = {
         "recipient_id": recipient_id,
         "ciphertext": text,
-        "device_keys": device_keys or [],
+        "device_keys": device_keys,
     }
     r = await client.post("/api/v1/messages", headers=sender_headers, json=payload)
     assert r.status_code == 201
@@ -177,14 +194,20 @@ async def test_inbox_includes_device_key_for_preview(client):
 @pytest.mark.anyio
 async def test_cursor_pagination_basic(client):
     """before_id returns only messages with id < cursor."""
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
     msgs = []
     for i in range(5):
-        m = await _send_dm(client, alice_h, bob_id, f"msg-{i}")
-        msgs.append(m)
+        m = await _send_dm(
+            client,
+            alice_h,
+            bob_id,
+            f"msg-{i}",
+            sender_device_id=alice_dev,
+        )
+        msgs.append(m)  # noqa: PERF401
 
     alice_id = await _get_user_id(client, alice_h)
 
@@ -209,11 +232,13 @@ async def test_cursor_pagination_basic(client):
 
 @pytest.mark.anyio
 async def test_get_single_message(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
-    msg = await _send_dm(client, alice_h, bob_id, "hello bob")
+    msg = await _send_dm(
+        client, alice_h, bob_id, "hello bob", sender_device_id=alice_dev
+    )
 
     r = await client.get(f"/api/v1/messages/single/{msg['id']}", headers=alice_h)
     assert r.status_code == 200
@@ -225,12 +250,12 @@ async def test_get_single_message(client):
 
 @pytest.mark.anyio
 async def test_get_single_message_forbidden(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     carol_h = await setup_user(client, "carol")
     bob_id = await _get_user_id(client, bob_h)
 
-    msg = await _send_dm(client, alice_h, bob_id, "private")
+    msg = await _send_dm(client, alice_h, bob_id, "private", sender_device_id=alice_dev)
 
     r = await client.get(f"/api/v1/messages/single/{msg['id']}", headers=carol_h)
     assert r.status_code == 403
@@ -248,11 +273,11 @@ async def test_get_single_message_not_found(client):
 
 @pytest.mark.anyio
 async def test_delete_message_success(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
-    msg = await _send_dm(client, alice_h, bob_id, "oops")
+    msg = await _send_dm(client, alice_h, bob_id, "oops", sender_device_id=alice_dev)
 
     r = await client.delete(f"/api/v1/messages/{msg['id']}", headers=alice_h)
     assert r.status_code == 204
@@ -267,11 +292,11 @@ async def test_delete_message_success(client):
 
 @pytest.mark.anyio
 async def test_delete_message_not_sender(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
-    msg = await _send_dm(client, alice_h, bob_id, "mine")
+    msg = await _send_dm(client, alice_h, bob_id, "mine", sender_device_id=alice_dev)
 
     r = await client.delete(f"/api/v1/messages/{msg['id']}", headers=bob_h)
     assert r.status_code == 403
@@ -279,11 +304,11 @@ async def test_delete_message_not_sender(client):
 
 @pytest.mark.anyio
 async def test_delete_message_already_deleted(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
-    msg = await _send_dm(client, alice_h, bob_id, "gone")
+    msg = await _send_dm(client, alice_h, bob_id, "gone", sender_device_id=alice_dev)
     await client.delete(f"/api/v1/messages/{msg['id']}", headers=alice_h)
     r = await client.delete(f"/api/v1/messages/{msg['id']}", headers=alice_h)
     assert r.status_code == 400
@@ -298,11 +323,13 @@ async def test_delete_message_not_found(client):
 
 @pytest.mark.anyio
 async def test_delete_message_too_old(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
-    msg = await _send_dm(client, alice_h, bob_id, "old message")
+    msg = await _send_dm(
+        client, alice_h, bob_id, "old message", sender_device_id=alice_dev
+    )
 
     from datetime import datetime, timedelta, timezone
 
@@ -326,11 +353,13 @@ async def test_delete_message_too_old(client):
 
 @pytest.mark.anyio
 async def test_deleted_single_message_clears_ciphertext(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
-    msg = await _send_dm(client, alice_h, bob_id, "will be deleted")
+    msg = await _send_dm(
+        client, alice_h, bob_id, "will be deleted", sender_device_id=alice_dev
+    )
     await client.delete(f"/api/v1/messages/{msg['id']}", headers=alice_h)
 
     r = await client.get(f"/api/v1/messages/single/{msg['id']}", headers=bob_h)
@@ -341,11 +370,11 @@ async def test_deleted_single_message_clears_ciphertext(client):
 
 @pytest.mark.anyio
 async def test_inbox_deleted_message_clears_preview(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
-    msg = await _send_dm(client, alice_h, bob_id, "secret")
+    msg = await _send_dm(client, alice_h, bob_id, "secret", sender_device_id=alice_dev)
     await client.delete(f"/api/v1/messages/{msg['id']}", headers=alice_h)
 
     r = await client.get("/api/v1/messages", headers=alice_h)
@@ -360,7 +389,7 @@ async def test_inbox_deleted_message_clears_preview(client):
 
 @pytest.mark.anyio
 async def test_send_message_ws_payload_includes_message_id(client):
-    alice_h = await setup_user(client, "alice")
+    alice_h, _, alice_dev = await _setup_with_devices(client, "alice", VALID_SPKI_1)
     bob_h = await setup_user(client, "bob")
     bob_id = await _get_user_id(client, bob_h)
 
@@ -374,7 +403,9 @@ async def test_send_message_ws_payload_includes_message_id(client):
 
     msg_module.publish_to_user = mock_publish
     try:
-        msg = await _send_dm(client, alice_h, bob_id, "check payload")
+        msg = await _send_dm(
+            client, alice_h, bob_id, "check payload", sender_device_id=alice_dev
+        )
         assert len(captured) == 1
         assert captured[0]["data"]["message_id"] == msg["id"]
         assert captured[0]["data"]["sender_id"] is not None

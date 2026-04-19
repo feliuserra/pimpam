@@ -56,3 +56,12 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.encryptionNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}

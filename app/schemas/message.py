@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class SharedPostPreview(BaseModel):
@@ -26,6 +26,15 @@ class MessageSend(BaseModel):
     ciphertext: str  # encrypted client-side — server never sees plaintext
     device_keys: list[DeviceKeyEntry]  # AES key wrapped per-device (sender + recipient)
     shared_post_id: int | None = None  # optional post shared via DM
+
+    @field_validator("device_keys")
+    @classmethod
+    def validate_device_keys(cls, v: list) -> list:
+        if not v:
+            raise ValueError(
+                "device_keys must not be empty — plaintext messages are not allowed"
+            )
+        return v
 
 
 class MessagePublic(BaseModel):

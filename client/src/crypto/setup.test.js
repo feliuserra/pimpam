@@ -83,14 +83,13 @@ describe("crypto/setup", () => {
     expect(storeDeviceId).toHaveBeenCalledWith(99);
   });
 
-  it("returns gracefully when loadPrivateKey throws", async () => {
+  it("throws when loadPrivateKey fails", async () => {
     loadPrivateKey.mockRejectedValue(new Error("IndexedDB error"));
     loadDeviceId.mockResolvedValue(null);
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await ensureKeysExist();
 
-    expect(result).toEqual({ isNewDevice: false, deviceId: null });
+    await expect(ensureKeysExist()).rejects.toThrow("IndexedDB error");
     expect(consoleSpy).toHaveBeenCalledWith(
       "E2EE key setup failed:",
       expect.any(Error),
@@ -98,7 +97,7 @@ describe("crypto/setup", () => {
     consoleSpy.mockRestore();
   });
 
-  it("returns gracefully when registerDevice fails", async () => {
+  it("throws when registerDevice fails", async () => {
     loadPrivateKey.mockResolvedValue(null);
     loadDeviceId.mockResolvedValue(null);
     getAvailableBackups.mockResolvedValue({ data: [] });
@@ -112,9 +111,8 @@ describe("crypto/setup", () => {
     registerDevice.mockRejectedValue(new Error("Network error"));
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await ensureKeysExist();
 
-    expect(result).toEqual({ isNewDevice: false, deviceId: null });
+    await expect(ensureKeysExist()).rejects.toThrow("Network error");
     consoleSpy.mockRestore();
   });
 });

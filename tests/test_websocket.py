@@ -16,6 +16,17 @@ from app.core.security import create_access_token
 from app.main import app
 from tests.conftest import register, setup_user
 
+# Valid RSA-2048 SPKI public key for device registration
+VALID_SPKI = (
+    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv06L2BLDCJpXoKQzty0i"
+    "Ae9iSGYUFTQTiO0nplL1tQ/NOqwB3d5F16hCCJY3bkvs5rLEBO0M4dQLlgXt1iOt"
+    "8pVMiZGUBDiU7EUxVfgiIl9OKSWCNMaFz46uUiIQpWVXAHT1RkXAuVO63aibvmA1"
+    "IaHMZ6gOePlzqVyCqFPpHbb+ktDAD3s5GTCQHYTL3itZmfFFa1wO65yWy29Aca3sj"
+    "cjooAC3OMJtwL7Jz6EMkPkHb/60dL33cG1DMNrvekotWLoJ/A5yYj7HgnBVw89WB"
+    "OBOofXk/bu/dNBf1j/DdSJArfDvtevUTDrJYylKK4JKj8S64taj4Y3gHKp3CHaMr"
+    "QIDAQAB"
+)
+
 # ---------------------------------------------------------------------------
 # WebSocket connection & auth
 # ---------------------------------------------------------------------------
@@ -145,12 +156,24 @@ async def test_send_message_notifies_recipient(client):
     bob_resp = await register(client, "bob")
     bob_id = bob_resp.json()["id"]
 
+    # Register a device so we can provide a valid device_key
+    dev_r = await client.post(
+        "/api/v1/devices",
+        headers=alice_h,
+        json={"device_name": "Test", "public_key": VALID_SPKI},
+    )
+    alice_dev = dev_r.json()["id"]
+
     with patch(
         "app.api.v1.messages.publish_to_user", new_callable=AsyncMock
     ) as mock_pub:
         r = await client.post(
             "/api/v1/messages",
-            json={"recipient_id": bob_id, "ciphertext": "enc", "device_keys": []},
+            json={
+                "recipient_id": bob_id,
+                "ciphertext": "enc",
+                "device_keys": [{"device_id": alice_dev, "encrypted_key": "wrapped"}],
+            },
             headers=alice_h,
         )
         assert r.status_code == 201

@@ -4,6 +4,26 @@ from unittest.mock import patch
 
 from tests.conftest import get_test_db
 
+# Valid RSA-2048 SPKI public key for device registration in DM tests
+VALID_SPKI = (
+    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv06L2BLDCJpXoKQzty0i"
+    "Ae9iSGYUFTQTiO0nplL1tQ/NOqwB3d5F16hCCJY3bkvs5rLEBO0M4dQLlgXt1iOt"
+    "8pVMiZGUBDiU7EUxVfgiIl9OKSWCNMaFz46uUiIQpWVXAHT1RkXAuVO63aibvmA1"
+    "IaHMZ6gOePlzqVyCqFPpHbb+ktDAD3s5GTCQHYTL3itZmfFFa1wO65yWy29Aca3sj"
+    "cjooAC3OMJtwL7Jz6EMkPkHb/60dL33cG1DMNrvekotWLoJ/A5yYj7HgnBVw89WB"
+    "OBOofXk/bu/dNBf1j/DdSJArfDvtevUTDrJYylKK4JKj8S64taj4Y3gHKp3CHaMr"
+    "QIDAQAB"
+)
+
+
+async def _register_device(client, headers):
+    r = await client.post(
+        "/api/v1/devices",
+        headers=headers,
+        json={"device_name": "Test", "public_key": VALID_SPKI},
+    )
+    return r.json()["id"]
+
 
 async def setup_verified_user(client, username):
     """Register, verify, and return auth headers."""
@@ -152,14 +172,16 @@ async def test_execute_deletion_anonymizes_posts(client):
 
 
 async def test_execute_deletion_removes_received_messages(client):
+    from sqlalchemy import select
+
     from app.crud.account_deletion import execute_deletion
     from app.models.message import Message
-    from sqlalchemy import select
 
     ha = await setup_verified_user(client, "alice")
     hb = await setup_verified_user(client, "bob")
 
     alice_id = (await client.get("/api/v1/users/me", headers=ha)).json()["id"]
+    bob_dev = await _register_device(client, hb)
 
     # Bob sends alice a message
     await client.post(
@@ -167,7 +189,7 @@ async def test_execute_deletion_removes_received_messages(client):
         json={
             "recipient_id": alice_id,
             "ciphertext": "encrypted",
-            "device_keys": [],
+            "device_keys": [{"device_id": bob_dev, "encrypted_key": "wrapped"}],
         },
         headers=hb,
     )
@@ -185,15 +207,17 @@ async def test_execute_deletion_removes_received_messages(client):
 
 
 async def test_execute_deletion_anonymizes_sent_messages(client):
+    from sqlalchemy import select
+
     from app.crud.account_deletion import execute_deletion
     from app.models.message import Message
-    from sqlalchemy import select
 
     ha = await setup_verified_user(client, "alice")
     hb = await setup_verified_user(client, "bob")
 
     alice_id = (await client.get("/api/v1/users/me", headers=ha)).json()["id"]
     bob_id = (await client.get("/api/v1/users/me", headers=hb)).json()["id"]
+    alice_dev = await _register_device(client, ha)
 
     # Alice sends bob a message
     await client.post(
@@ -201,7 +225,7 @@ async def test_execute_deletion_anonymizes_sent_messages(client):
         json={
             "recipient_id": bob_id,
             "ciphertext": "encrypted",
-            "device_keys": [],
+            "device_keys": [{"device_id": alice_dev, "encrypted_key": "wrapped"}],
         },
         headers=ha,
     )

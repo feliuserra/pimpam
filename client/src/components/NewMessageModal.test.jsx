@@ -34,9 +34,14 @@ vi.mock("../api/devices", () => ({
   getMyDevices: vi.fn(),
 }));
 
+vi.mock("../crypto/encrypt", () => ({
+  encryptMessage: vi.fn(),
+}));
+
 import * as usersApi from "../api/users";
 import * as messagesApi from "../api/messages";
 import * as devicesApi from "../api/devices";
+import { encryptMessage } from "../crypto/encrypt";
 
 function renderModal(props = {}) {
   return render(
@@ -57,14 +62,12 @@ describe("NewMessageModal", () => {
     expect(screen.getByPlaceholderText("Write your message...")).toBeInTheDocument();
   });
 
-  it("submitting looks up user then sends message", async () => {
+  it("shows error when recipient has no device keys", async () => {
     usersApi.getUser.mockResolvedValue({ data: { id: 99, username: "recipient" } });
     devicesApi.getUserDeviceKeys.mockResolvedValue({ data: [] });
     devicesApi.getMyDevices.mockResolvedValue({ data: [] });
-    messagesApi.send.mockResolvedValue({});
-    const onClose = vi.fn();
 
-    renderModal({ onClose });
+    renderModal();
 
     fireEvent.change(screen.getByPlaceholderText("@username"), {
       target: { value: "recipient" },
@@ -75,14 +78,44 @@ describe("NewMessageModal", () => {
     fireEvent.click(screen.getByRole("button", { name: /send/i }));
 
     await waitFor(() => {
-      expect(usersApi.getUser).toHaveBeenCalledWith("recipient");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /hasn't set up encryption/i,
+      );
     });
+
+    expect(messagesApi.send).not.toHaveBeenCalled();
+  });
+
+  it("encrypts and sends when recipient has device keys", async () => {
+    usersApi.getUser.mockResolvedValue({ data: { id: 99, username: "recipient" } });
+    devicesApi.getUserDeviceKeys.mockResolvedValue({
+      data: [{ device_id: 5, public_key: "recip-key" }],
+    });
+    devicesApi.getMyDevices.mockResolvedValue({
+      data: [{ id: 7, public_key: "my-key" }],
+    });
+    encryptMessage.mockResolvedValue({
+      ciphertext: "encrypted-text",
+      deviceKeys: [{ device_id: 5, encrypted_key: "wrapped" }],
+    });
+    messagesApi.send.mockResolvedValue({});
+    const onClose = vi.fn();
+
+    renderModal({ onClose });
+
+    fireEvent.change(screen.getByPlaceholderText("@username"), {
+      target: { value: "recipient" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Write your message..."), {
+      target: { value: "Secret!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
 
     await waitFor(() => {
       expect(messagesApi.send).toHaveBeenCalledWith({
         recipient_id: 99,
-        ciphertext: "Hi there!",
-        device_keys: [],
+        ciphertext: "encrypted-text",
+        device_keys: [{ device_id: 5, encrypted_key: "wrapped" }],
       });
     });
   });
@@ -103,5 +136,10 @@ describe("NewMessageModal", () => {
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("User not found");
     });
+  });
+
+  it("shows encryption note", () => {
+    renderModal();
+    expect(screen.getByText(/end-to-end encrypted/i)).toBeInTheDocument();
   });
 });
